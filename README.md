@@ -15,15 +15,15 @@
 
 Select regio-type for the mobility characteristics:
 - regiotypes:
-# Ländliche Regionen
-# LR_Klein - Kleinstädtischer, dörflicher Raum
-# LR_Mitte - Mittelstädte, städtischer Raum
-# LR_Zentr - Zentrale Stadt
-# Stadtregionen
-# SR_Klein - Kleinstädtischer, dörflicher Raum
-# SR_Mitte - Mittelstädte, städtischer Raum
-# SR_Gross - Regiopolen, Großstädte
-# SR_Metro - Metropole
+Ländliche Regionen
+LR_Klein - Kleinstädtischer, dörflicher Raum
+LR_Mitte - Mittelstädte, städtischer Raum
+LR_Zentr - Zentrale Stadt
+Stadtregionen
+SR_Klein - Kleinstädtischer, dörflicher Raum
+SR_Mitte - Mittelstädte, städtischer Raum
+SR_Gross - Regiopolen, Großstädte
+SR_Metro - Metropole
 
 Change vehicle configuration
 - battery capacity
