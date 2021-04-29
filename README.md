@@ -1,44 +1,35 @@
-# rli_template
-Template repository for creating new projects under the RLI's umbrella
+# Download and run SimBEV
 
-## Get started
+## Download/install
 
-Simply click on the green `Use this template` button on the left of the `Clone or download` button.
+- clone repository to your local machine
+- install requirements found in requirements.txt
 
-The detailed instructions to create a new repository from this template can be found [here](https://help.github.com/en/articles/creating-a-repository-from-a-template).
+## Run SimBEV
 
-## src folder
+- change config-file to the setting for your scenario
+- run main_simbev.py
+- results are found in 'res'-folder
 
-This folder is where you should place the code of your package (package name to be edited in `setup.py` under name)
+## Set paramters for your scenario
 
-You can install it locally for developing with
+Select regio-type for the mobility characteristics:
+- regiotypes:
+# Ländliche Regionen
+# LR_Klein - Kleinstädtischer, dörflicher Raum
+# LR_Mitte - Mittelstädte, städtischer Raum
+# LR_Zentr - Zentrale Stadt
+# Stadtregionen
+# SR_Klein - Kleinstädtischer, dörflicher Raum
+# SR_Mitte - Mittelstädte, städtischer Raum
+# SR_Gross - Regiopolen, Großstädte
+# SR_Metro - Metropole
 
-    python setup.py install
-    
-More details for packaging are available on [https://packaging.python.org](https://packaging.python.org/tutorials/packaging-projects/)
+Change vehicle configuration
+- battery capacity
+- charging power (slow and fast)
+- consumption
 
+Decide how many vehicles should be simulated
+- note: more than 5000 vehicles of one type in one region is not necessary, if you want to analyze more, scale it accordingly
 
-## Docs
-
-To build the docs simply go to the `docs` folder
-
-    cd docs
-
-Install the requirements
-
-    pip install -r docs_requirements.txt
-
-and run
-
-    make html
-
-The output will then be located in `docs/_build/html` and can be opened with your favorite browser
-
-## Code linting
-
-In this template, 3 possible linters are proposed:
-- flake8 only sends warnings and error about linting (PEP8)
-- pylint sends warnings and error about linting (PEP8) and also allows warning about imports order
-- black sends warning but can also fix the files for you
-
-You can perfectly use the 3 of them or subset, at your preference. Don't forget to edit `.travis.yml` if you want to deactivate the automatic testing of some linters!
