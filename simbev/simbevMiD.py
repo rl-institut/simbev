@@ -1,16 +1,11 @@
 import pandas as pd
-import os.path
 import numpy as np
 from pathlib import Path
 import math
 
-# # debug warnings
-# import warnings
-# warnings.filterwarnings('error')
-
 
 def get_prob(
-        regioname,
+        region,
         stepsize,
 ):
     destinations = [
@@ -24,22 +19,29 @@ def get_prob(
         "6_home",
     ]
     str_stepsize = str(stepsize) + "min"
-    folder_name = os.path.join("data")
-    subfolder_name = Path(folder_name + "/" + regioname)
-    purpose = dict()
-    speed = dict()
-    distance = dict()
-    stand = dict()
-    start = dict()
+    data_dir = Path("data")
+    region_dir = data_dir.joinpath(region)
+
+    probs = {
+        "start": {},
+        "purpose": {},
+        "speed": {},
+        "distance": {},
+        "stand": {},
+        "charge": {},
+    }
     wd = []
-    files = os.listdir(subfolder_name)
-    files.sort()
-    for file in files:
-        file_name = Path(folder_name + "/" + regioname + "/" + file)
-        if file.find("start") is not -1:
-            day_key = file[:file.index("y") + 1]
+
+    # get all csv files in this region directory
+    files = region_dir.glob("*.csv")
+    for file in sorted(files):
+        if "start" in file.stem:
+            # get day of week by name with index for sorting
+            # file naming: <idx>_<weekday>_<region>_start.csv
+            # -> get part until second underscore
+            day_key = '_'.join(file.stem.split('_')[:2])
             tp = pd.read_csv(
-                file_name,
+                file,
                 sep=",",
                 decimal=".",
                 names=[
@@ -58,13 +60,13 @@ def get_prob(
                 data=tp_norm,
                 columns=["trips"]
             )
-            start[day_key] = tp_norm
+            probs["start"][day_key] = tp_norm
             wd.append(day_key)
 
-        if file.find("purpose") is not -1:
-            day_key = file[:file.index("y") + 1]
+        elif "purpose" in file.stem:
+            day_key = '_'.join(file.stem.split('_')[:2])
             tp = pd.read_csv(
-                file_name,
+                file,
                 sep=",",
                 decimal=".",
                 names=destinations,
@@ -73,56 +75,27 @@ def get_prob(
                 parse_dates=True,
             )
             tp_stepsize = tp.resample(str_stepsize).sum()
-            purpose[day_key] = tp_stepsize
+            probs["purpose"][day_key] = tp_stepsize
 
-        if file.find("speed") is not -1:
+        elif "charge" in file.stem:
+            probs["charge"] = pd.read_csv(file, sep=";", decimal=",")
+        elif file.stem.split('_')[0] in probs:
+            key = file.stem.split('_')[0]
+            # distance, speed or stand
+            # file naming: <prob>_<region>_<idx>_<purpose>
+            # take last two elements to get purpose
             ts = pd.read_csv(
-                file_name,
+                file,
                 sep=",",
                 decimal="."
             )
-            for i, c in enumerate(file):
-                if c.isdigit():
-                    idx = i
-                    break
-            purp_key = file[idx:file.index(".")]
+            purp_key = '_'.join(file.stem.split('_')[-2:])
             if purp_key == "41_private":
                 purp_key = "4_private/ridesharing"
-            speed[purp_key] = ts
-        if file.find("distance") is not -1:
-            td = pd.read_csv(file_name, sep=",", decimal=".")
-            for i, c in enumerate(file):
-                if c.isdigit():
-                    idx = i
-                    break
-            purp_key = file[idx:file.index(".")]
-            if purp_key == "41_private":
-                purp_key = "4_private/ridesharing"
-            distance[purp_key] = td
-        if file.find("stand") is not -1:
-            tst = pd.read_csv(file_name, sep=",", decimal=".")
-            for i, c in enumerate(file):
-                if c.isdigit():
-                    idx = i
-                    break
-            purp_key = file[idx:file.index(".")]
-            if purp_key == "41_private":
-                purp_key = "4_private/ridesharing"
-            stand[purp_key] = tst
-        if file.find("charge") is not -1:
-            charge = pd.read_csv(file_name, sep=";", decimal=",")
-
-    probdata = {
-        "start": start,
-        "purpose": purpose,
-        "speed": speed,
-        "distance": distance,
-        "stay": stand,
-        "charge": charge,
-    }
+            probs[key][purp_key] = ts
 
     wd = sorted(wd, key=lambda x: int("".join([r for r in x if r.isdigit()])))
-    return probdata, wd
+    return probs, wd
 
 
 def get_purpose(
@@ -177,7 +150,7 @@ def availability(
     day_mins = 1440
     range_day = day_mins / stepsize
     # get data from MiD
-    s = probdata["stay"]
+    s = probdata["stand"]
     d = probdata["distance"]
     sp = probdata["speed"]
     ch = probdata["charge"]
@@ -1064,9 +1037,7 @@ def charging_flexibility(
 
     filename = "{}_{:05d}_standing_times.csv".format(car_type, car_number)
 
-    file_path = os.path.join(
-        path,
-        filename)
+    file_path = path.joinpath(filename)
 
     # export charging times per car
     charging_car.to_csv(file_path)
@@ -1166,5 +1137,3 @@ def fast_charging_capacity(
         fast_charging_capacity = 350
 
     return fast_charging_capacity
-
-
