@@ -145,6 +145,7 @@ def availability(
         last_charging_capacity,
         rng,
         eta,
+        soc_min,
 ):
 
     day_mins = 1440
@@ -342,10 +343,10 @@ def availability(
                 range_remaining = (soc_list[-1] * batcap) / con
 
                 # fast charging events for longer distances
-                bat_range = ((1 - 0.1) * batcap)/con
+                bat_range = ((1 - soc_min) * batcap)/con
                 if distance > bat_range and car_type == 'BEV':
                     #print('Fast Charging')
-                    range_remaining = (soc_list[-1]*batcap)/con
+                    range_remaining = ((soc_list[-1]-soc_min)*batcap)/con
                     if range_remaining < 20:
                         fastcharge = min(
                             fast_charging_capacity(
@@ -374,9 +375,9 @@ def availability(
                         im = charge_start + 1
 
                     # driving for the rest of the current batcap/soc
-                    range_remaining = (soc_list[-1] * batcap) / con
+                    range_remaining = ((soc_list[-1]-soc_min) * batcap) / con
                     # driving until range remaining is 20 km
-                    distance_stop = range_remaining - 20
+                    distance_stop = range_remaining
                     distance_remaining = distance - distance_stop
                     drivetime = (distance_stop / speed) * 60
                     drivetime = math.ceil(drivetime / stepsize)
@@ -426,8 +427,9 @@ def availability(
                     im = charge_start + 1
 
                     # calculate remainig charging events for the rest of the distance
-                    range_bat = (soc_list[-1] * batcap) / con
-                    range_bat = range_bat - 20
+                    #soc_min = 0.2
+                    range_bat = ((soc_list[-1]-soc_min) * batcap) / con
+                    #range_bat = range_bat - 20
                     num_stops = math.floor(distance_remaining/range_bat)
                     distance_stop = range_bat
                     for stops in range(num_stops):
@@ -497,11 +499,15 @@ def availability(
                 if im == len(car_status):
                     continue
 
+
                 # fast charging event when next trip cannot be done with current soc
-                if range_remaining < distance and car_type == 'BEV':
+                driveconsumption = distance * con
+                soc = soc_list[-1] - (driveconsumption / batcap)
+                if soc < soc_min and car_type == 'BEV':
                     # driving for 15 minutes to the charging hub
                     drivetime = int(rng.choice(15, 1))
-                    distance_stop = (drivetime/60) * speed
+                    range_bat = ((soc_list[-1] - soc_min) * batcap) / con
+                    distance_stop = min(((drivetime / 60) * speed), range_bat)
                     drivetime = math.ceil(drivetime / stepsize)
                     driveconsumption = distance_stop * con
                     purp_list.append("driving")
@@ -1015,6 +1021,11 @@ def charging_flexibility(
 
     charging_car.rename(columns={"charge_start": "park_start"}, inplace=True)
     charging_car.rename(columns={"charge_end": "park_end"}, inplace=True)
+
+    # check SoC
+    check_soc = charging_car['SoC_end'] < 0.19
+    if check_soc.any():
+        breakpoint()
 
     # reorder columns
     charging_car = charging_car[
