@@ -63,6 +63,9 @@ if __name__ == "__main__":
     # get days for simulation
     days = cfg.getfloat('basic', 'days')
 
+    # get minimum soc value in %
+    soc_min = cfg.getfloat('basic', 'soc_min')
+
     # read chargepoint probabilities
     charge_prob_slow = pd.read_csv(cfg['charging_probabilities']['slow'], sep=';', decimal=',')
     charge_prob_slow = charge_prob_slow.set_index('destination')
@@ -225,6 +228,7 @@ if __name__ == "__main__":
                     last_charging_capacity,
                     rng,
                     cfg.getfloat('basic','eta_cp'),
+                    soc_min,
                 )
                 # add results for this day to availability timeseries
                 availability = availability.append(av).reset_index(drop=True)
@@ -253,7 +257,7 @@ if __name__ == "__main__":
             # Export timeseries for each car
             simbevMiD.charging_flexibility(
                 charging_car,
-                idx,
+                car_type_name,
                 icar,
                 stepsize,
                 len(wd),
