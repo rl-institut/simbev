@@ -296,5 +296,5 @@ if __name__ == "__main__":
                 )
 
                 count_cars += 1
-            if numcar > 1:
+            if numcar >= 1:
                 print(" - done")
