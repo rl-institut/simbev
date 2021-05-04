@@ -65,7 +65,7 @@ if __name__ == "__main__":
     main_path = directory.joinpath(sub_directory)
 
     # make dirs
-    main_path.mkdir(exist_ok = True)
+    main_path.mkdir(exist_ok=True)
 
     print("Writing to {}".format(main_path))
 
