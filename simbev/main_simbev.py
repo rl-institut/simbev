@@ -29,11 +29,20 @@ if __name__ == "__main__":
     parser.add_argument('scenario', default="default_single", nargs='?', help='Set the scenario which is located in ./scenarios .')
     args = parser.parse_args()
 
+    # check if scenario exists
+    scenario_path = os.path.join('.', 'scenarios', args.scenario)
+    if not os.path.isdir(scenario_path):
+        raise FileNotFoundError(f'Scenario "{args.scenario}" not found in ./scenarios .')
+
     # read config file
-    # config_file = Path(config_file)
     cfg = cp.ConfigParser()
-    # cfg.read(config_file)
-    cfg.read(args.config)
+    cfg_file = os.path.join(scenario_path, 'simbev_config.cfg')
+    if not os.path.isfile(cfg_file):
+        raise FileNotFoundError(f'Config file {cfg_file} not found.')
+    try:
+        cfg.read(cfg_file)
+    except:
+        raise FileNotFoundError(f'Cannot read config file {cfg_file} - malformed?')
 
     # set number of threads for parallel computation
     num_threads = cfg.getfloat('sim_params', 'num_threads')
