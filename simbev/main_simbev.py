@@ -79,9 +79,9 @@ if __name__ == "__main__":
     soc_min = cfg.getfloat('basic', 'soc_min')
 
     # read chargepoint probabilities
-    charge_prob_slow = pd.read_csv(cfg['charging_probabilities']['slow'], sep=';', decimal=',')
+    charge_prob_slow = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['slow']))
     charge_prob_slow = charge_prob_slow.set_index('destination')
-    charge_prob_fast = pd.read_csv(cfg['charging_probabilities']['fast'], sep=';', decimal=',')
+    charge_prob_fast = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['fast']))
     charge_prob_fast = charge_prob_fast.set_index('destination')
 
     # set random seed from config or truly random if none is given
