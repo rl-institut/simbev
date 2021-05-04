@@ -55,9 +55,9 @@ if __name__ == "__main__":
     if num_threads > 1:
         # Multi processing calculates datetime.now() multiple times
         # A "hard" path is needed
-        date = "final_Reference_2050"  # TODO: set current date
+        date = args.scenario
     else:
-        date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        date = f'{args.scenario}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}'
 
     sub_directory = str(date) + "_simbev_run"
 
