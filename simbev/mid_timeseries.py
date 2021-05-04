@@ -2,6 +2,8 @@ import pandas as pd
 # import numpy as np
 import math
 import datetime
+from pathlib import Path
+
 
 # set cutoff dates, jeweils erster Monat der nächsten Jahreszeit
 cutoff_dates = (3, 6, 9, 12)
@@ -38,16 +40,15 @@ def get_cutoff(date: datetime.date):
 # Args: region (als Zahl 71-77), season aus get_season als String
 def get_name_csv(r, s):
     # Bestimmen der Region (evtl mit dictionary?)
-    name = "data/seasonal/"
-    if r == 71: name += "SR_Metropole_"
-    elif r == 72: name += "SR_Grossstadt_"
-    elif r == 73: name += "SR_Mittelstadt_"
-    elif r == 74: name += "SR_Kleinstadt_"
-    elif r == 75: name += "LR_Zentralstadt_"
-    elif r == 76: name += "LR_Mittelstadt_"
-    elif r == 77: name += "LR_Kleinstadt_"
+    if r == 71: name = "SR_Metropole_"
+    elif r == 72: name = "SR_Grossstadt_"
+    elif r == 73: name = "SR_Mittelstadt_"
+    elif r == 74: name = "SR_Kleinstadt_"
+    elif r == 75: name = "LR_Zentralstadt_"
+    elif r == 76: name = "LR_Mittelstadt_"
+    elif r == 77: name = "LR_Kleinstadt_"
     else: name = "Error"
-    return name + s + ".csv"
+    return Path('data', 'seasonal', name + s + ".csv")
 
 
 # function that gets used in code, returns pandas
