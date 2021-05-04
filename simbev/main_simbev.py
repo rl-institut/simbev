@@ -1,11 +1,13 @@
 import simbevMiD
 
+import os
 import argparse
 import configparser as cp
 from datetime import datetime
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from helpers.helpers import single_to_multi_scenario
 
 
 # regiotypes:
@@ -22,8 +24,9 @@ from pathlib import Path
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='SimBEV modelling tool for generating timeseries of electric vehicles.')
-    parser.add_argument('config', default="simbev_config_default.cfg", nargs='?', help='Set the config CSV file')
+    parser = argparse.ArgumentParser(description='SimBEV modelling tool for generating timeseries of electric '
+                                                 'vehicles.')
+    parser.add_argument('scenario', default="default_single", nargs='?', help='Set the scenario which is located in ./scenarios .')
     args = parser.parse_args()
 
     # read config file
