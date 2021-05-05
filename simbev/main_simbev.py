@@ -212,18 +212,11 @@ if __name__ == "__main__":
     directory = "res"
     directory = Path(directory)
 
-    # dir strings
-    if num_threads > 1:
-        # Multi processing calculates datetime.now() multiple times
-        # A "hard" path is needed
-        date = args.scenario
-    else:
-        date = f'{args.scenario}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}'
+    # result dir
+    result_dir = f'{args.scenario}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}_simbev_run'
 
-    sub_directory = str(date) + "_simbev_run"
-
-    # path joins
-    main_path = directory.joinpath(sub_directory)
+    # path join
+    main_path = directory.joinpath(result_dir)
 
     # make dirs
     main_path.mkdir(exist_ok=True)
