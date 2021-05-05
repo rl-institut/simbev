@@ -206,7 +206,7 @@ if __name__ == "__main__":
         raise FileNotFoundError(f'Cannot read config file {cfg_file} - malformed?')
 
     # set number of threads for parallel computation
-    num_threads = cfg.getfloat('sim_params', 'num_threads')
+    num_threads = cfg.getint('sim_params', 'num_threads')
 
     # create directory for standing times data
     directory = "res"
