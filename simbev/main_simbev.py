@@ -278,6 +278,10 @@ if __name__ == "__main__":
     # get the region mode (single or multi) and get params
     region_mode = cfg.get('region_mode', 'region_mode')
     if region_mode == 'single':
+        if num_threads > 1:
+            num_threads = 1
+            print('Warning: Single region mode selected, therefore number of threads is set to 1.')
+
         regions, tech_data = single_to_multi_scenario(
             region_type=cfg.get('basic', 'regio_type'),
             rampup=dict(cfg['rampup_ev']),
@@ -295,7 +299,7 @@ if __name__ == "__main__":
 
     car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
 
-    print(f'Starting simbev in {num_threads} thread(s)...')
+    print(f'Running simbev in {num_threads} thread(s)...')
     if num_threads == 1:
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
             run_simbev(region_ctr=region_ctr, region_id=region_id, region_data=region_data)
