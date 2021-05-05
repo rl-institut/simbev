@@ -269,11 +269,11 @@ if __name__ == "__main__":
         "drive_end",
     ]
 
-    charging_all = pd.DataFrame(
-        data=ca,
-        columns=columns,
-        index=[0],
-    )
+    # charging_all = pd.DataFrame(
+    #     data=ca,
+    #     columns=columns,
+    #     index=[0],
+    # )
 
     # get the region mode (single or multi) and get params
     region_mode = cfg.get('region_mode', 'region_mode')
