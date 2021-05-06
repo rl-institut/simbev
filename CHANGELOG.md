@@ -20,6 +20,7 @@ Here is a template for new release sections
 
 ### Added
 - Support multiple regions #3
+- Add multiprocessing #20
 
 ### Changed
 
