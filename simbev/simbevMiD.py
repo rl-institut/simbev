@@ -929,10 +929,10 @@ def charging_flexibility(
     charging_car.rename(columns={"charge_end": "park_end"}, inplace=True)
 
     # check SoC
-    check_soc = charging_car['SoC_end'] < 0.19
-    if check_soc.any():
-        print('SoC error')
-        breakpoint()
+    # check_soc = charging_car['SoC_end'] < 0.19
+    # if check_soc.any():
+    #     print('SoC error')
+    #     breakpoint()
 
     # reorder columns
     charging_car = charging_car[
