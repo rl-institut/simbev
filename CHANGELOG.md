@@ -22,7 +22,8 @@ Here is a template for new release sections
 - one thing
 
 ### Changed
-- another thing
+- Fixed #17
+- Fixed #18
 
 ### Removed
 - yet another thing
