@@ -22,6 +22,10 @@ Here is a template for new release sections
 - Support multiple regions #3
 
 ### Changed
+- Fixed #17
+- Fixed #18
 
 ### Removed
+- yet another thing
+
 

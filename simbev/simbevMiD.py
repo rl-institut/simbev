@@ -308,13 +308,15 @@ def availability(
                 ]
 
                 drivetime = 0
-                # minimum speed with car 5 km/h and maximum driving hours: 4
-                while speed < 5 or drivetime > 240:
+                # minimum speed with car 5 km/h and maximum driving hours: depending on MiD-data
+                max_drivetime = math.ceil((population_dis[-1]/population_sp[-1])*60/100) * 100
+                while speed < 5 or drivetime > max_drivetime:
                     speed = rng.choice(
                         population_sp,
                         p=weights_sp,
                     )
                     drivetime = (distance / speed) * 60
+
 
                 drivetime = math.ceil(drivetime / stepsize)
                 speed_list.append(speed)
@@ -929,10 +931,10 @@ def charging_flexibility(
     charging_car.rename(columns={"charge_end": "park_end"}, inplace=True)
 
     # check SoC
-    check_soc = charging_car['SoC_end'] < 0.19
-    if check_soc.any():
-        print('SoC error')
-        breakpoint()
+    # check_soc = charging_car['SoC_end'] < 0.19
+    # if check_soc.any():
+    #     print('SoC error')
+    #     breakpoint()
 
     # reorder columns
     charging_car = charging_car[
