@@ -23,6 +23,10 @@ Here is a template for new release sections
 - Add multiprocessing #20
 
 ### Changed
+- Fixed #17
+- Fixed #18
 
 ### Removed
+- yet another thing
+
 
