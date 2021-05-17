@@ -19,7 +19,7 @@ Here is a template for new release sections
 ## [Unreleased]
 
 ### Added
-- one thing
+- Support multiple regions #3
 
 ### Changed
 - Fixed #17
