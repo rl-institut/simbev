@@ -1,8 +1,8 @@
 region_id,RegioStaR7,bev_mini,bev_medium,bev_luxury,phev_mini,phev_medium,phev_luxury
-LR_Klein,LR_Klein,10,5,5,0,0,0
-LR_Mitte,LR_Mitte,20,30,10,0,0,0
-LR_Zentr,LR_Zentr,5,5,5,0,0,0
-SR_Gross,SR_Gross,5,5,5,0,0,0
-SR_Klein,SR_Klein,1,1,5,0,0,0
-SR_Metro,SR_Metro,10,30,20,0,0,0
-SR_Mitte,SR_Mitte,20,5,30,0,0,0
+LR_Klein,LR_Klein,10,5,5,5,10,1
+LR_Mitte,LR_Mitte,20,30,10,2,20,10
+LR_Zentr,LR_Zentr,5,5,5,5,5,5
+SR_Gross,SR_Gross,5,5,5,10,5,2
+SR_Klein,SR_Klein,1,1,5,10,0,10
+SR_Metro,SR_Metro,10,30,20,30,20,20
+SR_Mitte,SR_Mitte,20,5,30,10,20,15
