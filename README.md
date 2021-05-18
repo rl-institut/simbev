@@ -3,13 +3,13 @@
 ## Download/install
 
 - clone repository to your local machine
-- install requirements found in requirements.txt
+- install requirements found in requirements.txt (virtualenv recommended)
 
 ## Run SimBEV
 
-- change config-file to the setting for your scenario
-- run main_simbev.py
-- results are found in 'res'-folder
+- you can define a custom scenario in the directory `scenarios`, see [scenario readme](./simbev/scenarios/README.md) for instructions
+- run main_simbev.py with the desired scenario: `python main_simbev.py <SCENARIO_NAME>` (defaults to `python main_simbev.py default_single`)
+- results are created in directory `res`
 
 ## Set paramters for your scenario
 

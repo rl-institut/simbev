@@ -19,10 +19,11 @@ Here is a template for new release sections
 ## [Unreleased]
 
 ### Added
-- one thing
+- Support multiple regions #3
 
 ### Changed
-- another thing
+- Fixed #17
+- Fixed #18
 
 ### Removed
 - yet another thing
