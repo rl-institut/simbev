@@ -36,23 +36,15 @@ def get_cutoff(date: datetime.date):
     cutoff = datetime.date(year, cutoff_dates[get_season_idx(date)], 1)
     return cutoff
 
-# TODO: Input als String statt Zahl?
-# Args: region (als Zahl 71-77), season aus get_season als String
+
+# Args: region (als String), Bsp.: "SR_Metro", season als String aus get_season
 def get_name_csv(r, s):
-    # Bestimmen der Region (evtl mit dictionary?)
-    if r == 71: name = "SR_Metro_"
-    elif r == 72: name = "SR_Gross_"
-    elif r == 73: name = "SR_Mitte_"
-    elif r == 74: name = "SR_Klein_"
-    elif r == 75: name = "LR_Zentr_"
-    elif r == 76: name = "LR_Mitte_"
-    elif r == 77: name = "LR_Klein_"
-    else: name = "Error"
-    return Path('data', 'seasonal', name + s + ".csv")
+    return Path('data', 'seasonal', r + "_" + s + ".csv")
+
 
 # TODO: improve logic (consistent weekday progression)
 # function that gets used in code, returns pandas
-def get_timeseries(start: datetime.date, end: datetime.date, region: int, timestep: int = 15):
+def get_timeseries(start: datetime.date, end: datetime.date, region: str, timestep: int = 15):
     weeklist = []
     while start < end:
         cutoff = get_cutoff(start)
@@ -70,12 +62,12 @@ def get_timeseries(start: datetime.date, end: datetime.date, region: int, timest
         pan = pd.read_csv(file_name, sep=';', decimal=',', usecols=range(1, 8))
         temp = pd.DataFrame()
         for i in range(0, t[1]):
-            temp=temp.append(pan, ignore_index=True)
-        temp=temp.append(pan.head(t[2]*60*24), ignore_index=True)
+            temp = temp.append(pan, ignore_index=True)
+        temp = temp.append(pan.head(t[2]*60*24), ignore_index=True)
         date_rng = pd.date_range(t[3], t[4], freq='min', closed='left')
-        temp.index=date_rng
-        temp=temp.resample(datetime.timedelta(minutes=timestep)).sum()
-        pd_result=pd_result.append(temp)
+        temp.index = date_rng
+        temp = temp.resample(datetime.timedelta(minutes=timestep)).sum()
+        pd_result = pd_result.append(temp)
     pd_result.columns = ['0_work', '1_business', '2_school', '3_shopping', '4_private/ridesharing', '5_leisure', '6_home']
     return pd_result
 
