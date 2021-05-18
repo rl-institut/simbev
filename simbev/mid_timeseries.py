@@ -36,7 +36,7 @@ def get_cutoff(date: datetime.date):
     cutoff = datetime.date(year, cutoff_dates[get_season_idx(date)], 1)
     return cutoff
 
-
+# TODO: Namen anpassen, auch im Ordner seasonal
 # Args: region (als Zahl 71-77), season aus get_season als String
 def get_name_csv(r, s):
     # Bestimmen der Region (evtl mit dictionary?)
@@ -50,7 +50,7 @@ def get_name_csv(r, s):
     else: name = "Error"
     return Path('data', 'seasonal', name + s + ".csv")
 
-
+# TODO: improve logic (consistent weekday progression)
 # function that gets used in code, returns pandas
 def get_timeseries(start: datetime.date, end: datetime.date, region: int, timestep: int = 15):
     weeklist = []
