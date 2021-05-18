@@ -36,17 +36,17 @@ def get_cutoff(date: datetime.date):
     cutoff = datetime.date(year, cutoff_dates[get_season_idx(date)], 1)
     return cutoff
 
-# TODO: Namen anpassen, auch im Ordner seasonal
+# TODO: Input als String statt Zahl?
 # Args: region (als Zahl 71-77), season aus get_season als String
 def get_name_csv(r, s):
     # Bestimmen der Region (evtl mit dictionary?)
-    if r == 71: name = "SR_Metropole_"
-    elif r == 72: name = "SR_Grossstadt_"
-    elif r == 73: name = "SR_Mittelstadt_"
-    elif r == 74: name = "SR_Kleinstadt_"
-    elif r == 75: name = "LR_Zentralstadt_"
-    elif r == 76: name = "LR_Mittelstadt_"
-    elif r == 77: name = "LR_Kleinstadt_"
+    if r == 71: name = "SR_Metro_"
+    elif r == 72: name = "SR_Gross_"
+    elif r == 73: name = "SR_Mitte_"
+    elif r == 74: name = "SR_Klein_"
+    elif r == 75: name = "LR_Zentr_"
+    elif r == 76: name = "LR_Mitte_"
+    elif r == 77: name = "LR_Klein_"
     else: name = "Error"
     return Path('data', 'seasonal', name + s + ".csv")
 
