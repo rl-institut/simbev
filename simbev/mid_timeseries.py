@@ -4,7 +4,7 @@ import math
 import datetime
 from pathlib import Path
 
-
+# TODO: work this function into simbev
 # set cutoff dates, jeweils erster Monat der nächsten Jahreszeit
 cutoff_dates = (3, 6, 9, 12)
 
@@ -74,5 +74,5 @@ def get_timeseries(start: datetime.date, end: datetime.date, region: str, timest
 
 # tests
 if __name__ == '__main__':
-    x = get_timeseries(datetime.date.today(), datetime.date(2021, 12, 6), 72)
+    x = get_timeseries(datetime.date.today(), datetime.date(2021, 12, 6), "LR_Klein")
     print(x)
