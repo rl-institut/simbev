@@ -13,4 +13,4 @@ Start the simulation using
     python main_simbev.py default_RS7
 
 **Warning:** the simulation may take a while, depending on your machine's configuration consider to increase the number
-of threads (default: 10). 
+of threads (max: 7).
