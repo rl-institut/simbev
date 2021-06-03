@@ -4,12 +4,12 @@ import math
 import datetime
 from pathlib import Path
 
-# TODO: work this function into simbev
+
 # set cutoff dates, jeweils erster Monat der nächsten Jahreszeit
 cutoff_dates = (3, 6, 9, 12)
 
 
-# Ausgabe der Jahreszeit als String
+# returns season as string
 def get_season(date: datetime.date):
     if date.month <= 2 or date.month == 12: season = "Winter"
     elif date.month <= 5: season = "Fruehling"
@@ -37,42 +37,63 @@ def get_cutoff(date: datetime.date):
     return cutoff
 
 
-# Args: region (als String), Bsp.: "SR_Metro", season als String aus get_season
+# Args: region (as string), example: get_name_csv("SR_Metro", get_season(datetime.date.today()))
 def get_name_csv(r, s):
     return Path('data', 'seasonal', r + "_" + s + ".csv")
 
 
-# TODO: improve logic (consistent weekday progression)
-# function that gets used in code, returns pandas
+# main function, returns pandas
 def get_timeseries(start: datetime.date, end: datetime.date, region: str, timestep: int = 15):
+    # build a matrix containing information about each season during the time span
     weeklist = []
     while start < end:
         cutoff = get_cutoff(start)
         if cutoff < end:
             delta = cutoff - start
-            weeklist.append((get_season(start), math.floor(delta.days / 7), delta.days % 7, start, cutoff))
+            weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start, cutoff])
         else:
             delta = end - start + datetime.timedelta(1)
-            weeklist.append((get_season(start), math.floor(delta.days / 7), delta.days % 7, start, end + datetime.timedelta(1)))
+            weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start, end + datetime.timedelta(1)])
         start = cutoff
 
+    # set up variables
     pd_result = pd.DataFrame()
+    weekday = 7
+    minutes_per_day = 60*24
+
+    # iteration over the created matrix. uses weeklist information to create time series dataframe
     for t in weeklist:
         file_name = get_name_csv(region, t[0])
-        pan = pd.read_csv(file_name, sep=';', decimal=',', usecols=range(1, 8))
+        data_df = pd.read_csv(file_name, sep=';', decimal=',', usecols=range(1, 8))
         temp = pd.DataFrame()
+
+        if weekday < 7:
+            if t[2] < weekday and t[1] == 0:
+                temp = temp.append[data_df.tail(t[2] * minutes_per_day)]
+                t[2] = 0
+            else:
+                temp = temp.append(data_df.tail(weekday * minutes_per_day))
+                if t[2] < weekday:
+                    t[2] = t[2] - weekday + 7
+                    t[1] = t[1] - 1
+                else:
+                    t[2] = t[2] - weekday
+
         for i in range(0, t[1]):
-            temp = temp.append(pan, ignore_index=True)
-        temp = temp.append(pan.head(t[2]*60*24), ignore_index=True)
+            temp = temp.append(data_df, ignore_index=True)
+
+        temp = temp.append(data_df.head(t[2] * minutes_per_day), ignore_index=True)
         date_rng = pd.date_range(t[3], t[4], freq='min', closed='left')
         temp.index = date_rng
         temp = temp.resample(datetime.timedelta(minutes=timestep)).sum()
         pd_result = pd_result.append(temp)
+        weekday = 7 - t[2]
+
     pd_result.columns = ['0_work', '1_business', '2_school', '3_shopping', '4_private/ridesharing', '5_leisure', '6_home']
     return pd_result
 
 
 # tests
 if __name__ == '__main__':
-    x = get_timeseries(datetime.date.today(), datetime.date(2021, 12, 6), "LR_Klein")
+    x = get_timeseries(datetime.date.today(), datetime.date(2021, 12, 1), "LR_Klein")
     print(x)
