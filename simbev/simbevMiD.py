@@ -479,10 +479,10 @@ def availability(
                 soc = soc_list[-1] - (driveconsumption / batcap)
                 if car_type == "PHEV":
                     # SOC can't be negative
-                    soc = max(
-                        soc,
-                        0,
-                    )
+                    if soc < 0:
+                        soc = 0
+                        driveconsumption = soc_list[-1] * batcap
+
 
                 drivetime = (distance / speed) * 60
                 drivetime = math.ceil(drivetime / stepsize)
