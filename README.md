@@ -7,11 +7,13 @@
 
 ## Run SimBEV
 
-- you can define a custom scenario in the directory `scenarios`, see [scenario readme](./simbev/scenarios/README.md) for instructions
-- run main_simbev.py with the desired scenario: `python main_simbev.py <SCENARIO_NAME>` (defaults to `python main_simbev.py default_single`)
+- you can use a default scenario or define a custom one in the directory `scenarios`, see
+  [scenario readme](./simbev/scenarios/README.md) for further instructions
+- run main_simbev.py with the desired scenario: `python main_simbev.py <SCENARIO_NAME>`
+  (defaults to `python main_simbev.py default_single`)
 - results are created in directory `res`
 
-## Set paramters for your scenario
+## Set parameters for your scenario
 
 Select regio-type for the mobility characteristics:
 - regiotypes:
