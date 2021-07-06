@@ -82,8 +82,8 @@ def get_timeseries(start: datetime.date, end: datetime.date, region: str, timest
 
         for i in range(0, t[1]):
             temp = temp.append(data_df, ignore_index=True)
-
         temp = temp.append(data_df.head(t[2] * minutes_per_day), ignore_index=True)
+
         date_rng = pd.date_range(t[3], t[4], freq='min', closed='left')
         temp.index = date_rng
         temp = temp.resample(datetime.timedelta(minutes=timestep)).sum()
