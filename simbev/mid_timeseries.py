@@ -38,8 +38,8 @@ def get_cutoff(date: datetime.date):
 
 
 # Args: region (as string), example: get_name_csv("SR_Metro", get_season(datetime.date.today()))
-def get_name_csv(r, s):
-    return Path('data', 'seasonal', r + "_" + s + ".csv")
+def get_name_csv(region, season):
+    return Path('data', 'seasonal', region + "_" + season + ".csv")
 
 
 # main function, returns pandas
@@ -53,7 +53,8 @@ def get_timeseries(start: datetime.date, end: datetime.date, region: str, timest
             weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start, cutoff])
         else:
             delta = end - start + datetime.timedelta(1)
-            weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start, end + datetime.timedelta(1)])
+            weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start,
+                             end + datetime.timedelta(1)])
         start = cutoff
 
     # set up variables
@@ -69,7 +70,7 @@ def get_timeseries(start: datetime.date, end: datetime.date, region: str, timest
 
         if weekday < 7:
             if t[2] < weekday and t[1] == 0:
-                temp = temp.append[data_df.tail(t[2] * minutes_per_day)]
+                temp = temp.append(data_df.tail(t[2] * minutes_per_day))
                 t[2] = 0
             else:
                 temp = temp.append(data_df.tail(weekday * minutes_per_day))
@@ -89,7 +90,8 @@ def get_timeseries(start: datetime.date, end: datetime.date, region: str, timest
         pd_result = pd_result.append(temp)
         weekday = 7 - t[2]
 
-    pd_result.columns = ['0_work', '1_business', '2_school', '3_shopping', '4_private/ridesharing', '5_leisure', '6_home']
+    pd_result.columns = ['0_work', '1_business', '2_school', '3_shopping',
+                         '4_private/ridesharing', '5_leisure', '6_home']
     return pd_result
 
 
