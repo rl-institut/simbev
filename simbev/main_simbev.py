@@ -33,6 +33,20 @@ def run_simbev(region_ctr, region_id, region_data):
         stepsize,
     )
 
+    # init charging demand df
+    ca = {
+        "location": "init",
+        "SoC": 0,
+        "chargingdemand": 0,
+        "charge_time": 0,
+        "charge_start": 0,
+        "charge_end": 0,
+        "netto_charging_capacity": 0,
+        "consumption": 0,
+        "drive_start": 0,
+        "drive_end": 0,
+    }
+
     # get number of cars
     numcar_list = list(region_data[car_type_list])
 
@@ -182,7 +196,6 @@ def run_simbev(region_ctr, region_id, region_data):
             print(" - done")
 
 
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='SimBEV modelling tool for generating timeseries of electric '
@@ -242,20 +255,6 @@ if __name__ == "__main__":
     rng_seed = cfg['sim_params'].getint('seed', None)
     rng = np.random.default_rng(rng_seed)
 
-    # init charging demand df
-    ca = {
-        "location": "init",
-        "SoC": 0,
-        "chargingdemand": 0,
-        "charge_time": 0,
-        "charge_start": 0,
-        "charge_end": 0,
-        "netto_charging_capacity": 0,
-        "consumption": 0,
-        "drive_start": 0,
-        "drive_end": 0,
-    }
-
     columns = [
         "location",
         "SoC",
@@ -307,9 +306,7 @@ if __name__ == "__main__":
         pool = mp.Pool(processes=num_threads)
 
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            pool.apply_async(run_simbev,
-                                 args=(region_ctr, region_id, region_data))
-
+            pool.apply_async(run_simbev, (region_ctr, region_id, region_data))
 
         pool.close()
         pool.join()
