@@ -23,15 +23,49 @@ from helpers.helpers import single_to_multi_scenario
 # SR_Metro - Metropole
 
 
-def run_simbev(region_ctr, region_id, region_data):
+def run_simbev(region_ctr, region_id, region_data, cfg, regions, tech_data, scenario_path, main_path):
     """Run simbev for single region"""
     print(f'===== Region: {region_id} ({region_ctr + 1}/{len(regions)}) =====')
+
+    # get timestep (in minutes)
+    stepsize = cfg.getint('basic', 'stepsize')
 
     # get probabilities
     probdata, wd = simbevMiD.get_prob(
         region_data.RegioStaR7,
         stepsize,
     )
+
+    # get days for simulation
+    days = cfg.getfloat('basic', 'days')
+
+    # get minimum soc value in %
+    soc_min = cfg.getfloat('basic', 'soc_min')
+
+    # read chargepoint probabilities
+    charge_prob_slow = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['slow']))
+    charge_prob_slow = charge_prob_slow.set_index('destination')
+    charge_prob_fast = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['fast']))
+    charge_prob_fast = charge_prob_fast.set_index('destination')
+
+    # set random seed from config or truly random if none is given
+    rng_seed = cfg['sim_params'].getint('seed', None)
+    rng = np.random.default_rng(rng_seed)
+
+    car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
+
+    columns = [
+        "location",
+        "SoC",
+        "chargingdemand",
+        "charge_time",
+        "charge_start",
+        "charge_end",
+        "netto_charging_capacity",
+        "consumption",
+        "drive_start",
+        "drive_end",
+    ]
 
     # init charging demand df
     ca = {
@@ -196,13 +230,7 @@ def run_simbev(region_ctr, region_id, region_data):
             print(" - done")
 
 
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description='SimBEV modelling tool for generating timeseries of electric '
-                                                 'vehicles.')
-    parser.add_argument('scenario', default="default_single", nargs='?', help='Set the scenario which is located in ./scenarios .')
-    args = parser.parse_args()
-
+def init_simbev(args):
     # check if scenario exists
     scenario_path = os.path.join('.', 'scenarios', args.scenario)
     if not os.path.isdir(scenario_path):
@@ -236,44 +264,6 @@ if __name__ == "__main__":
 
     print("Writing to {}".format(main_path))
 
-    # get timestep (in minutes)
-    stepsize = cfg.getint('basic', 'stepsize')
-
-    # get days for simulation
-    days = cfg.getfloat('basic', 'days')
-
-    # get minimum soc value in %
-    soc_min = cfg.getfloat('basic', 'soc_min')
-
-    # read chargepoint probabilities
-    charge_prob_slow = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['slow']))
-    charge_prob_slow = charge_prob_slow.set_index('destination')
-    charge_prob_fast = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['fast']))
-    charge_prob_fast = charge_prob_fast.set_index('destination')
-
-    # set random seed from config or truly random if none is given
-    rng_seed = cfg['sim_params'].getint('seed', None)
-    rng = np.random.default_rng(rng_seed)
-
-    columns = [
-        "location",
-        "SoC",
-        "chargingdemand",
-        "charge_time",
-        "charge_start",
-        "charge_end",
-        "netto_charging_capacity",
-        "consumption",
-        "drive_start",
-        "drive_end",
-    ]
-
-    # charging_all = pd.DataFrame(
-    #     data=ca,
-    #     columns=columns,
-    #     index=[0],
-    # )
-
     # get the region mode (single or multi) and get params
     region_mode = cfg.get('region_mode', 'region_mode')
     if region_mode == 'single':
@@ -296,17 +286,27 @@ if __name__ == "__main__":
     else:
         raise ValueError('Invalid value for parameter "region_mode" in config, please use "single" or "multi".')
 
-    car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
-
     print(f'Running simbev in {num_threads} thread(s)...')
     if num_threads == 1:
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            run_simbev(region_ctr=region_ctr, region_id=region_id, region_data=region_data)
+            run_simbev(region_ctr, region_id, region_data, cfg,
+                       regions, tech_data, scenario_path, main_path)
     else:
         pool = mp.Pool(processes=num_threads)
 
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            pool.apply_async(run_simbev, (region_ctr, region_id, region_data))
+            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg,
+                                          regions, tech_data, scenario_path, main_path))
 
         pool.close()
         pool.join()
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='SimBEV modelling tool for generating timeseries of electric '
+                                                 'vehicles.')
+    parser.add_argument('scenario', default="default_single", nargs='?', help='Set the scenario which is located in ./scenarios .')
+    p_args = parser.parse_args()
+    init_simbev(p_args)
+
