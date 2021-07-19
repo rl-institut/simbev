@@ -23,27 +23,16 @@ from helpers.helpers import single_to_multi_scenario
 # SR_Metro - Metropole
 
 
-def run_simbev(region_ctr, region_id, region_data, cfg, regions, tech_data, scenario_path, main_path, rng):
+def run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
+               regions, tech_data, stepsize, soc_min, main_path, rng):
     """Run simbev for single region"""
     print(f'===== Region: {region_id} ({region_ctr + 1}/{len(regions)}) =====')
-
-    # get timestep (in minutes)
-    stepsize = cfg.getint('basic', 'stepsize')
 
     # get probabilities
     probdata, wd = simbevMiD.get_prob(
         region_data.RegioStaR7,
         stepsize,
     )
-
-    # get minimum soc value in %
-    soc_min = cfg.getfloat('basic', 'soc_min')
-
-    # read chargepoint probabilities
-    charge_prob_slow = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['slow']))
-    charge_prob_slow = charge_prob_slow.set_index('destination')
-    charge_prob_fast = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['fast']))
-    charge_prob_fast = charge_prob_fast.set_index('destination')
 
     car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
 
@@ -143,7 +132,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg, regions, tech_data, scen
 
             last_charging_capacity = min(
                 simbevMiD.slow_charging_capacity(
-                    charge_prob_slow,
+                    charge_prob['slow'],
                     '6_home',
                     rng,
                 ),
@@ -167,8 +156,8 @@ def run_simbev(region_ctr, region_id, region_data, cfg, regions, tech_data, scen
                     tech_data_car.max_charging_capacity_fast,
                     soc_start,
                     car_type,
-                    charge_prob_slow,
-                    charge_prob_fast,
+                    charge_prob['slow'],
+                    charge_prob['fast'],
                     idx_home,
                     idx_work,
                     home_charging_capacity,
@@ -246,6 +235,20 @@ def init_simbev(args):
     rng_seed = cfg['sim_params'].getint('seed', None)
     rng = np.random.default_rng(rng_seed)
 
+    # get minimum soc value in %
+    soc_min = cfg.getfloat('basic', 'soc_min')
+
+    # read chargepoint probabilities
+    charge_prob_slow = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['slow']))
+    charge_prob_slow = charge_prob_slow.set_index('destination')
+    charge_prob_fast = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['fast']))
+    charge_prob_fast = charge_prob_fast.set_index('destination')
+    charge_prob = {'slow': charge_prob_slow,
+                   'fast': charge_prob_fast}
+
+    # get timestep (in minutes)
+    stepsize = cfg.getint('basic', 'stepsize')
+
     # create directory for standing times data
     directory = "res"
     directory = Path(directory)
@@ -286,14 +289,14 @@ def init_simbev(args):
     print(f'Running simbev in {num_threads} thread(s)...')
     if num_threads == 1:
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            run_simbev(region_ctr, region_id, region_data, cfg,
-                       regions, tech_data, scenario_path, main_path, rng)
+            run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
+                       regions, tech_data, stepsize, soc_min, main_path, rng)
     else:
         pool = mp.Pool(processes=num_threads)
 
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg,
-                                          regions, tech_data, scenario_path, main_path, rng))
+            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg, charge_prob,
+                                          regions, tech_data, stepsize, soc_min, main_path, rng))
 
         pool.close()
         pool.join()
