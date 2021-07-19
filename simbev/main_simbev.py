@@ -23,7 +23,7 @@ from helpers.helpers import single_to_multi_scenario
 # SR_Metro - Metropole
 
 
-def run_simbev(region_ctr, region_id, region_data, cfg, regions, tech_data, scenario_path, main_path):
+def run_simbev(region_ctr, region_id, region_data, cfg, regions, tech_data, scenario_path, main_path, rng):
     """Run simbev for single region"""
     print(f'===== Region: {region_id} ({region_ctr + 1}/{len(regions)}) =====')
 
@@ -44,10 +44,6 @@ def run_simbev(region_ctr, region_id, region_data, cfg, regions, tech_data, scen
     charge_prob_slow = charge_prob_slow.set_index('destination')
     charge_prob_fast = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['fast']))
     charge_prob_fast = charge_prob_fast.set_index('destination')
-
-    # set random seed from config or truly random if none is given
-    rng_seed = cfg['sim_params'].getint('seed', None)
-    rng = np.random.default_rng(rng_seed)
 
     car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
 
@@ -246,6 +242,10 @@ def init_simbev(args):
     # set number of threads for parallel computation
     num_threads = cfg.getint('sim_params', 'num_threads')
 
+    # set random seed from config or truly random if none is given
+    rng_seed = cfg['sim_params'].getint('seed', None)
+    rng = np.random.default_rng(rng_seed)
+
     # create directory for standing times data
     directory = "res"
     directory = Path(directory)
@@ -287,13 +287,13 @@ def init_simbev(args):
     if num_threads == 1:
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
             run_simbev(region_ctr, region_id, region_data, cfg,
-                       regions, tech_data, scenario_path, main_path)
+                       regions, tech_data, scenario_path, main_path, rng)
     else:
         pool = mp.Pool(processes=num_threads)
 
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
             pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg,
-                                          regions, tech_data, scenario_path, main_path))
+                                          regions, tech_data, scenario_path, main_path, rng))
 
         pool.close()
         pool.join()
