@@ -36,9 +36,6 @@ def run_simbev(region_ctr, region_id, region_data, cfg, regions, tech_data, scen
         stepsize,
     )
 
-    # get days for simulation
-    days = cfg.getfloat('basic', 'days')
-
     # get minimum soc value in %
     soc_min = cfg.getfloat('basic', 'soc_min')
 
