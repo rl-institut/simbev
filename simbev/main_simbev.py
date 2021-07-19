@@ -67,7 +67,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
     numcar_list = list(region_data[car_type_list])
 
     # SOC init value for the first monday
-    SoC_init = [
+    soc_init = [
         rng.random() ** (1 / 3) * 0.8 + 0.2 if rng.random() < 0.12 else 1
         for _ in range(sum(numcar_list))
     ]
@@ -128,7 +128,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
                 index=[0],
             )
 
-            soc_start = SoC_init[count_cars]
+            soc_start = soc_init[count_cars]
 
             last_charging_capacity = min(
                 simbevMiD.slow_charging_capacity(
@@ -175,7 +175,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
                 # print(demand.loc[demand.location == "6_home"].netto_charging_capacity)
 
                 # add results for this day to demand time series
-                #charging_all = charging_all.append(demand)
+                # charging_all = charging_all.append(demand)
 
                 # add results for this day to demand time series for a single car
                 charging_car = charging_car.append(demand)
@@ -187,7 +187,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
             # clean up charging_car
 
             # drop init row of availability df
-            availability = availability.iloc[1:]
+            # availability = availability.iloc[1:]
             # save availability df
             # availability.to_csv("res/availability_car" + str(icar) + ".csv")
 
@@ -225,7 +225,7 @@ def init_simbev(args):
         raise FileNotFoundError(f'Config file {cfg_file} not found.')
     try:
         cfg.read(cfg_file)
-    except:
+    except Exception:
         raise FileNotFoundError(f'Cannot read config file {cfg_file} - malformed?')
 
     # set number of threads for parallel computation
@@ -306,7 +306,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='SimBEV modelling tool for generating timeseries of electric '
                                                  'vehicles.')
-    parser.add_argument('scenario', default="default_single", nargs='?', help='Set the scenario which is located in ./scenarios .')
+    parser.add_argument('scenario', default="default_single", nargs='?',
+                        help='Set the scenario which is located in ./scenarios .')
     p_args = parser.parse_args()
     init_simbev(p_args)
-
