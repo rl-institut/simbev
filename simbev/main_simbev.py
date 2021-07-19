@@ -23,10 +23,16 @@ from helpers.helpers import single_to_multi_scenario
 # SR_Metro - Metropole
 
 
-def run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
-               regions, tech_data, stepsize, soc_min, main_path, rng):
+def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
+               regions, tech_data, main_path):
     """Run simbev for single region"""
     print(f'===== Region: {region_id} ({region_ctr + 1}/{len(regions)}) =====')
+
+    # set variables from cfg
+    stepsize = cfg_dict['stepsize']
+    eta_cp = cfg_dict['eta_cp']
+    rng = cfg_dict['rng']
+    soc_min = cfg_dict['soc_min']
 
     # get probabilities
     probdata, wd = simbevMiD.get_prob(
@@ -137,7 +143,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
                     rng,
                 ),
                 tech_data_car.max_charging_capacity_slow,
-            ) * cfg.getfloat('basic', 'eta_cp')
+            ) * eta_cp
 
             # loop for days of the week
             for key in wd:
@@ -164,7 +170,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
                     work_charging_capacity,
                     last_charging_capacity,
                     rng,
-                    cfg.getfloat('basic', 'eta_cp'),
+                    eta_cp,
                     soc_min,
                 )
                 # add results for this day to availability timeseries
@@ -203,7 +209,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
                 len(wd),
                 tech_data_car.battery_capacity,
                 rng,
-                cfg.getfloat('basic', 'eta_cp'),
+                eta_cp,
                 region_path,
             )
 
@@ -235,6 +241,9 @@ def init_simbev(args):
     rng_seed = cfg['sim_params'].getint('seed', None)
     rng = np.random.default_rng(rng_seed)
 
+    # set eta cp from config
+    eta_cp = cfg.getfloat('basic', 'eta_cp')
+
     # get minimum soc value in %
     soc_min = cfg.getfloat('basic', 'soc_min')
 
@@ -248,6 +257,12 @@ def init_simbev(args):
 
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
+
+    # combine config params in one dict
+    cfg_dict = {'stepsize': stepsize,
+                'soc_min': soc_min,
+                'rng': rng,
+                'eta_cp': eta_cp}
 
     # create directory for standing times data
     directory = "res"
@@ -289,14 +304,14 @@ def init_simbev(args):
     print(f'Running simbev in {num_threads} thread(s)...')
     if num_threads == 1:
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            run_simbev(region_ctr, region_id, region_data, cfg, charge_prob,
-                       regions, tech_data, stepsize, soc_min, main_path, rng)
+            run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
+                       regions, tech_data, main_path)
     else:
         pool = mp.Pool(processes=num_threads)
 
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg, charge_prob,
-                                          regions, tech_data, stepsize, soc_min, main_path, rng))
+            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg_dict, charge_prob,
+                                          regions, tech_data, main_path))
 
         pool.close()
         pool.join()
