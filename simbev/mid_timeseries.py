@@ -43,7 +43,7 @@ def get_name_csv(region, season):
 
 
 # main function, returns pandas
-def get_timeseries(start: datetime.date, end: datetime.date, region: str, timestep: int = 15):
+def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
     # build a matrix containing information about each season during the time span
     weeklist = []
     while start < end:
@@ -85,8 +85,12 @@ def get_timeseries(start: datetime.date, end: datetime.date, region: str, timest
         temp = temp.append(data_df.head(t[2] * minutes_per_day), ignore_index=True)
 
         date_rng = pd.date_range(t[3], t[4], freq='min', closed='left')
+
+        #date = pd.DatetimeIndex(date_rng)
+        #day_key = date.day_name()
+
         temp.index = date_rng
-        temp = temp.resample(datetime.timedelta(minutes=timestep)).sum()
+        temp = temp.resample(datetime.timedelta(minutes=stepsize)).sum()
         pd_result = pd_result.append(temp)
         weekday = 7 - t[2]
 
@@ -96,6 +100,6 @@ def get_timeseries(start: datetime.date, end: datetime.date, region: str, timest
 
 
 # tests
-if __name__ == '__main__':
-    x = get_timeseries(datetime.date.today(), datetime.date(2021, 12, 1), "LR_Klein")
-    print(x)
+#if __name__ == '__main__':
+#    x = get_timeseries(datetime.date.today(), datetime.date(2021, 12, 1), "LR_Klein")
+#    print(x)

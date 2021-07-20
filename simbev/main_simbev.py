@@ -28,9 +28,9 @@ def run_simbev(region_ctr, region_id, region_data):
     print(f'===== Region: {region_id} ({region_ctr + 1}/{len(regions)}) =====')
 
     # get probabilities
-    probdata, wd = simbevMiD.get_prob(
+    probdata, tseries_purpose = simbevMiD.get_prob(
         region_data.RegioStaR7,
-        stepsize,
+        stepsize, syear, smonth, sday, eyear, emonth, eday,
     )
 
     # get number of cars
@@ -42,6 +42,9 @@ def run_simbev(region_ctr, region_id, region_data):
         for _ in range(sum(numcar_list))
     ]
     count_cars = 0
+
+    region_path = main_path.joinpath(str(region_id))
+    region_path.mkdir(exist_ok=True)
 
     # loop for types of cars
     for idx, car_type_name in enumerate(car_type_list):
@@ -60,7 +63,7 @@ def run_simbev(region_ctr, region_id, region_data):
                 car_type_name,
                 (icar + 1), numcar
             ), end="", flush=True)
-            charging_car = pd.DataFrame(
+            charging_car = pd.DataFrame(         #global?
                 data=ca,
                 columns=columns,
                 index=[0],
@@ -72,10 +75,14 @@ def run_simbev(region_ctr, region_id, region_data):
             home_charging_capacity = 0
             work_charging_capacity = 0
 
+
+
+
+            #frage!!!!!!!
             # init data for car status
-            range_day = int(1440 / stepsize)
-            carstatus = np.zeros(int(range_day / 2))
-            carstatus[:int(range_day / 4)] = 2
+            range_sim = len(tseries_purpose)
+            carstatus = np.zeros(int(range_sim))
+            #carstatus[:int(range_sim / 4)] = 2
             car_data = {
                 "place": "6_home",
                 "status": carstatus,
@@ -110,72 +117,88 @@ def run_simbev(region_ctr, region_id, region_data):
             ) * cfg.getfloat('basic', 'eta_cp')
 
             # loop for days of the week
-            for key in wd:
+            #for key in wd:
                 # create availability timeseries and charging times
-                (av, car_data, demand,
-                 soc_start, idx_home,
-                 idx_work, home_charging_capacity,
-                 work_charging_capacity) = simbevMiD.availability(
-                    car_data,
-                    key,
-                    probdata,
-                    stepsize,
-                    tech_data_car.battery_capacity,
-                    tech_data_car.energy_consumption,
-                    tech_data_car.max_charging_capacity_slow,
-                    tech_data_car.max_charging_capacity_fast,
-                    soc_start,
-                    car_type,
-                    charge_prob_slow,
-                    charge_prob_fast,
-                    idx_home,
-                    idx_work,
-                    home_charging_capacity,
-                    work_charging_capacity,
-                    last_charging_capacity,
-                    rng,
-                    cfg.getfloat('basic', 'eta_cp'),
-                    soc_min,
-                )
+            (av, car_data, demand,
+             soc_start, idx_home,
+             idx_work, home_charging_capacity,
+             work_charging_capacity) = simbevMiD.availability(
+                car_data,
+                probdata,
+                stepsize,
+                tech_data_car.battery_capacity,
+                tech_data_car.energy_consumption,
+                tech_data_car.max_charging_capacity_slow,
+                tech_data_car.max_charging_capacity_fast,
+                soc_start,
+                car_type,
+                charge_prob_slow,
+                charge_prob_fast,
+                idx_home,
+                idx_work,
+                home_charging_capacity,
+                work_charging_capacity,
+                last_charging_capacity,
+                rng,
+                cfg.getfloat('basic', 'eta_cp'),
+                soc_min,
+                tseries_purpose,
+                carstatus
+            )
                 # add results for this day to availability timeseries
-                availability = availability.append(av).reset_index(drop=True)
+            #availability = availability.append(av).reset_index(drop=True)
 
-                # print("Auto Nr. " + str(count) + " / " + str(icar))
-                # print(str(home_charging_capacity) + " kW")
-                # print(demand.loc[demand.location == "6_home"].netto_charging_capacity)
+            # print("Auto Nr. " + str(count) + " / " + str(icar))
+            # print(str(home_charging_capacity) + " kW")
+            # print(demand.loc[demand.location == "6_home"].netto_charging_capacity)
 
-                # add results for this day to demand time series
-                #charging_all = charging_all.append(demand)
+            # add results for this day to demand time series
+            #charging_all = charging_all.append(demand)
 
-                # add results for this day to demand time series for a single car
-                charging_car = charging_car.append(demand)
-                # print(key, charging_car)
 
-                last_charging_capacity = charging_car.netto_charging_capacity.iat[-1]
-                # print("car" + str(icar) + "done")
+            # add results for this day to demand time series for a single car
+            charging_car = charging_car.append(demand)
+            # print(key, charging_car)
 
-            # clean up charging_car
+            last_charging_capacity = charging_car.netto_charging_capacity.iat[-1]
+            # print("car" + str(icar) + "done")
 
-            # drop init row of availability df
-            availability = availability.iloc[1:]
-            # save availability df
-            # availability.to_csv("res/availability_car" + str(icar) + ".csv")
-
-            region_path = main_path.joinpath(str(region_id))
-            region_path.mkdir(exist_ok=True)
-
-            # Export timeseries for each car
             simbevMiD.charging_flexibility(
                 charging_car,
                 car_type_name,
                 icar,
                 stepsize,
-                len(wd),
+                len(tseries_purpose),
                 tech_data_car.battery_capacity,
                 rng,
                 cfg.getfloat('basic', 'eta_cp'),
                 region_path,
+                tseries_purpose,
             )
+
+        # clean up charging_car
+
+            # drop init row of availability df
+        #availability = availability.iloc[1:]
+            # save availability df
+            # availability.to_csv("res/availability_car" + str(icar) + ".csv")
+
+        #region_path = main_path.joinpath(str(region_id))
+        #region_path.mkdir(exist_ok=True)
+
+        #if numcar != 0:    # Export timeseries for each car
+         #   simbevMiD.charging_flexibility(
+          #      charging_car,
+           #     car_type_name,
+            #    icar,
+        #        stepsize,
+         #       len(tseries_purpose),
+          #      tech_data_car.battery_capacity,
+           #     rng,
+            #    cfg.getfloat('basic', 'eta_cp'),
+             #   region_path,
+              #  tseries_purpose,
+          #   )
 
             count_cars += 1
         if numcar >= 1:
@@ -226,8 +249,13 @@ if __name__ == "__main__":
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
 
-    # get days for simulation
-    days = cfg.getfloat('basic', 'days')
+    #get start and end date
+    syear = cfg.getint('basic', 's_year')
+    smonth = cfg.getint('basic', 's_month')
+    sday = cfg.getint('basic', 's_day')
+    eyear = cfg.getint('basic', 'e_year')
+    emonth = cfg.getint('basic', 'e_month')
+    eday = cfg.getint('basic', 'e_day')
 
     # get minimum soc value in %
     soc_min = cfg.getfloat('basic', 'soc_min')

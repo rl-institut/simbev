@@ -1,13 +1,15 @@
 import pandas as pd
-import numpy as np
 from pathlib import Path
 import math
 from mid_timeseries import get_timeseries
+import datetime
+from datetime import timedelta
+
 
 
 def get_prob(
         region,
-        stepsize,
+        stepsize, syear, smonth, sday, eyear, emonth, eday,
 ):
     destinations = [
         "time",
@@ -31,54 +33,79 @@ def get_prob(
         "stand": {},
         "charge": {},
     }
-    wd = []
+    #wd = []
+
+    #time.delta
+
+    #get timeseries
+    start_date = datetime.date(syear, smonth, sday)
+    start_date = start_date - timedelta(days = 7)
+    end_date = datetime.date(eyear, emonth, eday)
+    tseries_purpose = get_timeseries(start_date, end_date , region, stepsize)
+
+    #get start data
+    tseries_start = tseries_purpose.sum(axis=1)
+
+    #date = tseries_purpose.index.weekday
+    date = pd.DatetimeIndex(tseries_purpose.index)
+    day_key = date.day_name()
+    day_key = pd.DataFrame(day_key)
+
+
+    tseries_start_stepsize = tseries_start.resample(str_stepsize).sum()
+    tp_prob = tseries_start_stepsize / tseries_start_stepsize.sum()
+    # Normierung
+    tp_norm = tp_prob / tp_prob.max()
+    tp_norm = pd.DataFrame(
+        data=tp_norm,
+        columns=["trips"]
+    )
+    #tp_norm = tp_norm.append(day_key)
+    probs["start"] = tp_norm
+    #wd.append(day_key)
+
+
+    #tp_stepsize = tseries_purpose.resample(str_stepsize).sum()
+    probs["purpose"] = tseries_purpose
 
     # get all csv files in this region directory
     files = region_dir.glob("*.csv")
     for file in sorted(files):
-        if "start" in file.stem:
-            # get day of week by name with index for sorting
-            # file naming: <idx>_<weekday>_<region>_start.csv
-            # -> get part until second underscore
-            day_key = '_'.join(file.stem.split('_')[:2])
-            tp = pd.read_csv(
-                file,
-                sep=",",
-                decimal=".",
-                names=[
-                    "time",
-                    "trips",
-                ],
-                index_col=["time"],
-                skiprows=1,
-                parse_dates=True,
-            )
-            tp_stepsize = tp.resample(str_stepsize).sum()
-            tp_prob = tp_stepsize / tp_stepsize.sum()
+ #       if "start" in file.stem:
+  #          # get day of week by name with index for sorting
+   #         # file naming: <idx>_<weekday>_<region>_start.csv
+    #        # -> get part until second underscore
+    #        day_key = '_'.join(file.stem.split('_')[:2])
+     #       tp = pd.read_csv(
+     #           file,
+     #           sep=",",
+     #           decimal=".",
+     #           names=[
+     #               "time",
+     #               "trips",
+     #           ],
+     #           index_col=["time"],
+     #           skiprows=1,
+     #           parse_dates=True,
+     #       )
+     #       tp_stepsize = tp.resample(str_stepsize).sum()
+     #       tp_prob = tp_stepsize / tp_stepsize.sum()
             # Normierung
-            tp_norm = tp_prob / tp_prob.max()
-            tp_norm = pd.DataFrame(
-                data=tp_norm,
-                columns=["trips"]
-            )
-            probs["start"][day_key] = tp_norm
-            wd.append(day_key)
+     #       tp_norm = tp_prob / tp_prob.max()
+      #      tp_norm = pd.DataFrame(
+      #          data=tp_norm,
+      #          columns=["trips"]
+       #     )
+       #     probs["start"][day_key] = tp_norm
+      #      wd.append(day_key)
 
-        elif "purpose" in file.stem:
-            day_key = '_'.join(file.stem.split('_')[:2])
-            tp = pd.read_csv(
-                file,
-                sep=",",
-                decimal=".",
-                names=destinations,
-                index_col=["time"],
-                skiprows=1,
-                parse_dates=True,
-            )
-            tp_stepsize = tp.resample(str_stepsize).sum()
-            probs["purpose"][day_key] = tp_stepsize
+        #elif "purpose" in file.stem:
+        #    day_key = '_'.join(file.stem.split('_')[:2])
 
-        elif "charge" in file.stem:
+        #    tp_stepsize = tp.resample(str_stepsize).sum()
+        #    probs["purpose"][day_key] = tp_stepsize
+
+        if "charge" in file.stem:
             probs["charge"] = pd.read_csv(file, sep=";", decimal=",")
         elif file.stem.split('_')[0] in probs:
             key = file.stem.split('_')[0]
@@ -95,8 +122,12 @@ def get_prob(
                 purp_key = "4_private/ridesharing"
             probs[key][purp_key] = ts
 
-    wd = sorted(wd, key=lambda x: int("".join([r for r in x if r.isdigit()])))
-    return probs, wd
+            #probs['start'] = probs['start'].iloc[28:]
+            #probs['purpose'] = probs['purpose'].iloc[28:]
+            #tseries_purpose = tseries_purpose.iloc[28:]
+
+    #wd = sorted(wd, key=lambda x: int("".join([r for r in x if r.isdigit()])))
+    return probs, tseries_purpose
 
 
 def get_purpose(
@@ -127,7 +158,6 @@ def get_purpose(
 
 def availability(
         cardata,
-        daykey,
         probdata,
         stepsize,
         batcap,
@@ -147,10 +177,12 @@ def availability(
         rng,
         eta,
         soc_min,
+        tseries_purpose,
+        carstatus,
 ):
 
-    day_mins = 1440
-    range_day = day_mins / stepsize
+    #day_mins = 1440
+    range_sim = len(tseries_purpose)
     # get data from MiD
     s = probdata["stand"]
     d = probdata["distance"]
@@ -159,12 +191,12 @@ def availability(
     st = probdata["start"]
     # probability for trip purpose depending on weekday
     p_all = probdata["purpose"]
-    p = p_all[daykey]
+    #p = p_all[::96]
     # init car_status, 1,5 days for trips over 24h
-    car_status = np.zeros(int(range_day) + int(range_day / 2))
+    #car_status = np.zeros(int(range_sim) + int(range_sim / 2))
     # rule: before 5:00 no trips, will be changed when trips are implemented over 24 h
-    car_status[:int(range_day / 2)] = cardata["status"]
-
+    #car_status[:int(range_sim / 2)] = cardata["status"]
+    car_status = carstatus
     # first location of the day: the end location of the previous day, on Monday: 6_home
     p_now = cardata["place"]
     # first distance of the day: the last distance of the previous day
@@ -202,17 +234,17 @@ def availability(
     # init break_key
     break_key = 0
     # day number
-    if daykey[1] == "_":
-        day_num = int(daykey[:1]) - 1
-    else:
-        if daykey[2] == "_":
-            day_num = int(daykey[:2]) - 1
-        else:
-            day_num = int(daykey[:3]) - 1
+    #if daykey[1] == "_":
+     #   day_num = int(daykey[:1]) - 1
+    #else:
+     #   if daykey[2] == "_":
+      #      day_num = int(daykey[:2]) - 1
+       # else:
+        #    day_num = int(daykey[:3]) - 1
 
-
+    #im = 0
     # loop minutes per day
-    for im in range(int(range_day)):
+    for im in range(len(tseries_purpose)):
         # print("timestep: " + str(im))
         # get the current purpose of the car
         p_now = purp_list[-1]
@@ -223,9 +255,9 @@ def availability(
         else:
             distance_list.append(0)
         # get start probabilities
-        st_day = st[daykey]
-        st_day = st_day["trips"]
-        st_now = st_day.iloc[im]
+        #st_day = st[daykey]
+        st_trips = st["trips"]
+        st_now = st_trips.iloc[im]
 
         # get car status
         go = car_status[im]
@@ -250,11 +282,11 @@ def availability(
                     ch_capacity.append(last_charging_capacity)
 
                 # get purpose for the new trip
-                if p.iloc[im].sum() == 0.0:
+                if p_all.iloc[im].sum() == 0.0:
                     car_status[im] = car_status[im - 1]
                     continue
                 p_now = get_purpose(
-                    p,
+                    p_all,
                     im,
                     rng,
                 )
@@ -269,7 +301,7 @@ def availability(
                 destination = p_now
                 if origin == destination:
                     p_now = get_purpose(
-                        p,
+                        p_all,
                         im,
                         rng,
                     )
@@ -505,14 +537,15 @@ def availability(
 
                 # get timesteps for parking at destination
                 park_start = drive_end + 1
-                if park_start <= range_day:
+               # kann raus denke ich da wir nicht mehr mit days arbeiten
+               # if park_start <= range_sim:          # hier das gleiche
                     # Limit staytime to not fall into the next day if parking
                     # begins before the end of the day
-                    staytime = min(
-                        staytime,
-                        range_day - park_start,
-                    )
-                    staytime = int(staytime)
+                #    staytime = min(
+                 #       staytime,
+                  #      range_sim - park_start,    #weiß nicht ob das klappt war ja eigentlich range_day
+                #    )
+                 #   staytime = int(staytime)
                 park_end = park_start + staytime
                 # add current location
                 purp_list.append(p_now)
@@ -616,22 +649,22 @@ def availability(
                     soc_list.append(soc_list[-1])
 
 
-    status_list = car_status[:int(range_day)].tolist()
-    status_nextday = car_status[int(range_day):]
+    #status_list = car_status[:int(range_sim)].tolist()
+    #status_nextday = car_status[int(range_sim):]           #kann raus ?
     data_availability = list(
         zip(
-            status_list,
+            car_status,         # hier könnte status_list hin
             place_list,
             distance_list
         )
     )
     # set range for weekdays
-    startrange = int(day_num * range_day)
-    endrange = int((day_num + 1) * range_day)
-    if daykey == "7_sunday":
-        ch_end = [int((24 * (60 / stepsize))) if x > (24 * (60 / stepsize)) else x for x in ch_end]
-        dr_end = [int((24 * (60 / stepsize))) if x > (24 * (60 / stepsize)) else x for x in dr_end]
-    rangeweekday = range(startrange, endrange)
+   # startrange = int(day_num * range_day)
+    #endrange = int((day_num + 1) * range_day)
+    #if daykey == "7_sunday":
+    #    ch_end = [int((24 * (60 / stepsize))) if x > (24 * (60 / stepsize)) else x for x in ch_end]
+    #    dr_end = [int((24 * (60 / stepsize))) if x > (24 * (60 / stepsize)) else x for x in dr_end]
+    #rangeweekday = range(startrange, endrange)
     data_availability = pd.DataFrame(
         data=data_availability,
         columns=[
@@ -639,14 +672,14 @@ def availability(
             "location",
             "distance"
         ],
-        index=rangeweekday,
+        #index=rangeweekday,
     )
-    ch_start = [x if x == 0 else x + startrange for x in ch_start]
-    ch_end = [x if x == 0 else x + startrange for x in ch_end]
-    dr_start = [x if x == 0 else x + startrange for x in dr_start]
-    dr_end = [x if x == 0 else x + startrange for x in dr_end]
+    #ch_start = [x if x == 0 else x + startrange for x in ch_start]
+    #ch_end = [x if x == 0 else x + startrange for x in ch_end]
+    #dr_start = [x if x == 0 else x + startrange for x in dr_start]
+    #dr_end = [x if x == 0 else x + startrange for x in dr_end]
     cardata["place"] = purp_list[-1]
-    cardata["status"] = status_nextday
+    #cardata["status"] = status_nextday
     cardata["distance"] = distance_list[-1]
     times_energy = list(
         zip(
@@ -758,6 +791,7 @@ def charging_flexibility(
         rng,
         eta,
         path,
+        tseries_purpose,
 ):
     """
 
@@ -822,11 +856,9 @@ def charging_flexibility(
         inplace=True,
     )
 
-    charging_car = charging_car.drop('drop', axis=1)
-
 
     day_mins = 1440
-    ts_range = int(day_count * day_mins / stepsize)
+    ts_range = len(tseries_purpose)
 
 
     # sometimes charge_end is zero
@@ -955,6 +987,70 @@ def charging_flexibility(
             "consumption",
         ]
     ]
+
+
+    firsttime1 = charging_car['park_end'] >= 672
+    firsttime1 = firsttime1[firsttime1 == True]
+    firsttime1 = firsttime1.index[0]
+
+    schnitt = firsttime1
+
+    charging_car = charging_car.iloc[schnitt:]
+
+    x = -672
+    #index von park start end und drive start und end minus eine woche
+
+    charging_car['drive_end'] = charging_car['drive_end'] - 672
+    liste = []
+    for it in charging_car['drive_end']:
+        if it == x:
+            it = 0
+            liste.append(it)
+        else:
+            liste.append(it)
+    charging_car['drive_end'] = liste
+
+    charging_car['drive_start'] = charging_car['drive_start'] - 672
+    liste1 = []
+    for it in charging_car['drive_start']:
+        if it == x:
+            it = 0
+            liste1.append(it)
+        else:
+            liste1.append(it)
+    charging_car['drive_start'] = liste1
+
+    charging_car['park_start'] = charging_car['park_start'] - 672
+    liste2 = []
+    for it in charging_car['park_start']:
+        if it >= 0:
+            liste2.append(it)
+        else:
+            it = 0
+            liste2.append(it)
+    charging_car['park_start'] = liste2
+
+    charging_car['park_end'] = charging_car['park_end'] - 672
+    liste3 = []
+    for it in charging_car['park_end']:
+        if it == x:
+            it = 0
+            liste3.append(it)
+        else:
+            liste3.append(it)
+    charging_car['park_end'] = liste3
+
+    liste4 = []
+    for it in charging_car['charge_time']:
+        liste4.append(it)
+
+
+    for it in range(len(liste4)):
+        if liste4[it] > liste3[it]:
+            liste4[it] = liste3[it]
+    charging_car['charge_time'] = liste4
+
+
 
     filename = "{}_{:05d}_standing_times.csv".format(car_type, car_number)
 
