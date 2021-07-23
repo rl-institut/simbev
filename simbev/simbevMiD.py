@@ -33,20 +33,20 @@ def get_prob(
         "stand": {},
         "charge": {},
     }
-    #wd = []
+    # wd = []
 
-    #time.delta
+    # time.delta
 
-    #get timeseries
+    # get timeseries
     start_date = datetime.date(syear, smonth, sday)
     start_date = start_date - timedelta(days = 7)
     end_date = datetime.date(eyear, emonth, eday)
     tseries_purpose = get_timeseries(start_date, end_date , region, stepsize)
 
-    #get start data
+    # get start data
     tseries_start = tseries_purpose.sum(axis=1)
 
-    #date = tseries_purpose.index.weekday
+    # date = tseries_purpose.index.weekday
     date = pd.DatetimeIndex(tseries_purpose.index)
     day_key = date.day_name()
     day_key = pd.DataFrame(day_key)
@@ -60,12 +60,12 @@ def get_prob(
         data=tp_norm,
         columns=["trips"]
     )
-    #tp_norm = tp_norm.append(day_key)
+    # tp_norm = tp_norm.append(day_key)
     probs["start"] = tp_norm
-    #wd.append(day_key)
+    # wd.append(day_key)
 
 
-    #tp_stepsize = tseries_purpose.resample(str_stepsize).sum()
+    # tp_stepsize = tseries_purpose.resample(str_stepsize).sum()
     probs["purpose"] = tseries_purpose
 
     # get all csv files in this region directory
@@ -122,9 +122,7 @@ def get_prob(
                 purp_key = "4_private/ridesharing"
             probs[key][purp_key] = ts
 
-            #probs['start'] = probs['start'].iloc[28:]
-            #probs['purpose'] = probs['purpose'].iloc[28:]
-            #tseries_purpose = tseries_purpose.iloc[28:]
+
 
     #wd = sorted(wd, key=lambda x: int("".join([r for r in x if r.isdigit()])))
     return probs, tseries_purpose

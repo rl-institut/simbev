@@ -63,7 +63,7 @@ def run_simbev(region_ctr, region_id, region_data):
                 car_type_name,
                 (icar + 1), numcar
             ), end="", flush=True)
-            charging_car = pd.DataFrame(         #global?
+            charging_car = pd.DataFrame(
                 data=ca,
                 columns=columns,
                 index=[0],
@@ -75,14 +75,10 @@ def run_simbev(region_ctr, region_id, region_data):
             home_charging_capacity = 0
             work_charging_capacity = 0
 
-
-
-
-            #frage!!!!!!!
             # init data for car status
             range_sim = len(tseries_purpose)
             carstatus = np.zeros(int(range_sim))
-            #carstatus[:int(range_sim / 4)] = 2
+
             car_data = {
                 "place": "6_home",
                 "status": carstatus,
@@ -179,31 +175,13 @@ def run_simbev(region_ctr, region_id, region_data):
         # clean up charging_car
 
             # drop init row of availability df
-        #availability = availability.iloc[1:]
+        # availability = availability.iloc[1:]
             # save availability df
             # availability.to_csv("res/availability_car" + str(icar) + ".csv")
-
-        #region_path = main_path.joinpath(str(region_id))
-        #region_path.mkdir(exist_ok=True)
-
-        #if numcar != 0:    # Export timeseries for each car
-         #   simbevMiD.charging_flexibility(
-          #      charging_car,
-           #     car_type_name,
-            #    icar,
-        #        stepsize,
-         #       len(tseries_purpose),
-          #      tech_data_car.battery_capacity,
-           #     rng,
-            #    cfg.getfloat('basic', 'eta_cp'),
-             #   region_path,
-              #  tseries_purpose,
-          #   )
 
             count_cars += 1
         if numcar >= 1:
             print(" - done")
-
 
 
 if __name__ == "__main__":
