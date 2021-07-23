@@ -260,12 +260,6 @@ def init_simbev(args):
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
 
-    # combine config params in one dict
-    cfg_dict = {'stepsize': stepsize,
-                'soc_min': soc_min,
-                'rng': rng,
-                'eta_cp': eta_cp}
-
     # get start and end date
     syear = cfg.getint('basic', 's_year')
     smonth = cfg.getint('basic', 's_month')
@@ -273,6 +267,13 @@ def init_simbev(args):
     eyear = cfg.getint('basic', 'e_year')
     emonth = cfg.getint('basic', 'e_month')
     eday = cfg.getint('basic', 'e_day')
+
+    # combine config params in one dict
+    cfg_dict = {'stepsize': stepsize,
+                'soc_min': soc_min,
+                'rng': rng,
+                'eta_cp': eta_cp,
+                }
 
     # create directory for standing times data
     directory = "res"
