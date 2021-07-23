@@ -37,7 +37,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
     # get probabilities
     probdata, tseries_purpose = simbevMiD.get_prob(
         region_data.RegioStaR7,
-        stepsize, syear, smonth, sday, eyear, emonth, eday,
+        stepsize, cfg_dict['start_date'], cfg_dict['end_date'],
     )
 
     car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
@@ -149,8 +149,8 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
             ) * eta_cp
 
             # loop for days of the week
-            #for key in wd:
-                # create availability timeseries and charging times
+            # for key in wd:
+            # create availability timeseries and charging times
             (av, car_data, demand,
              soc_start, idx_home,
              idx_work, home_charging_capacity,
@@ -178,8 +178,8 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 carstatus
             )
 
-                # add results for this day to availability timeseries
-            #availability = availability.append(av).reset_index(drop=True)
+            # add results for this day to availability timeseries
+            # availability = availability.append(av).reset_index(drop=True)
 
             # print("Auto Nr. " + str(count) + " / " + str(icar))
             # print(str(home_charging_capacity) + " kW")
@@ -261,18 +261,16 @@ def init_simbev(args):
     stepsize = cfg.getint('basic', 'stepsize')
 
     # get start and end date
-    syear = cfg.getint('basic', 's_year')
-    smonth = cfg.getint('basic', 's_month')
-    sday = cfg.getint('basic', 's_day')
-    eyear = cfg.getint('basic', 'e_year')
-    emonth = cfg.getint('basic', 'e_month')
-    eday = cfg.getint('basic', 'e_day')
+    start_date = cfg.get('basic', 'start_date')
+    end_date = cfg.get('basic', 'end_date')
 
     # combine config params in one dict
     cfg_dict = {'stepsize': stepsize,
                 'soc_min': soc_min,
                 'rng': rng,
                 'eta_cp': eta_cp,
+                'start_date': start_date,
+                'end_date': end_date,
                 }
 
     # create directory for standing times data
