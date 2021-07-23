@@ -1,15 +1,16 @@
-import pandas as pd
-from pathlib import Path
-import math
-from mid_timeseries import get_timeseries
 import datetime
+import math
 from datetime import timedelta
+from pathlib import Path
 
+import pandas as pd
+
+from mid_timeseries import get_timeseries
 
 
 def get_prob(
         region,
-        stepsize, syear, smonth, sday, eyear, emonth, eday,
+        stepsize, start_date, end_date,
 ):
     destinations = [
         "time",
@@ -35,13 +36,12 @@ def get_prob(
     }
     # wd = []
 
-    # time.delta
-
     # get timeseries
-    start_date = datetime.date(syear, smonth, sday)
-    start_date = start_date - timedelta(days = 7)
-    end_date = datetime.date(eyear, emonth, eday)
-    tseries_purpose = get_timeseries(start_date, end_date , region, stepsize)
+    start_date = datetime.date.fromisoformat(start_date)
+    start_date = start_date - timedelta(days=7)
+    end_date = datetime.date.fromisoformat(end_date)
+
+    tseries_purpose = get_timeseries(start_date, end_date, region, stepsize)
 
     # get start data
     tseries_start = tseries_purpose.sum(axis=1)
