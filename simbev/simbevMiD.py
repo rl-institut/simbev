@@ -37,9 +37,11 @@ def get_prob(
     # wd = []
 
     # get timeseries
-    start_date = datetime.date.fromisoformat(start_date)
+    # start_date = datetime.date.fromisoformat(start_date)
+    start_date = datetime.date(start_date[0], start_date[1], start_date[2])
     start_date = start_date - timedelta(days=7)
-    end_date = datetime.date.fromisoformat(end_date)
+    # end_date = datetime.date.fromisoformat(end_date)
+    end_date = datetime.date(end_date[0], end_date[1], end_date[2])
 
     tseries_purpose = get_timeseries(start_date, end_date, region, stepsize)
 

@@ -261,16 +261,26 @@ def init_simbev(args):
     stepsize = cfg.getint('basic', 'stepsize')
 
     # get start and end date
-    start_date = cfg.get('basic', 'start_date')
+    start_date = cfg.get('basic', 'start_date')   # kann man so mit isoformat benutzen wenn man python 3.9 hat
     end_date = cfg.get('basic', 'end_date')
+    start_date = start_date.split('-')
+    s_date = []
+    for it in start_date:
+        it = int(it)
+        s_date.append(it)
+    end_date = end_date.split('-')
+    e_date = []
+    for it in end_date:
+        it = int(it)
+        e_date.append(it)
 
     # combine config params in one dict
     cfg_dict = {'stepsize': stepsize,
                 'soc_min': soc_min,
                 'rng': rng,
                 'eta_cp': eta_cp,
-                'start_date': start_date,
-                'end_date': end_date,
+                'start_date': s_date,
+                'end_date': e_date,
                 }
 
     # create directory for standing times data
