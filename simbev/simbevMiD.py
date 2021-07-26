@@ -11,16 +11,16 @@ def get_prob(
         region,
         stepsize, start_date, end_date,
 ):
-    destinations = [
-        "time",
-        "0_work",
-        "1_business",
-        "2_school",
-        "3_shopping",
-        "4_private/ridesharing",
-        "5_leisure",
-        "6_home",
-    ]
+    # destinations = [
+    #     "time",
+    #     "0_work",
+    #     "1_business",
+    #     "2_school",
+    #     "3_shopping",
+    #     "4_private/ridesharing",
+    #     "5_leisure",
+    #     "6_home",
+    # ]
     str_stepsize = str(stepsize) + "min"
     data_dir = Path("data")
     region_dir = data_dir.joinpath(region)
@@ -48,7 +48,7 @@ def get_prob(
     tseries_start = tseries_purpose.sum(axis=1)
 
     # date = tseries_purpose.index.weekday
-    date = pd.DatetimeIndex(tseries_purpose.index)
+    # date = pd.DatetimeIndex(tseries_purpose.index)
     # day_key = date.day_name()
     # day_key = pd.DataFrame(day_key)
 
@@ -921,13 +921,11 @@ def charging_flexibility(
         ]
     ]
 
-    firsttime1 = charging_car['park_end'] >= 672
-    firsttime1 = firsttime1[firsttime1 == True]
-    firsttime1 = firsttime1.index[0]
+    first_time = charging_car['park_end'] >= 672
+    first_time = first_time[first_time == True]
+    first_time = first_time.index[0]
 
-    schnitt = firsttime1
-
-    charging_car = charging_car.iloc[schnitt:]
+    charging_car = charging_car.iloc[first_time:]
 
     x = -672
     # index von park start end und drive start und end minus eine woche

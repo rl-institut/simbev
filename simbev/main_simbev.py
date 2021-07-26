@@ -127,15 +127,15 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 "location": "init",
                 "distance": 0,
             }
-            availability = pd.DataFrame(
-                data=a,
-                columns=[
-                    "status",
-                    "location",
-                    "distance",
-                ],
-                index=[0],
-            )
+            # availability = pd.DataFrame(
+            #     data=a,
+            #     columns=[
+            #         "status",
+            #         "location",
+            #         "distance",
+            #     ],
+            #     index=[0],
+            # )
 
             soc_start = soc_init[count_cars]
 
