@@ -1,6 +1,5 @@
-import datetime
+import datetime as dt
 import math
-from datetime import timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -37,9 +36,9 @@ def get_prob(
     # wd = []
 
     # get timeseries
-    start_date = datetime.date.fromisoformat(start_date)
-    start_date = start_date - timedelta(days=7)
-    end_date = datetime.date.fromisoformat(end_date)
+    start_date = dt.date.fromisoformat(start_date)
+    start_date = start_date - dt.timedelta(days=7)
+    end_date = dt.date.fromisoformat(end_date)
 
     tseries_purpose = get_timeseries(start_date, end_date, region, stepsize)
 
