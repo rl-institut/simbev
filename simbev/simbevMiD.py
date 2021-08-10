@@ -9,7 +9,7 @@ from mid_timeseries import get_timeseries
 
 def get_prob(
         region,
-        stepsize, start_date, end_date,
+        stepsize, start_date, end_date, weekdays, min_per_day,
 ):
     # destinations = [
     #     "time",
@@ -42,7 +42,7 @@ def get_prob(
     # end_date = datetime.date.fromisoformat(end_date)
     end_date = dt.date(end_date[0], end_date[1], end_date[2])
 
-    tseries_purpose = get_timeseries(start_date, end_date, region, stepsize)
+    tseries_purpose = get_timeseries(start_date, end_date, region, stepsize, weekdays, min_per_day)
 
     # get start data
     tseries_start = tseries_purpose.sum(axis=1)
@@ -794,7 +794,6 @@ def charging_flexibility(
         inplace=True,
     )
 
-    day_mins = 1440
     ts_range = len(tseries_purpose)
 
     # sometimes charge_end is zero

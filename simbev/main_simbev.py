@@ -37,8 +37,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
     # get probabilities
     probdata, tseries_purpose = simbevMiD.get_prob(
         region_data.RegioStaR7,
-        stepsize, cfg_dict['start_date'], cfg_dict['end_date'],
-    )
+        stepsize, cfg_dict['start_date'], cfg_dict['end_date'], cfg_dict['weekdays'], cfg_dict['min_per_day'],)
 
     car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
 
@@ -122,11 +121,11 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
             }
 
             # init availability df
-            a = {
-                "status": 0,
-                "location": "init",
-                "distance": 0,
-            }
+            # a = {
+            #     "status": 0,
+            #     "location": "init",
+            #     "distance": 0,
+            # }
             # availability = pd.DataFrame(
             #     data=a,
             #     columns=[
@@ -260,6 +259,10 @@ def init_simbev(args):
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
 
+    # get params for timeseries
+    weekday = cfg.getint('basic', 'weekdays')
+    minutes_per_day = cfg.getint('basic', 'min_per_day')
+
     # get start and end date
     start_date = cfg.get('basic', 'start_date')   # kann man so mit isoformat benutzen wenn man python 3.9 hat
     end_date = cfg.get('basic', 'end_date')
@@ -281,6 +284,8 @@ def init_simbev(args):
                 'eta_cp': eta_cp,
                 'start_date': s_date,
                 'end_date': e_date,
+                'weekdays': weekday,
+                'min_per_day': minutes_per_day,
                 }
 
     # create directory for standing times data
