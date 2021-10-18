@@ -1,5 +1,4 @@
 import pandas as pd
-# import numpy as np
 import math
 import datetime
 from pathlib import Path
@@ -55,23 +54,23 @@ def get_name_csv(region, season):
 
 # main function, returns pandas
 def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, weekdays, min_per_day):
-    # build a matrix containing information about each season during the time span
+    # set up variables
+    pd_result = pd.DataFrame()
+    weekdays_left = weekdays - start.weekday()
+    minutes_per_day = min_per_day
+    # weeklist: 0 - season, 1 - weeks, 2 - days, 3 - start date, 4 - end date
     weeklist = []
+    # build a matrix containing information about each season during the time span
     while start < end:
         cutoff = get_cutoff(start)
-        if cutoff < end:
+        if cutoff < end:    # use full season
             delta = cutoff - start
             weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start, cutoff])
-        else:
+        else:   # end date is during this season
             delta = end - start + datetime.timedelta(1)
             weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start,
                              end + datetime.timedelta(1)])
         start = cutoff
-
-    # set up variables
-    pd_result = pd.DataFrame()
-    weekday = weekdays
-    minutes_per_day = min_per_day
 
     # iteration over the created matrix. uses weeklist information to create time series dataframe
     for t in weeklist:
@@ -79,17 +78,17 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, w
         data_df = pd.read_csv(file_name, sep=';', decimal=',', usecols=range(1, 8))
         temp = pd.DataFrame()
 
-        if weekday < 7:
-            if t[2] < weekday and t[1] == 0:
+        if weekdays_left < weekdays:
+            if t[2] < weekdays_left and t[1] == 0:
                 temp = temp.append(data_df.tail(t[2] * minutes_per_day))
                 t[2] = 0
             else:
-                temp = temp.append(data_df.tail(weekday * minutes_per_day))
-                if t[2] < weekday:
-                    t[2] = t[2] - weekday + 7
+                temp = temp.append(data_df.tail(weekdays_left * minutes_per_day))
+                if t[2] < weekdays_left:
+                    t[2] = t[2] - weekdays_left + 7
                     t[1] = t[1] - 1
                 else:
-                    t[2] = t[2] - weekday
+                    t[2] = t[2] - weekdays_left
 
         for i in range(0, t[1]):
             temp = temp.append(data_df, ignore_index=True)
@@ -103,7 +102,7 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, w
         temp.index = date_rng
         temp = temp.resample(datetime.timedelta(minutes=stepsize)).sum()
         pd_result = pd_result.append(temp)
-        weekday = 7 - t[2]
+        weekdays_left = weekdays - t[2]
 
     pd_result.columns = ['0_work', '1_business', '2_school', '3_shopping',
                          '4_private/ridesharing', '5_leisure', '6_home']
@@ -112,5 +111,5 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, w
 
 # tests
 # if __name__ == '__main__':
-#    x = get_timeseries(datetime.date.today(), datetime.date(2021, 12, 1), "LR_Klein")
+#    x = get_timeseries(datetime.date.today(), datetime.date(2022, 12, 1), "LR_Klein", 15, 1440)
 #    print(x)
