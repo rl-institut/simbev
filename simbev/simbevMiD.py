@@ -42,7 +42,7 @@ def get_prob(
     # end_date = datetime.date.fromisoformat(end_date)
     end_date = dt.date(end_date[0], end_date[1], end_date[2])
 
-    tseries_purpose = get_timeseries(start_date, end_date, region, stepsize, weekdays, min_per_day)
+    tseries_purpose, days = get_timeseries(start_date, end_date, region, stepsize, weekdays, min_per_day)
 
     # get start data
     tseries_start = tseries_purpose.sum(axis=1)
@@ -87,7 +87,7 @@ def get_prob(
                 purp_key = "4_private/ridesharing"
             probs[key][purp_key] = ts
     # wd = sorted(wd, key=lambda x: int("".join([r for r in x if r.isdigit()])))
-    return probs, tseries_purpose
+    return probs, tseries_purpose, days
 
 
 def get_purpose(
@@ -730,6 +730,7 @@ def charging_flexibility(
         eta,
         path,
         tseries_purpose,
+        days,
 ):
     """
 
@@ -819,13 +820,13 @@ def charging_flexibility(
             break
         diff = charging_car.loc[row + 1, 'drive_start'] - charging_car.loc[row, 'charge_end']
         if diff > 1:
-            val = charging_car.loc[row + 1, 'drive_start'] - 1
-            charging_car.loc[row, 'charge_end'] = val
+            val = charging_car.loc[row, 'charge_end'] + 1
+            charging_car.loc[row + 1, 'drive_start'] = val
 
         diff = charging_car.loc[row + 2, 'charge_start'] - charging_car.loc[row + 1, 'drive_end']
         if diff > 1:
-            val = charging_car.loc[row + 1, 'drive_end'] + 1
-            charging_car.loc[row + 2, 'charge_start'] = val
+            val = charging_car.loc[row + 2, 'charge_start'] - 1
+            charging_car.loc[row + 1, 'drive_end'] = val
 
     # recalculate chargingdemand an charge_time
     # TODO: sometimes the recharging energy is too high for the number of timesteps
@@ -977,6 +978,38 @@ def charging_flexibility(
         if liste4[it] > liste3[it]:
             liste4[it] = liste3[it]
     charging_car['charge_time'] = liste4
+
+    # testing of the continuity of the timesteps
+    start_drive_c = list(charging_car['drive_start'])
+    end_drive_c = list(charging_car['drive_end'])
+    start_park_c = list(charging_car['park_start'])
+    end_park_c = list(charging_car['park_end'])
+    bound = (days + 1) * 24 * 4
+
+    for row in range(len(start_drive_c) - 2):
+        diff_drive_to_park = start_drive_c[row + 1] - end_park_c[row]
+        diff_park_to_drive = start_park_c[row + 2] - end_drive_c[row + 1]
+        if start_drive_c[row] > end_drive_c[row]:
+            print('Error in line:', row)
+        if start_park_c[row] > end_park_c[row]:
+            print('Error in line:', row)
+        if diff_drive_to_park > 1:
+            print('Error, park_end is more than 1 timestep away from drive_start in row', row)
+        if diff_park_to_drive > 1:
+            print('Error, drive_end is more than 1 timestep away from park_start in row', row + 1)
+        # if charging_car.loc[row + 2, 'park_end'] > bound:
+        #     charging_car.loc[row + 2, 'park_end'] = bound
+        #     print('Error out of bound')
+        # if charging_car.loc[row + 1, 'drive_end'] > bound:
+        #     charging_car.loc[row + 1, 'drive_end'] = bound
+        #     print('Error out of bound')
+    list_park_end = list(charging_car['park_end'])
+    # last index
+    last = list_park_end[-1]
+
+    if last > bound:
+        # charging_car.loc[len(charging_car), 'park_end'] = bound
+        print('Error: out of Bound')
 
     filename = "{}_{:05d}_standing_times.csv".format(car_type, car_number)
 
