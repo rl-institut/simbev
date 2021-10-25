@@ -10,6 +10,11 @@ class Simulation:
         self.end = end_date
         self.timestep = timestep
 
+    def set_time_parameters(self, start_date, end_date, timestep):
+        self.start = start_date
+        self.end = end_date
+        self.timestep = timestep
+
     def run(self):
         time = pd.date_range(self.start, self.end, freq=self.timestep)
         for i in time:
