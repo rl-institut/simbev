@@ -1,16 +1,11 @@
-import datetime
-import pandas as pd
-
 class Car:
-    def __init__(self, bat_cap, cc):
-        self.bat_cap = bat_cap
-        self.charging_capacity = cc
-        self.status = 0
-        self.location = '6_home'
-
-
-
-
-bev1 = Car(500, 11)
-
-
+    def __init__(self, battery_capacity: float, charging_curve, consumption: float,
+                 soc: float, car_type: str, work_station, home_station, status: str = "parking"):
+        self.battery_capacity = battery_capacity
+        self.charging_curve = charging_curve
+        self.consumption = consumption
+        self.soc = soc
+        self.type = car_type
+        self.work_station = work_station
+        self.home_station = home_station
+        self.status = status  # replace with enum?
