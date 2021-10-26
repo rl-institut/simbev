@@ -492,7 +492,7 @@ def availability(
                 purp_list.append(p_now)
 
                 # get charging capacity at destination
-                if p_now.find("home") is not -1:
+                if p_now.find("home") != -1:
                     # make sure home charging capacity stays constant
                     if idx_home == 0:
                         charging_capacity = min(
@@ -507,7 +507,7 @@ def availability(
                     else:
                         charging_capacity = home_charging_capacity
                     idx_home += 1
-                elif p_now.find("work") is not -1:
+                elif p_now.find("work") != -1:
                     # make sure work charging capacity stays constant
                     if idx_work == 0:
                         charging_capacity = min(
@@ -1044,7 +1044,7 @@ def slow_charging_capacity(
     """
 
     for dest in normal_charging_probability.index.unique():
-        if destination.find(dest) is not -1:
+        if destination.find(dest) != -1:
             destination = dest
             break
 
