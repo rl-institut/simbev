@@ -453,6 +453,7 @@ def availability(
                         distance_remaining = distance_remaining - distance_stop
 
                     distance = distance_remaining
+                    im = charge_start + 2
 
                 if im == len(car_status):
                     continue
