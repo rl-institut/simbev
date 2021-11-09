@@ -338,12 +338,17 @@ def availability(
                     drivetime = (distance_stop / speed) * 60
                     drivetime = math.ceil(drivetime / stepsize)
                     driveconsumption = distance_stop * con
-                    purp_list.append("driving")
                     # get timesteps for car status of driving
                     drive_start = im + 1
                     drive_end = int(drive_start + drivetime)
+                    if drive_start > len(car_status):
+                        car_status[drive_start] = 1
+                        break
+                    if drive_end > len(car_status):
+                        drive_end = len(car_status)
+                    purp_list.append("driving")
                     dr_start.append(drive_start)
-                    dr_end.append(drive_end)
+                    dr_end.append(drive_end-1)
                     consumption.append(driveconsumption)
                     soc = soc_list[-1] - (driveconsumption / batcap)
                     soc_list.append(soc)
@@ -352,7 +357,7 @@ def availability(
                     ch_time.append(0)
                     ch_capacity.append(0)
                     demand.append(0)
-                    car_status[drive_start - 1:drive_end] = 3
+                    car_status[drive_start:drive_end] = 3
                     im = drive_end
 
                     # fast charging
@@ -376,10 +381,13 @@ def availability(
                     dr_start.append(0)
                     dr_end.append(0)
                     consumption.append(0)
-                    charge_start = im + 1
+                    charge_start = im
                     ch_start.append(charge_start)
                     ch_end.append(charge_start + 1)
-                    car_status[charge_start-1] = 2
+                    if charge_start > (len(car_status)-1):
+                        car_status[(len(car_status)-1)] = 2
+                        break
+                    car_status[charge_start] = 2
                     im = charge_start + 1
 
                     # calculate remainig charging events for the rest of the distance
@@ -401,7 +409,7 @@ def availability(
                         drive_start = im + 1
                         drive_end = int(drive_start + drivetime)
                         dr_start.append(drive_start)
-                        dr_end.append(drive_end)
+                        dr_end.append(drive_end-1)
                         consumption.append(driveconsumption)
                         soc = soc_list[-1] - (driveconsumption / batcap)
                         soc_list.append(soc)
@@ -415,7 +423,7 @@ def availability(
                             car_status[drive_start-2:drive_end] = 3
                             im = drive_end
                             break
-                        car_status[drive_start-2:drive_end] = 3
+                        car_status[drive_start-1:drive_end] = 3
                         im = drive_end
 
                         # fast charging
@@ -439,21 +447,21 @@ def availability(
                         dr_start.append(0)
                         dr_end.append(0)
                         consumption.append(0)
-                        charge_start = im + 1
+                        charge_start = im
                         ch_start.append(charge_start)
                         ch_end.append(charge_start + 1)
                         if charge_start > len(car_status):
                             charge_start = len(car_status)
                             car_status[charge_start] = 2
                             break
-                        car_status[charge_start-1] = 2
+                        car_status[charge_start] = 2
                         im = charge_start + 1
 
                         # update values
                         distance_remaining = distance_remaining - distance_stop
 
                     distance = distance_remaining
-                    im = charge_start + 2
+                    #im = im - 1
 
                 if im == len(car_status):
                     continue
