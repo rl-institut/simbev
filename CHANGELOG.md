@@ -21,6 +21,7 @@ Here is a template for new release sections
 ### Added
 - Support multiple regions #3
 - Add multiprocessing #20
+- Add RS7 sample dataset for Germany #11
 
 ### Changed
 - Fixed #17
