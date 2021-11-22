@@ -35,7 +35,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
     soc_min = cfg_dict['soc_min']
 
     # get probabilities
-    probdata, tseries_purpose = simbevMiD.get_prob(
+    probdata, tseries_purpose, days = simbevMiD.get_prob(
         region_data.RegioStaR7,
         stepsize, cfg_dict['start_date'], cfg_dict['end_date'], cfg_dict['weekdays'], cfg_dict['min_per_day'],)
 
@@ -205,6 +205,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 eta_cp,
                 region_path,
                 tseries_purpose,
+                days,
             )
 
         # clean up charging_car

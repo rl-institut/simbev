@@ -1,4 +1,5 @@
 import pandas as pd
+# import numpy as np
 import math
 import datetime
 from pathlib import Path
@@ -54,6 +55,10 @@ def get_name_csv(region, season):
 
 # main function, returns pandas
 def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, weekdays, min_per_day):
+    # build a matrix containing information about each season during the time span
+    print(start)
+    print(end)
+    days = (end - start).days - 7
     # set up variables
     pd_result = pd.DataFrame()
     weekdays_left = weekdays - start.weekday()
@@ -106,7 +111,7 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, w
 
     pd_result.columns = ['0_work', '1_business', '2_school', '3_shopping',
                          '4_private/ridesharing', '5_leisure', '6_home']
-    return pd_result
+    return pd_result, days
 
 
 # tests
