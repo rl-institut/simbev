@@ -82,7 +82,7 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, w
         file_name = get_name_csv(region, t[0])
         data_df = pd.read_csv(file_name, sep=';', decimal=',', usecols=range(1, 8))
         temp = pd.DataFrame()
-
+        # check if weekdays are left over from last month, add to start of series
         if weekdays_left < weekdays:
             if t[2] < weekdays_left and t[1] == 0:
                 temp = temp.append(data_df.tail(t[2] * minutes_per_day))
@@ -94,9 +94,10 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, w
                     t[1] = t[1] - 1
                 else:
                     t[2] = t[2] - weekdays_left
-
+        # add full weeks to the series
         for i in range(0, t[1]):
             temp = temp.append(data_df, ignore_index=True)
+        # add leftover partial week at the end of series
         temp = temp.append(data_df.head(t[2] * minutes_per_day), ignore_index=True)
 
         date_rng = pd.date_range(t[3], t[4], freq='min', closed='left')
