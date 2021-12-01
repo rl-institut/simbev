@@ -96,7 +96,8 @@ def compile_output(dir: Path, start, end, timestep=15, file_name="output.csv"): 
                         if park_start + count < len(pd_result.index):
                             pd_result.loc[park_start + count, col] += p
                         else:
-                            print("There is " + str(p) + " kW to charge in timestep " + str(park_start + count))
+                            # print("There is " + str(p) + " kW to charge in timestep " + str(park_start + count))
+                            break
 
     pd_result["sum CS power"] = pd_result["sum UC work"] + pd_result["sum UC business"] + pd_result["sum UC school"] \
                                 + pd_result["sum UC shopping"] + pd_result["sum UC private/ridesharing"] \
@@ -106,6 +107,6 @@ def compile_output(dir: Path, start, end, timestep=15, file_name="output.csv"): 
 
 
 if __name__ == '__main__':
-    start = dt.datetime(2021, 9, 17)
-    end = dt.datetime(2021, 9, 30)
-    compile_output(Path('..', 'res', 'default_single_2021-11-22_133348_simbev_run'), start, end)
+    s = dt.datetime(2021, 9, 17)
+    e = dt.datetime(2021, 9, 30)
+    compile_output(Path('..', 'res', 'default_single_2021-11-22_133348_simbev_run'), s, e)

@@ -3,12 +3,12 @@ import simbevMiD
 import os
 import argparse
 import configparser as cp
-from datetime import datetime
+import datetime as dt
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import multiprocessing as mp
-from helpers.helpers import single_to_multi_scenario
+from helpers.helpers import single_to_multi_scenario, compile_output
 
 
 # regiotypes:
@@ -294,7 +294,7 @@ def init_simbev(args):
     directory = Path(directory)
 
     # result dir
-    result_dir = f'{args.scenario}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}_simbev_run'
+    result_dir = f'{args.scenario}_{dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")}_simbev_run'
 
     # path join
     main_path = directory.joinpath(result_dir)
@@ -340,6 +340,11 @@ def init_simbev(args):
 
         pool.close()
         pool.join()
+
+    start = dt.date(s_date[0], s_date[1], s_date[2])
+    end = dt.date(e_date[0], e_date[1], e_date[2])
+
+    compile_output(main_path, start, end)
 
 
 if __name__ == "__main__":
