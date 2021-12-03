@@ -53,7 +53,6 @@ def single_to_multi_scenario(region_type,
     return regions, tech_data
 
 
-# TODO: config option
 def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
     """
 
