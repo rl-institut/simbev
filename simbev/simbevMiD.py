@@ -368,7 +368,7 @@ def availability(
                             rng,
                         ),
                         chargepower_fast,
-                    ) * eta
+                    )
                     # fastcharging for 15 minutes
                     chen = min(((15 / 60) * fastcharge), ((0.8 - soc_list[-1]) * batcap))
                     ch_time.append(1)
@@ -434,7 +434,7 @@ def availability(
                                 rng,
                             ),
                             chargepower_fast,
-                        ) * eta
+                        )
                         # fastcharging for 15 minutes
                         chen = min(((15 / 60) * fastcharge), ((0.8 - soc_list[-1]) * batcap))
                         ch_time.append(1)
@@ -511,7 +511,7 @@ def availability(
                                 rng,
                             ),
                             chargepower_slow,
-                        ) * eta
+                        )
                         home_charging_capacity = charging_capacity
                     else:
                         charging_capacity = home_charging_capacity
@@ -526,7 +526,7 @@ def availability(
                                 rng,
                             ),
                             chargepower_slow,
-                        ) * eta
+                        )
                         work_charging_capacity = charging_capacity
                     else:
                         charging_capacity = work_charging_capacity
@@ -539,7 +539,7 @@ def availability(
                             rng,
                         ),
                         chargepower_slow,
-                    ) * eta
+                    )
 
                 # if firstdrive == 1:
                 #     charging_capacity = last_charging_capacity
@@ -868,23 +868,29 @@ def charging_flexibility(
     #
     #
     # charging_car.loc[~mask_drive, 'SoC_end'] = new_soc_end
+    #
+    # # get charging capacity work and home
+    # charging_capacity_home = charging_car[charging_car.location == "6_home"]
+    #
+    # if len(charging_capacity_home) > 0:
+    #     charging_capacity_home = charging_capacity_home.netto_charging_capacity.iat[0]
+    #     charging_capacity_home = int(round(charging_capacity_home / eta, 0))
+    # else:
+    #     charging_capacity_home = 0
+    #
+    # charging_capacity_work = charging_car[charging_car.location == "0_work"]
+    #
+    # if len(charging_capacity_work) > 0:
+    #     charging_capacity_work = charging_capacity_work.netto_charging_capacity.iat[0]
+    #     charging_capacity_work = int(round(charging_capacity_work / eta, 0))
+    # else:
+    #     charging_capacity_work = 0
 
-    # get charging capacity work and home
-    charging_capacity_home = charging_car[charging_car.location == "6_home"]
-
-    if len(charging_capacity_home) > 0:
-        charging_capacity_home = charging_capacity_home.netto_charging_capacity.iat[0]
-        charging_capacity_home = int(round(charging_capacity_home / eta, 0))
-    else:
-        charging_capacity_home = 0
-
-    charging_capacity_work = charging_car[charging_car.location == "0_work"]
-
-    if len(charging_capacity_work) > 0:
-        charging_capacity_work = charging_capacity_work.netto_charging_capacity.iat[0]
-        charging_capacity_work = int(round(charging_capacity_work / eta, 0))
-    else:
-        charging_capacity_work = 0
+    # add row with grid power
+    cc_nominal = charging_car["netto_charging_capacity"]
+    cc_grid = cc_nominal/eta
+    charging_car['nominal_charging_capacity_kW'] = cc_nominal
+    charging_car['grid_charging_capacity_kW'] = cc_grid
 
     # add row with car_type
     charging_car["car_type"] = car_type
@@ -917,7 +923,8 @@ def charging_flexibility(
             "car_type",
             "bat_cap",
             "location",
-            "netto_charging_capacity",
+            "nominal_charging_capacity_kW",
+            "grid_charging_capacity_kW",
             "SoC_start",
             "SoC_end",
             "chargingdemand",
@@ -1023,6 +1030,24 @@ def charging_flexibility(
     filename = "{}_{:05d}_standing_times.csv".format(car_type, car_number)
 
     file_path = path.joinpath(filename)
+
+    # rename columns
+    charging_car = charging_car.rename(columns={
+        "car_type" : "car_type",
+        "bat_cap" : "bat_cap_kWh",
+        "location" : "location",
+        "nominal_charging_capacity_kW" : "nominal_charging_capacity_kW",
+        "grid_charging_capacity_kW" : "grid_charging_capacity_kW",
+        "SoC_start" : "SoC_start",
+        "SoC_end" : "SoC_end",
+        "chargingdemand" : "chargingdemand_kWh",
+        "charge_time" : "park_time_timesteps",
+        "park_start" : "park_start_timesteps",
+        "park_end" : "park_end_timesteps",
+        "drive_start" : "drive_start_timesteps",
+        "drive_end" : "drive_end_timesteps",
+        "consumption" : "consumption_kWh",
+    })
 
     # export charging times per car
     charging_car.to_csv(file_path)
