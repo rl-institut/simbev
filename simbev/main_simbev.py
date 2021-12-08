@@ -344,7 +344,7 @@ def init_simbev(args):
     start = dt.date(s_date[0], s_date[1], s_date[2])
     end = dt.date(e_date[0], e_date[1], e_date[2])
 
-    compile_output(main_path, start, end, region_mode)
+    compile_output(main_path, start, end, region_mode)  # TODO: add timestep parameter
 
 
 if __name__ == "__main__":
