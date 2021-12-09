@@ -53,6 +53,14 @@ def single_to_multi_scenario(region_type,
     return regions, tech_data
 
 
+def progress_bar(current, total, name: str, bar_length=20):
+    percent = float(current) * 100 / total
+    arrow = '-' * int(percent/100 * bar_length - 1) + '>'
+    spaces = ' ' * (bar_length - len(arrow))
+
+    print(name + ': [%s%s] %d %%' % (arrow, spaces, percent), end='\r')
+
+
 def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
     """
 
@@ -91,8 +99,11 @@ def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
 
     # run through all csv result files of this run that include "standing_times" in the title
     sub_dirs = [f for f in result_dir.iterdir() if f.is_dir()]
-    for sub_dir in sub_dirs:
-        for file in sub_dir.rglob("*standing_times.csv"):
+    for dir_count, sub_dir in enumerate(sub_dirs):
+        files = list(sub_dir.rglob("*standing_times.csv"))
+        print('Compiling output for region %d/%d' % (dir_count+1, len(sub_dirs)), end='\n')
+        for file_count, file in enumerate(files):
+            progress_bar(file_count, len(files), sub_dir.name + " progress")
             file_df = pd.read_csv(file, sep=',', decimal='.')
             # file_df relevant columns: location,netto_charging_capacity,chargingdemand,charge_time,park_start,park_end
             for i in file_df.index:
