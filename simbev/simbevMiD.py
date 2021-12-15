@@ -740,6 +740,8 @@ def charging_flexibility(
         path,
         tseries_purpose,
         days,
+        batterycap,
+        region_type,
 ):
     """
 
@@ -837,60 +839,15 @@ def charging_flexibility(
             val = charging_car.loc[row + 2, 'charge_start'] - 1
             charging_car.loc[row + 1, 'drive_end'] = val
 
-    # recalculate chargingdemand an charge_time
-    # TODO: sometimes the recharging energy is too high for the number of timesteps
-    # # The loss is around 5% of energy, which is missing in the load timeseries due to that
-    # mask_zero = charging_car.chargingdemand == 0
-    # charging_car.loc[~mask_zero, 'charge_time'] = charging_car.loc[~mask_zero, 'charge_end'] - charging_car.loc[~mask_zero, 'charge_start'] + 1
-    #
-    # chargingdemand_soc = ((charging_car.SoC_end - charging_car.SoC_start) * bat_cap).to_list()
-    # chargingdemand_time = (charging_car.netto_charging_capacity * charging_car.charge_time * stepsize / 60).to_list()
-    #
-    # chargingdemand = [
-    #     min(
-    #         chargingdemand,
-    #         chargingdemand_time[count],
-    #     ) for count, chargingdemand in enumerate(chargingdemand_soc)
-    # ]
-    #
-    # charging_car.iloc[0, 2] = chargingdemand[0]
-    #
-    # # recalculate soc_end
-    # mask_drive = charging_car.location == "driving"
-    # soc_start = charging_car.loc[~mask_drive, 'SoC_start'].to_list()
-    #
-    # new_soc_end = [
-    #     min(
-    #         soc + charging_car.iloc[count, 2] / bat_cap,
-    #         1,
-    #     ) for count, soc in enumerate(soc_start)
-    # ]
-    #
-    #
-    # charging_car.loc[~mask_drive, 'SoC_end'] = new_soc_end
-    #
-    # # get charging capacity work and home
-    # charging_capacity_home = charging_car[charging_car.location == "6_home"]
-    #
-    # if len(charging_capacity_home) > 0:
-    #     charging_capacity_home = charging_capacity_home.netto_charging_capacity.iat[0]
-    #     charging_capacity_home = int(round(charging_capacity_home / eta, 0))
-    # else:
-    #     charging_capacity_home = 0
-    #
-    # charging_capacity_work = charging_car[charging_car.location == "0_work"]
-    #
-    # if len(charging_capacity_work) > 0:
-    #     charging_capacity_work = charging_capacity_work.netto_charging_capacity.iat[0]
-    #     charging_capacity_work = int(round(charging_capacity_work / eta, 0))
-    # else:
-    #     charging_capacity_work = 0
-
+    # Efficiency of the internal components of the vehicle ToDo: add eta_vehicle to config
+    eta_vehicle = 1
     # add row with grid power
     cc_nominal = charging_car["netto_charging_capacity"]
     cc_grid = cc_nominal/eta
+    cc_vehicle = cc_nominal * eta_vehicle
     charging_car['nominal_charging_capacity_kW'] = cc_nominal
     charging_car['grid_charging_capacity_kW'] = cc_grid
+    charging_car['battery_charging_capacity_kW'] = cc_vehicle
 
     # add row with car_type
     charging_car["car_type"] = car_type
@@ -925,6 +882,7 @@ def charging_flexibility(
             "location",
             "nominal_charging_capacity_kW",
             "grid_charging_capacity_kW",
+            "battery_charging_capacity_kW",
             "SoC_start",
             "SoC_end",
             "chargingdemand",
@@ -1027,17 +985,23 @@ def charging_flexibility(
         # charging_car.loc[len(charging_car), 'park_end'] = bound
         print('Error: out of Bound')
 
-    filename = "{}_{:05d}_standing_times.csv".format(car_type, car_number)
+    baca = int(batterycap)
+    filename = "{}_{:05d}_{}kWh_{}_events.csv".format(car_type, car_number, baca, region_type)
 
     file_path = path.joinpath(filename)
 
+    # drop columns
+    charging_car = charging_car.drop(['car_type', 'bat_cap'], axis=1)
+
+    # reset index
+    charging_car = charging_car.reset_index(drop=True)
+
     # rename columns
     charging_car = charging_car.rename(columns={
-        "car_type" : "car_type",
-        "bat_cap" : "bat_cap_kWh",
         "location" : "location",
         "nominal_charging_capacity_kW" : "nominal_charging_capacity_kW",
         "grid_charging_capacity_kW" : "grid_charging_capacity_kW",
+        "battery_charging_capacity_kW" : "battery_charging_capacity_kW",
         "SoC_start" : "SoC_start",
         "SoC_end" : "SoC_end",
         "chargingdemand" : "chargingdemand_kWh",
