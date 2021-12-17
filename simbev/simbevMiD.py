@@ -1013,6 +1013,9 @@ def charging_flexibility(
         "consumption" : "consumption_kWh",
     })
 
+    # round values in dataframe to decrease file size
+    charging_car = charging_car.round(4)
+
     # export charging times per car
     charging_car.to_csv(file_path)
 
