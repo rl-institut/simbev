@@ -100,31 +100,32 @@ def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
     # run through all csv result files of this run that include "standing_times" in the title
     sub_dirs = [f for f in result_dir.iterdir() if f.is_dir()]
     for dir_count, sub_dir in enumerate(sub_dirs):
-        files = list(sub_dir.rglob("*standing_times.csv"))
+        files = list(sub_dir.rglob("*events.csv"))
         print('Compiling output for region %d/%d' % (dir_count+1, len(sub_dirs)), end='\n')
         for file_count, file in enumerate(files):
             progress_bar(file_count, len(files), sub_dir.name + " progress")
             file_df = pd.read_csv(file, sep=',', decimal='.')
             # file_df relevant columns: location,netto_charging_capacity,chargingdemand,charge_time,park_start,park_end
             for i in file_df.index:
-                demand = file_df.loc[i, "chargingdemand"]
+                demand = file_df.loc[i, "chargingdemand_kWh"]
                 if demand > 0:
                     # extract parameters for the charging event
                     uc = file_df.loc[i, "location"].split('_')
                     col = "sum UC " + uc[-1]
-                    charge_time = file_df.loc[i, "charge_time"]
-                    park_start = file_df.loc[i, "park_start"]
-                    cap = file_df.loc[i, "netto_charging_capacity"]
-                    max_charge = cap * timestep / 60
+                    park_time = file_df.loc[i, "park_time_timesteps"]
+                    park_start = file_df.loc[i, "park_start_timesteps"]
+                    cap_car = file_df.loc[i, "battery_charging_capacity_kW"]
+                    cap_grid = file_df.loc[i, "grid_charging_capacity_kW"]
+                    max_charge = cap_car * timestep / 60
                     # average power in each time step
                     power = []
-                    for k in range(charge_time):
+                    for k in range(park_time):
                         # if possible charge with max power, greedy strat
                         if demand >= max_charge:
-                            power.append(cap)
+                            power.append(cap_grid)
                             demand -= max_charge
                         else:
-                            power.append(demand / timestep * 60)
+                            power.append(demand / timestep * 60 * cap_grid / cap_car)
                             demand = 0
                     # add charging series to result pandas
                     for count, p in enumerate(power):
@@ -134,17 +135,21 @@ def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
                             # print("There is " + str(p) + " kW to charge in timestep " + str(park_start + count))
                             break
 
-        pd_result["sum CS power"] = (pd_result["sum UC work"] + pd_result["sum UC business"] + pd_result["sum UC school"] +
-                                     pd_result["sum UC shopping"] + pd_result["sum UC private/ridesharing"] +
-                                     pd_result["sum UC leisure"] + pd_result["sum UC hub"] + pd_result["sum UC home"])
+        pd_result["sum CS power"] = (pd_result["sum UC work"] + pd_result["sum UC business"] +
+                                     pd_result["sum UC school"] + pd_result["sum UC shopping"] +
+                                     pd_result["sum UC private/ridesharing"] + pd_result["sum UC leisure"] +
+                                     pd_result["sum UC hub"] + pd_result["sum UC home"])
 
-        pd_result.to_csv(Path(result_dir, sub_dir.name + "_timeseries.csv"), sep=',', decimal='.')
+        pd_result = pd_result.round(4)
+
+        pd_result.to_csv(Path(result_dir, sub_dir.name + "_grid_timeseries.csv"), sep=',', decimal='.')
         if region_mode == "multi":
             pd_result_sum[power_columns] += pd_result[power_columns]
         pd_result[power_columns] = 0.0
 
     if region_mode == "multi":
-        pd_result_sum.to_csv(Path(result_dir, "0_timeseries_all_regions.csv"), sep=',', decimal='.')
+        pd_result_sum = pd_result_sum.round(4)
+        pd_result_sum.to_csv(Path(result_dir, "0_grid_timeseries_all_regions.csv"), sep=',', decimal='.')
 
 
 if __name__ == '__main__':
