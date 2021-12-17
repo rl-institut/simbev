@@ -138,16 +138,16 @@ def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
                                      pd_result["sum UC shopping"] + pd_result["sum UC private/ridesharing"] +
                                      pd_result["sum UC leisure"] + pd_result["sum UC hub"] + pd_result["sum UC home"])
 
-        pd_result.to_csv(Path(result_dir, sub_dir.name + "_results.csv"), sep=',', decimal='.')
+        pd_result.to_csv(Path(result_dir, sub_dir.name + "_timeseries.csv"), sep=',', decimal='.')
         if region_mode == "multi":
             pd_result_sum[power_columns] += pd_result[power_columns]
         pd_result[power_columns] = 0.0
 
     if region_mode == "multi":
-        pd_result_sum.to_csv(Path(result_dir, "0_results_all_regions.csv"), sep=',', decimal='.')
+        pd_result_sum.to_csv(Path(result_dir, "0_timeseries_all_regions.csv"), sep=',', decimal='.')
 
 
 if __name__ == '__main__':
     s = dt.datetime(2021, 9, 17)
     e = dt.datetime(2021, 9, 30)
-    compile_output(Path('..', 'res', 'default_single_2021-11-22_133348_simbev_run'), s, e, region_mode="single")
+    compile_output(Path('..', 'res', 'default_multi_2021-12-08_143738_simbev_run'), s, e, region_mode="multi")
