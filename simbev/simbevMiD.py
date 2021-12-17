@@ -9,7 +9,7 @@ from mid_timeseries import get_timeseries
 
 def get_prob(
         region,
-        stepsize, start_date, end_date, weekdays, min_per_day,
+        stepsize, start_date, end_date,
 ):
     # destinations = [
     #     "time",
@@ -42,7 +42,7 @@ def get_prob(
     # end_date = datetime.date.fromisoformat(end_date)
     end_date = dt.date(end_date[0], end_date[1], end_date[2])
 
-    tseries_purpose, days = get_timeseries(start_date, end_date, region, stepsize, weekdays, min_per_day)
+    tseries_purpose, days = get_timeseries(start_date, end_date, region, stepsize)
 
     # get start data
     tseries_start = tseries_purpose.sum(axis=1)
