@@ -900,6 +900,17 @@ def charging_flexibility(
     first_time = first_time.index[0]
 
     charging_car = charging_car.iloc[first_time:]
+    first_row = charging_car.iloc[0]
+    if first_row['chargingdemand']>0:
+        if first_row['park_start'] < 672:
+            cut_time = (abs(first_row['park_start'] - 672) * 15)/60 #h
+            cc = first_row['battery_charging_capacity_kW']
+            cut_demand = cut_time * cc
+            if cut_demand > first_row['chargingdemand']:
+                charging_car['chargingdemand'].iloc[0] = 0
+            else:
+                charging_car['chargingdemand'].iloc[0] = first_row['chargingdemand'] - cut_demand
+
 
     x = -672
     # index von park start end und drive start und end minus eine woche
