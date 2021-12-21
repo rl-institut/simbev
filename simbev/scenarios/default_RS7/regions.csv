@@ -1,0 +1,8 @@
+region_id,RegioStaR7,bev_mini,bev_medium,bev_luxury,phev_mini,phev_medium,phev_luxury
+LR_Klein,LR_Klein,3809,8834,2489,2358,5473,1541
+LR_Mitte,LR_Mitte,3501,7892,2259,2168,4890,1399
+LR_Zentr,LR_Zentr,1420,3055,883,880,1893,546
+SR_Gross,SR_Gross,3039,6427,1835,1882,3982,1136
+SR_Klein,SR_Klein,1481,3268,952,917,2025,589
+SR_Metro,SR_Metro,2892,6606,2167,1791,4093,1342
+SR_Mitte,SR_Mitte,6104,13379,4158,3780,8289,2574

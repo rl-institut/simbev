@@ -16,15 +16,6 @@ Here is a template for new release sections
 ### Removed
 -
 ```
-## [Unreleased]
+## [0.1.0] - 2021-12-21
 
-### Added
-- one thing
-
-### Changed
-- another thing
-
-### Removed
-- yet another thing
-
-
+First version of simBEV to run simulations of electric vehicle charging demands.

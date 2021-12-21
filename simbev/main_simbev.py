@@ -1,11 +1,14 @@
 import simbevMiD
 
+import os
 import argparse
 import configparser as cp
-from datetime import datetime
+import datetime as dt
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import multiprocessing as mp
+from helpers.helpers import single_to_multi_scenario, compile_output
 
 
 # regiotypes:
@@ -20,70 +23,36 @@ from pathlib import Path
 # SR_Metro - Metropole
 
 
-if __name__ == "__main__":
+def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
+               regions, tech_data, main_path):
+    """Run simbev for single region"""
+    print(f'===== Region: {region_id} ({region_ctr + 1}/{len(regions)}) =====')
 
-    parser = argparse.ArgumentParser(description='SimBEV modelling tool for generating timeseries of electric vehicles.')
-    parser.add_argument('config', default="simbev_config_default.cfg", nargs='?', help='Set the config CSV file')
-    args = parser.parse_args()
-
-    # read config file
-    # config_file = Path(config_file)
-    cfg = cp.ConfigParser()
-    # cfg.read(config_file)
-    cfg.read(args.config)
-
-    # set number of threads for parallel computation
-    num_threads = cfg.getfloat('sim_params', 'num_threads')
-
-    # create directory for standing times data
-    directory = "res"
-    directory = Path(directory)
-
-    # dir strings
-    if num_threads > 1:
-        # Multi processing calculates datetime.now() multiple times
-        # A "hard" path is needed
-        date = "final_Reference_2050"  # TODO: set current date
-    else:
-        date = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-
-    sub_directory = str(date) + "_simbev_run"
-
-    # path joins
-    main_path = directory.joinpath(sub_directory)
-
-    # make dirs
-    main_path.mkdir(exist_ok = True)
-
-    print("Writing to {}".format(main_path))
-
-    # get timestep (in minutes)
-    stepsize = cfg.getint('basic', 'stepsize')
-
-    # get days for simulation
-    days = cfg.getfloat('basic', 'days')
-
-    # get minimum soc value in %
-    soc_min = cfg.getfloat('basic', 'soc_min')
-
-    # read chargepoint probabilities
-    charge_prob_slow = pd.read_csv(cfg['charging_probabilities']['slow'], sep=';', decimal=',')
-    charge_prob_slow = charge_prob_slow.set_index('destination')
-    charge_prob_fast = pd.read_csv(cfg['charging_probabilities']['fast'], sep=';', decimal=',')
-    charge_prob_fast = charge_prob_fast.set_index('destination')
-
-    # set random seed from config or truly random if none is given
-    rng_seed = cfg['sim_params'].getint('seed', None)
-    rng = np.random.default_rng(rng_seed)
-
-    # select regio type
-    regio_type = cfg['basic']['regio_type']
+    # set variables from cfg
+    stepsize = cfg_dict['stepsize']
+    eta_cp = cfg_dict['eta_cp']
+    rng = cfg_dict['rng']
+    soc_min = cfg_dict['soc_min']
 
     # get probabilities
-    probdata, wd = simbevMiD.get_prob(
-        regio_type,
-        stepsize,
-    )
+    probdata, tseries_purpose, days = simbevMiD.get_prob(
+        region_data.RegioStaR7,
+        stepsize, cfg_dict['start_date'], cfg_dict['end_date'])
+
+    car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
+
+    columns = [
+        "location",
+        "SoC",
+        "chargingdemand",
+        "charge_time",
+        "charge_start",
+        "charge_end",
+        "netto_charging_capacity",
+        "consumption",
+        "drive_start",
+        "drive_end",
+    ]
 
     # init charging demand df
     ca = {
@@ -99,46 +68,22 @@ if __name__ == "__main__":
         "drive_end": 0,
     }
 
-    columns = [
-        "location",
-        "SoC",
-        "chargingdemand",
-        "charge_time",
-        "charge_start",
-        "charge_end",
-        "netto_charging_capacity",
-        "consumption",
-        "drive_start",
-        "drive_end",
-    ]
+    # get number of cars
+    numcar_list = list(region_data[car_type_list])
 
-    charging_all = pd.DataFrame(
-        data=ca,
-        columns=columns,
-        index=[0],
-    )
-
-    # get number of cars per Gemeinde
-    # set list of car types
-    car_type_list = sorted(list(cfg["tech_data_bc"].keys()))
-    numcar_list = []
-    for cartype in car_type_list:
-        numcar_list.append(cfg.getint('rampup_ev', cartype))
-
-    #soc init value for the first monday
-    SoC_init = [
+    # SOC init value for the first monday
+    soc_init = [
         rng.random() ** (1 / 3) * 0.8 + 0.2 if rng.random() < 0.12 else 1
         for _ in range(sum(numcar_list))
     ]
     count_cars = 0
 
+    region_path = main_path.joinpath(str(region_id))
+    region_path.mkdir(exist_ok=True)
+
     # loop for types of cars
     for idx, car_type_name in enumerate(car_type_list):
-
-        bat_cap = cfg.getfloat('tech_data_bc', car_type_name)
-        con = cfg.getfloat('tech_data_ec', car_type_name)
-        chargepower_slow = cfg.getfloat('tech_data_cc_slow', car_type_name)
-        chargepower_fast = cfg.getfloat('tech_data_cc_fast', car_type_name)
+        tech_data_car = tech_data.loc[car_type_name]
         numcar = numcar_list[idx]
 
         if "bev" in car_type_name:
@@ -166,9 +111,9 @@ if __name__ == "__main__":
             work_charging_capacity = 0
 
             # init data for car status
-            range_day = int(1440 / stepsize)
-            carstatus = np.zeros(int(range_day / 2))
-            carstatus[:int(range_day / 4)] = 2
+            range_sim = len(tseries_purpose)
+            carstatus = np.zeros(int(range_sim))
+
             car_data = {
                 "place": "6_home",
                 "status": carstatus,
@@ -176,97 +121,237 @@ if __name__ == "__main__":
             }
 
             # init availability df
-            a = {
-                "status": 0,
-                "location": "init",
-                "distance": 0,
-            }
-            availability = pd.DataFrame(
-                data=a,
-                columns=[
-                    "status",
-                    "location",
-                    "distance",
-                ],
-                index=[0],
-            )
+            # a = {
+            #     "status": 0,
+            #     "location": "init",
+            #     "distance": 0,
+            # }
+            # availability = pd.DataFrame(
+            #     data=a,
+            #     columns=[
+            #         "status",
+            #         "location",
+            #         "distance",
+            #     ],
+            #     index=[0],
+            # )
 
-            soc_start = SoC_init[count_cars]
+            soc_start = soc_init[count_cars]
 
             last_charging_capacity = min(
                 simbevMiD.slow_charging_capacity(
-                    charge_prob_slow,
+                    charge_prob['slow'],
                     '6_home',
                     rng,
                 ),
-                chargepower_slow,
-            ) * cfg.getfloat('basic', 'eta_cp')
+                tech_data_car.max_charging_capacity_slow,
+            ) * eta_cp
 
             # loop for days of the week
-            for key in wd:
-                # create availability timeseries and charging times
-                (av, car_data, demand,
-                 soc_start, idx_home,
-                 idx_work, home_charging_capacity,
-                 work_charging_capacity) = simbevMiD.availability(
-                    car_data,
-                    key,
-                    probdata,
-                    stepsize,
-                    bat_cap,
-                    con,
-                    chargepower_slow,
-                    chargepower_fast,
-                    soc_start,
-                    car_type,
-                    charge_prob_slow,
-                    charge_prob_fast,
-                    idx_home,
-                    idx_work,
-                    home_charging_capacity,
-                    work_charging_capacity,
-                    last_charging_capacity,
-                    rng,
-                    cfg.getfloat('basic','eta_cp'),
-                    soc_min,
-                )
-                # add results for this day to availability timeseries
-                availability = availability.append(av).reset_index(drop=True)
+            # for key in wd:
+            # create availability timeseries and charging times
+            (av, car_data, demand,
+             soc_start, idx_home,
+             idx_work, home_charging_capacity,
+             work_charging_capacity) = simbevMiD.availability(
+                car_data,
+                probdata,
+                stepsize,
+                tech_data_car.battery_capacity,
+                tech_data_car.energy_consumption,
+                tech_data_car.max_charging_capacity_slow,
+                tech_data_car.max_charging_capacity_fast,
+                soc_start,
+                car_type,
+                charge_prob['slow'],
+                charge_prob['fast'],
+                idx_home,
+                idx_work,
+                home_charging_capacity,
+                work_charging_capacity,
+                last_charging_capacity,
+                rng,
+                eta_cp,
+                soc_min,
+                tseries_purpose,
+                carstatus
+            )
 
-                # print("Auto Nr. " + str(count) + " / " + str(icar))
-                # print(str(home_charging_capacity) + " kW")
-                # print(demand.loc[demand.location == "6_home"].netto_charging_capacity)
+            # add results for this day to availability timeseries
+            # availability = availability.append(av).reset_index(drop=True)
 
-                # add results for this day to demand time series
-                charging_all = charging_all.append(demand)
+            # print("Auto Nr. " + str(count) + " / " + str(icar))
+            # print(str(home_charging_capacity) + " kW")
+            # print(demand.loc[demand.location == "6_home"].netto_charging_capacity)
 
-                # add results for this day to demand time series for a single car
-                charging_car = charging_car.append(demand)
-                # print(key, charging_car)
+            # add results for this day to demand time series
+            # charging_all = charging_all.append(demand)
 
-                last_charging_capacity = charging_car.netto_charging_capacity.iat[-1]
-                # print("car" + str(icar) + "done")
+            # add results for this day to demand time series for a single car
+            charging_car = charging_car.append(demand)
+            # print(key, charging_car)
 
-            # clean up charging_car
+            last_charging_capacity = charging_car.netto_charging_capacity.iat[-1]
+            # print("car" + str(icar) + "done")
 
-            # drop init row of availability df
-            availability = availability.iloc[1:]
-            # save availability df
-            # availability.to_csv("res/availability_car" + str(icar) + ".csv")
-
-            # Export timeseries for each car
             simbevMiD.charging_flexibility(
                 charging_car,
                 car_type_name,
                 icar,
                 stepsize,
-                len(wd),
-                bat_cap,
+                len(tseries_purpose),
+                tech_data_car.battery_capacity,
                 rng,
-                cfg.getfloat('basic','eta_cp'),
-                main_path,
+                eta_cp,
+                region_path,
+                tseries_purpose,
+                days,
+                tech_data_car.battery_capacity,
+                region_data.RegioStaR7,
             )
 
+        # clean up charging_car
+
+            # drop init row of availability df
+        # availability = availability.iloc[1:]
+            # save availability df
+            # availability.to_csv("res/availability_car" + str(icar) + ".csv")
+
             count_cars += 1
-        if numcar > 1:
+        if numcar >= 1:
             print(" - done")
+
+
+def init_simbev(args):
+    # check if scenario exists
+    scenario_path = os.path.join('.', 'scenarios', args.scenario)
+    if not os.path.isdir(scenario_path):
+        raise FileNotFoundError(f'Scenario "{args.scenario}" not found in ./scenarios .')
+
+    # read config file
+    cfg = cp.ConfigParser()
+    cfg_file = os.path.join(scenario_path, 'simbev_config.cfg')
+    if not os.path.isfile(cfg_file):
+        raise FileNotFoundError(f'Config file {cfg_file} not found.')
+    try:
+        cfg.read(cfg_file)
+    except Exception:
+        raise FileNotFoundError(f'Cannot read config file {cfg_file} - malformed?')
+
+    # set number of threads for parallel computation
+    num_threads = cfg.getint('sim_params', 'num_threads')
+
+    # set random seed from config or truly random if none is given
+    rng_seed = cfg['sim_params'].getint('seed', None)
+    rng = np.random.default_rng(rng_seed)
+
+    # set eta cp from config
+    eta_cp = cfg.getfloat('basic', 'eta_cp')
+
+    # get minimum soc value in %
+    soc_min = cfg.getfloat('basic', 'soc_min')
+
+    # read chargepoint probabilities
+    charge_prob_slow = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['slow']))
+    charge_prob_slow = charge_prob_slow.set_index('destination')
+    charge_prob_fast = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['fast']))
+    charge_prob_fast = charge_prob_fast.set_index('destination')
+    charge_prob = {'slow': charge_prob_slow,
+                   'fast': charge_prob_fast}
+
+    # get timestep (in minutes)
+    stepsize = cfg.getint('basic', 'stepsize')
+
+    # get start and end date
+    start_date = cfg.get('basic', 'start_date')   # kann man so mit isoformat benutzen wenn man python 3.9 hat
+    end_date = cfg.get('basic', 'end_date')
+    start_date = start_date.split('-')
+    s_date = []
+    for it in start_date:
+        it = int(it)
+        s_date.append(it)
+    end_date = end_date.split('-')
+    e_date = []
+    for it in end_date:
+        it = int(it)
+        e_date.append(it)
+
+    # get output option
+    grid_output = cfg.getboolean('basic', 'grid_timeseries', fallback=False)
+
+    # combine config params in one dict
+    cfg_dict = {'stepsize': stepsize,
+                'soc_min': soc_min,
+                'rng': rng,
+                'eta_cp': eta_cp,
+                'start_date': s_date,
+                'end_date': e_date,
+                }
+
+    # create directory for standing times data
+    directory = "res"
+    directory = Path(directory)
+
+    # result dir
+    result_dir = f'{args.scenario}_{dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")}_simbev_run'
+
+    # path join
+    main_path = directory.joinpath(result_dir)
+
+    # make dirs
+    main_path.mkdir(exist_ok=True)
+
+    print("Writing to {}".format(main_path))
+
+    # get the region mode (single or multi) and get params
+    region_mode = cfg.get('region_mode', 'region_mode')
+    if region_mode == 'single':
+        if num_threads > 1:
+            num_threads = 1
+            print('Warning: Single region mode selected, therefore number of threads is set to 1.')
+
+        regions, tech_data = single_to_multi_scenario(
+            region_type=cfg.get('basic', 'regio_type'),
+            rampup=dict(cfg['rampup_ev']),
+            max_charging_capacity_slow=dict(cfg['tech_data_cc_slow']),
+            max_charging_capacity_fast=dict(cfg['tech_data_cc_fast']),
+            battery_capacity=dict(cfg['tech_data_bc']),
+            energy_consumption=dict(cfg['tech_data_ec'])
+        )
+    elif region_mode == 'multi':
+        # load region data
+        regions = pd.read_csv(os.path.join(scenario_path, cfg.get('rampup_ev', 'rampup'))).set_index('region_id')
+        tech_data = pd.read_csv(os.path.join(scenario_path, cfg.get('tech_data', 'tech_data'))).set_index('type')
+    else:
+        raise ValueError('Invalid value for parameter "region_mode" in config, please use "single" or "multi".')
+
+    print(f'Running simbev in {num_threads} thread(s)...')
+    if num_threads == 1:
+        for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
+            run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
+                       regions, tech_data, main_path)
+    else:
+        pool = mp.Pool(processes=num_threads)
+
+        for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
+            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg_dict, charge_prob,
+                                          regions, tech_data, main_path))
+
+        pool.close()
+        pool.join()
+
+    start = dt.date(s_date[0], s_date[1], s_date[2])
+    end = dt.date(e_date[0], e_date[1], e_date[2])
+
+    if grid_output:
+        compile_output(main_path, start, end, region_mode, cfg_dict["stepsize"])
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='SimBEV modelling tool for generating timeseries of electric '
+                                                 'vehicles.')
+    parser.add_argument('scenario', default="default_single", nargs='?',
+                        help='Set the scenario which is located in ./scenarios .')
+    p_args = parser.parse_args()
+    init_simbev(p_args)
