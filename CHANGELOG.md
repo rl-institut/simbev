@@ -16,18 +16,6 @@ Here is a template for new release sections
 ### Removed
 -
 ```
-## [Unreleased]
+## [0.1.0] - 2021-12-21
 
-### Added
-- Support multiple regions #3
-- Add multiprocessing #20
-- Add RS7 sample dataset for Germany #11
-
-### Changed
-- Fixed #17
-- Fixed #18
-
-### Removed
-- yet another thing
-
-
+First version of simBEV to run simulations of electric vehicle charging demands.
