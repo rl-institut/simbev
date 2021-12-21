@@ -21,60 +21,55 @@ of Simbev are:
 Documentation
 =============
 
-Full documentation can be found `here <https://smooth.readthedocs.io/en/latest/>`_
+Full documentation can be found `here <https://simbev.readthedocs.io/en/latest/>`_
 
-Installing simbev
+Installing simBEV
 =================
 
-In order to use Simbev, the simbev package and its requirements need to be installed. There
-is the option to clone the current repository of SMOOTH to your local machine using:
+Install using pip
+-----------------
+
+First, clone via SSH using
 
 .. code:: bash
 
-	git clone https://github.com/rl-institut/smooth
+    git clone git@github.com:rl-institut/simbev.git /local/path/to/simbev/
 
-The necessary requirements (found in requirements.txt in repository) are installed into a
-working Python3 environment by:
-
-.. code:: bash
-
-    pip install -r requirements.txt
-
-Simbev is then installed by:
+Make sure you have Python >= 3.8 installed, let's create a virtual env:
 
 .. code:: bash
 
-    python setup.py install
+    virtualenv --python=python3.8 simbev
+    source simbev/bin/activate
 
+Install package with
 
-You also need to install the solver for oemof. This can be done according to
-`this <https://oemof-solph.readthedocs.io/en/latest/readme.html#installing-a-solver>`_
-documentation page.
+.. code:: bash
+
+    pip install -e /local/path/to/simbev/
+
+Install using conda
+-------------------
+
+Make sure you have conda installed, e.g. miniconda. Then create the env:
+
+    conda create -n simbev /local/path/to/simbev/environment.yml
+    conda activate simbev
 
 General concept
 ===============
+
 Simbev forecast charging demand for different e-cars for a pregiven time period. It does so by analysing the mobility in Germany
 data. This data is splitted into different regiontypes ( Ländliche Regionen LR_Klein - Kleinstädtischer, dörflicher Raum LR_Mitte
 - Mittelstädte, städtischer Raum LR_Zentr - Zentrale Stadt Stadtregionen SR_Klein - Kleinstädtischer, dörflicher Raum SR_Mitte
 - Mittelstädte, städtischer Raum SR_Gross - Regiopolen, Großstädte SR_Metro - Metropole).
 The system is parameterized with the help of different input parameters such as battery capacity and charging power (slow and fast)
-as well as the consumption of each car. While the components and the algorithm executing the simulation are part of
-SMOOTH, each component creates a valid oemof model for each time step and the system is solved using
-`oemof-solph <https://oemof.readthedocs.io/en/release-v0.1/oemof_solph.html>`_. The financial costs/revenues and emissions, where
-the costs are divided into variable costs, CAPEX and OPEX, are tracked for each component individually. After the simulation, all
-costs/revenues and emissions are transferred to annuities (kg/a and EUR/a, respectively) based on the component lifetimes, and the
-total system financial and emissions annuities are recorded. The notable states of the components and the energy and mass flows of
-the system are also recorded and all results can be saved for later use.
-
-An additional functionality of SMOOTH is the optimization (MOEA) which optimizes the topology and operational management of an
-energy system with regards to ecological and economic target criteria. Key parameters of components are chosen, such as the
-maximum power output or capacity, and varied in numerous versions of the energy system until the optimal solution/s is/are
-reached. The specification of the final system/s is/are finally returned as SMOOTH results.
+as well as the consumption of each car.
 
 Structure of the Simbev module
 ==============================
 
-
+TODO
 
 Functions
 ==========
@@ -104,53 +99,28 @@ availability(cardata,probdata,stepsize,batcap,con,chargepower_slow,chargepower_f
 
 Examples
 ========
-In order to get a better, applied understanding of how to define a model, and either run a simulation
-or an optimization, see the `examples directory <https://github.com/rl-institut/smooth/tree/dev/smooth/examples>`_
-for examples, and the :doc:`smooth.examples` for corresponding explanations.
 
-Framework
+TODO
+
+Scenarios
 =========
-The :doc:`smooth.framework` consists of the main function that runs the SMOOTH simulation
-framework (the :func:`run_smooth` function) as well as other functions that are necessary for
-updating and evaluating the simulation results (in the :doc:`smooth.framework.functions`).
-An outline and brief description of the available functions in the framework is presented below:
 
-* :func:`~smooth.framework.run_smooth`: the main function which enables the simulation in SMOOTH,
-  and must be called by the user.
-* :func:`~smooth.framework.functions.calculate_external_costs`: calculates costs for components
-  in the system which are not part of the optimization but their costs should be taken into
-  consideration. This function can be called in the same file as the run_smooth function.
-* :func:`~smooth.framework.functions.debug`: generates debugging information from
-  the results, and prints, plots and saves them. It is called in the run_smooth function if the
-  user sets the *show_debug_flag* parameter as True in the simulation parameters.
-* :func:`~smooth.framework.functions.load_results`: loads the saved results of either a
-  simulation or optimization. Can be called by the user in a file where the results are
-  evaluated.
-* :func:`~smooth.framework.functions.plot_results`: plots results of a SMOOTH run, which can
-  be called after the simulation/optimization results are obtained.
-* :func:`~smooth.framework.functions.print_results`: prints the financial results of a
-  SMOOTH run, which can be called after the simulation/optimization results are obtained.
-* :func:`~smooth.framework.functions.save_results`: saves the results of either a SMOOTH
-  run or an optimization, which can be called after the results are obtained.
-* :func:`~smooth.framework.functions.update_annuities`: calculates and updates the financial
-  and emission annuities for the components used in the system. It is called in the
-  generic Component class, which is used to define each component.
-* :func:`~smooth.framework.functions.update_fitted_costs`: calculates the fixed costs and fixed emissions of a component. The user can define the dependencies on certain values using a set of specific fitting methods. This function is also called in the generic Component class, which is used to define each component.
-
-Optimization
-============
-The genetic algorithm used for the optimization in SMOOTH is defined in the
-:doc:`smooth.optimization`, along with instructions on how to use it.
-
-Got further questions on using SMOOTH?
-======================================
-
-Contact ...
-
+See directory `scenarios`.
 
 License
 =======
 
-SMOOTH is licensed under the Apache License, Version 2.0 or the MIT license, at your option.
-See the `COPYRIGHT file <https://github.com/rl-institut/smooth/blob/dev/COPYRIGHT>`_ for details.
+GNU Affero General Public License v3.0
 
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
