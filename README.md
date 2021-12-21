@@ -1,17 +1,38 @@
-# Download and run SimBEV
+# simBEV
+
+Simulation of electric vehicle charging demand.
 
 ## Download/install
 
-- clone repository to your local machine
-- install requirements found in requirements.txt (virtualenv recommended)
+### Install using pip
+
+First, clone via SSH using
+
+    git clone git@github.com:rl-institut/simbev.git /local/path/to/simbev/
+
+Make sure you have Python >= 3.9 installed, let's create a virtual env:
+
+    virtualenv --python=python3.8 simbev
+    source simbev/bin/activate
+
+Install package with
+
+    pip install -e /local/path/to/simbev/
+
+### Install using conda
+
+Make sure you have conda installed, e.g. miniconda. Then create the env:
+    
+    conda create -n simbev /local/path/to/simbev/environment.yml
+    conda activate simbev
 
 ## Run SimBEV
 
-- you can use a default scenario or define a custom one in the directory `scenarios`, see
+- You can use a default scenario or define a custom one in the directory `scenarios`, see
   [scenario readme](./simbev/scenarios/README.md) for further instructions
-- run main_simbev.py with the desired scenario: `python main_simbev.py <SCENARIO_NAME>`
+- Run main_simbev.py with the desired scenario: `python main_simbev.py <SCENARIO_NAME>`
   (defaults to `python main_simbev.py default_single`)
-- results are created in directory `res`
+- Results are created in directory `res`
 
 ## Set parameters for your scenario
 
@@ -34,4 +55,3 @@ Change vehicle configuration
 
 Decide how many vehicles should be simulated
 - note: more than 5000 vehicles of one type in one region is not necessary, if you want to analyze more, scale it accordingly
-
