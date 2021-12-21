@@ -9,7 +9,7 @@ from mid_timeseries import get_timeseries
 
 def get_prob(
         region,
-        stepsize, start_date, end_date, weekdays, min_per_day,
+        stepsize, start_date, end_date,
 ):
     # destinations = [
     #     "time",
@@ -42,7 +42,7 @@ def get_prob(
     # end_date = datetime.date.fromisoformat(end_date)
     end_date = dt.date(end_date[0], end_date[1], end_date[2])
 
-    tseries_purpose, days = get_timeseries(start_date, end_date, region, stepsize, weekdays, min_per_day)
+    tseries_purpose, days = get_timeseries(start_date, end_date, region, stepsize)
 
     # get start data
     tseries_start = tseries_purpose.sum(axis=1)
@@ -900,6 +900,17 @@ def charging_flexibility(
     first_time = first_time.index[0]
 
     charging_car = charging_car.iloc[first_time:]
+    first_row = charging_car.iloc[0]
+    if first_row['chargingdemand']>0:
+        if first_row['park_start'] < 672:
+            cut_time = (abs(first_row['park_start'] - 672) * 15)/60 #h
+            cc = first_row['battery_charging_capacity_kW']
+            cut_demand = cut_time * cc
+            if cut_demand > first_row['chargingdemand']:
+                charging_car['chargingdemand'].iloc[0] = 0
+            else:
+                charging_car['chargingdemand'].iloc[0] = first_row['chargingdemand'] - cut_demand
+
 
     x = -672
     # index von park start end und drive start und end minus eine woche

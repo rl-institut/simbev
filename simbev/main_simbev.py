@@ -3,12 +3,12 @@ import simbevMiD
 import os
 import argparse
 import configparser as cp
-from datetime import datetime
+import datetime as dt
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import multiprocessing as mp
-from helpers.helpers import single_to_multi_scenario
+from helpers.helpers import single_to_multi_scenario, compile_output
 
 
 # regiotypes:
@@ -37,7 +37,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
     # get probabilities
     probdata, tseries_purpose, days = simbevMiD.get_prob(
         region_data.RegioStaR7,
-        stepsize, cfg_dict['start_date'], cfg_dict['end_date'], cfg_dict['weekdays'], cfg_dict['min_per_day'],)
+        stepsize, cfg_dict['start_date'], cfg_dict['end_date'])
 
     car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
 
@@ -262,10 +262,6 @@ def init_simbev(args):
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
 
-    # get params for timeseries
-    weekday = cfg.getint('basic', 'weekdays')
-    minutes_per_day = cfg.getint('basic', 'min_per_day')
-
     # get start and end date
     start_date = cfg.get('basic', 'start_date')   # kann man so mit isoformat benutzen wenn man python 3.9 hat
     end_date = cfg.get('basic', 'end_date')
@@ -280,6 +276,9 @@ def init_simbev(args):
         it = int(it)
         e_date.append(it)
 
+    # get output option
+    grid_output = cfg.getboolean('basic', 'grid_timeseries', fallback=False)
+
     # combine config params in one dict
     cfg_dict = {'stepsize': stepsize,
                 'soc_min': soc_min,
@@ -287,8 +286,6 @@ def init_simbev(args):
                 'eta_cp': eta_cp,
                 'start_date': s_date,
                 'end_date': e_date,
-                'weekdays': weekday,
-                'min_per_day': minutes_per_day,
                 }
 
     # create directory for standing times data
@@ -296,7 +293,7 @@ def init_simbev(args):
     directory = Path(directory)
 
     # result dir
-    result_dir = f'{args.scenario}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}_simbev_run'
+    result_dir = f'{args.scenario}_{dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")}_simbev_run'
 
     # path join
     main_path = directory.joinpath(result_dir)
@@ -342,6 +339,12 @@ def init_simbev(args):
 
         pool.close()
         pool.join()
+
+    start = dt.date(s_date[0], s_date[1], s_date[2])
+    end = dt.date(e_date[0], e_date[1], e_date[2])
+
+    if grid_output:
+        compile_output(main_path, start, end, region_mode, cfg_dict["stepsize"])
 
 
 if __name__ == "__main__":

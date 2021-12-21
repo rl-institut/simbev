@@ -4,9 +4,6 @@ import math
 import datetime
 from pathlib import Path
 
-# set cutoff dates, jeweils erster Monat der nächsten Jahreszeit
-cutoff_dates = (3, 6, 9, 12)
-
 
 # returns season as string
 def get_season(date: datetime.date):
@@ -44,6 +41,8 @@ def get_cutoff(date: datetime.date):
         year = date.year + 1
     else:
         year = date.year
+    # set cutoff dates, jeweils erster Monat der nächsten Jahreszeit
+    cutoff_dates = (3, 6, 9, 12)
     cutoff = datetime.date(year, cutoff_dates[get_season_idx(date)], 1)
     return cutoff
 
@@ -54,10 +53,10 @@ def get_name_csv(region, season):
 
 
 # main function, returns pandas
-def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, weekdays, min_per_day):
+def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
     # build a matrix containing information about each season during the time span
-    print(start)
-    print(end)
+    weekdays = 7
+    min_per_day = 1440
     days = (end - start).days - 7
     # set up variables
     pd_result = pd.DataFrame()
