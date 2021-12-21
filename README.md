@@ -2,7 +2,7 @@
 
 Simulation of electric vehicle charging demand.
 
-## Download/install
+## Installation
 
 ### Install using pip
 
