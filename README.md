@@ -1,3 +1,5 @@
+<img align="right" width="150" src="https://github.com/rl-institut/simbev/blob/master/docs/img/rli_logo.png">
+
 # simBEV
 
 Simulation of electric vehicle charging demand.
