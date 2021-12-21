@@ -35,7 +35,7 @@ First, clone via SSH using
 
     git clone git@github.com:rl-institut/simbev.git /local/path/to/simbev/
 
-Make sure you have Python >= 3.9 installed, let's create a virtual env:
+Make sure you have Python >= 3.8 installed, let's create a virtual env:
 
 .. code:: bash
 

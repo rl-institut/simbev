@@ -1,5 +1,5 @@
 name: myvenv
 dependencies:
-- python=3.9
+- python=3.8
 - pip:
    - -r requirements.txt
