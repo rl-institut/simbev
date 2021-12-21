@@ -152,7 +152,7 @@ def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
         pd_result_sum.to_csv(Path(result_dir, "0_grid_timeseries_all_regions.csv"), sep=',', decimal='.')
 
 
-if __name__ == '__main__':
-    s = dt.datetime(2021, 9, 17)
-    e = dt.datetime(2021, 9, 30)
-    compile_output(Path('..', 'res', 'default_multi_2021-12-08_143738_simbev_run'), s, e, region_mode="multi")
+# if __name__ == '__main__':
+#     # s = dt.datetime(2021, 9, 17)
+#     # e = dt.datetime(2021, 9, 30)
+#     # compile_output(Path('..', 'res', 'default_multi_2021-12-08_143738_simbev_run'), s, e, region_mode="multi")
