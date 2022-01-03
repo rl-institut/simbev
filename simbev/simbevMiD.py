@@ -342,7 +342,6 @@ def availability(
                     drive_start = im + 1
                     drive_end = int(drive_start + drivetime)
                     if drive_start > (len(car_status) - 1):
-                        car_status[drive_start] = 1
                         break
                     if drive_end > (len(car_status) - 1):
                         drive_end = len(car_status)
@@ -419,9 +418,8 @@ def availability(
                         ch_capacity.append(0)
                         demand.append(0)
                         if drive_end > (len(car_status) - 1):
-                            drive_end = len(car_status)
-                            car_status[drive_start-2:drive_end] = 3
-                            im = drive_end
+                            car_status[drive_start-2:] = 3
+                            im = len(car_status)
                             break
                         car_status[drive_start-1:drive_end] = 3
                         im = drive_end
@@ -451,8 +449,7 @@ def availability(
                         ch_start.append(charge_start)
                         ch_end.append(charge_start + 1)
                         if charge_start > (len(car_status) - 1):
-                            charge_start = len(car_status)
-                            car_status[charge_start] = 2
+                            car_status[-1] = 2
                             break
                         car_status[charge_start] = 2
                         im = charge_start + 1
