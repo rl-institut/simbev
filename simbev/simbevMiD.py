@@ -341,10 +341,9 @@ def availability(
                     # get timesteps for car status of driving
                     drive_start = im + 1
                     drive_end = int(drive_start + drivetime)
-                    if drive_start > len(car_status):
-                        car_status[drive_start] = 1
+                    if drive_start > (len(car_status) - 1):
                         break
-                    if drive_end > len(car_status):
+                    if drive_end > (len(car_status) - 1):
                         drive_end = len(car_status)
                     purp_list.append("driving")
                     dr_start.append(drive_start)
@@ -384,8 +383,8 @@ def availability(
                     charge_start = im
                     ch_start.append(charge_start)
                     ch_end.append(charge_start + 1)
-                    if charge_start > (len(car_status)-1):
-                        car_status[(len(car_status)-1)] = 2
+                    if charge_start > (len(car_status) - 1):
+                        car_status[(len(car_status) - 1)] = 2
                         break
                     car_status[charge_start] = 2
                     im = charge_start + 1
@@ -418,10 +417,9 @@ def availability(
                         ch_time.append(0)
                         ch_capacity.append(0)
                         demand.append(0)
-                        if drive_end > len(car_status):
-                            drive_end = len(car_status)
-                            car_status[drive_start-2:drive_end] = 3
-                            im = drive_end
+                        if drive_end > (len(car_status) - 1):
+                            car_status[drive_start-2:] = 3
+                            im = len(car_status)
                             break
                         car_status[drive_start-1:drive_end] = 3
                         im = drive_end
@@ -450,9 +448,8 @@ def availability(
                         charge_start = im
                         ch_start.append(charge_start)
                         ch_end.append(charge_start + 1)
-                        if charge_start > len(car_status):
-                            charge_start = len(car_status)
-                            car_status[charge_start] = 2
+                        if charge_start > (len(car_status) - 1):
+                            car_status[-1] = 2
                             break
                         car_status[charge_start] = 2
                         im = charge_start + 1
