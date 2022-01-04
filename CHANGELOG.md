@@ -16,6 +16,13 @@ Here is a template for new release sections
 ### Removed
 -
 ```
+
+## [0.1.1] - 2022-01-04
+
+### Changed
+
+- Fix missing EVs (CSVs) in output #54
+
 ## [0.1.0] - 2021-12-21
 
 First version of simBEV to run simulations of electric vehicle charging demands.
