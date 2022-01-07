@@ -17,6 +17,16 @@ Here is a template for new release sections
 -
 ```
 
+## [0.1.2] - 2022-01-07
+
+### Added
+
+- Export metadata of run to JSON #27
+
+## Changed
+
+- Fix package config in setup.py
+
 ## [0.1.1] - 2022-01-04
 
 ### Changed
