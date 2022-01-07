@@ -1,6 +1,10 @@
+import os
+import json
 import pandas as pd
 from pathlib import Path
 import datetime as dt
+
+from simbev import __version__
 
 
 def single_to_multi_scenario(region_type,
@@ -59,6 +63,52 @@ def progress_bar(current, total, name: str, bar_length=20):
     spaces = ' ' * (bar_length - len(arrow))
 
     print(name + ': [%s%s] %d %%' % (arrow, spaces, percent), end='\r')
+
+
+def export_metadata(
+        result_dir: Path,
+        scenario,
+        config,
+        tech_data,
+        charge_prob_slow,
+        charge_prob_fast,
+        timestamp_start
+):
+    """Export metadata of run to JSON file in result's root directory
+
+    Parameters
+    ----------
+    result_dir : :obj:`Path`
+        Path to scenario results
+    scenario : :obj:`str`
+        Scenario name
+    config : cp.ConfigParser
+    tech_data : pd.DataFrame
+        EVs' tech data
+    charge_prob_slow : pd.DataFrame
+        Charging point probabilities for slow charging
+    charge_prob_fast : pd.DataFrame
+        Charging point probabilities for fast charging
+    timestamp_start : :obj:`str`
+        Timestamp of run in format %Y-%m-%d_%H%M%S
+
+    Returns
+    -------
+    None
+    """
+    meta_dict = {
+        "simBEV_version": __version__,
+        "scenario": scenario,
+        "timestamp_start": timestamp_start,
+        "timestamp_end": dt.datetime.now().strftime("%Y-%m-%d_%H%M%S"),
+        "config": config._sections,
+        "tech_data": tech_data.to_dict(orient="index"),
+        "charge_prob_slow": charge_prob_slow.to_dict(orient="index"),
+        "charge_prob_fast": charge_prob_fast.to_dict(orient="index")
+    }
+    outfile = os.path.join(result_dir, 'metadata_simbev_run.json')
+    with open(outfile, 'w') as f:
+        json.dump(meta_dict, f, indent=4)
 
 
 def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
