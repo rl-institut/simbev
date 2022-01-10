@@ -17,7 +17,7 @@ Here is a template for new release sections
 -
 ```
 
-## [0.1.2] - 2022-01-07
+## [0.1.2] - 2022-01-10
 
 ### Added
 
@@ -26,6 +26,7 @@ Here is a template for new release sections
 ## Changed
 
 - Fix package config in setup.py
+- Fix conda install instructions
 
 ## [0.1.1] - 2022-01-04
 
