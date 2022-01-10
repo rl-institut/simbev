@@ -8,7 +8,11 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import multiprocessing as mp
-from helpers.helpers import single_to_multi_scenario, compile_output
+from helpers.helpers import (
+    single_to_multi_scenario,
+    export_metadata,
+    compile_output
+)
 
 
 # regiotypes:
@@ -293,7 +297,8 @@ def init_simbev(args):
     directory = Path(directory)
 
     # result dir
-    result_dir = f'{args.scenario}_{dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")}_simbev_run'
+    timestamp_start = dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    result_dir = f'{args.scenario}_{timestamp_start}_simbev_run'
 
     # path join
     main_path = directory.joinpath(result_dir)
@@ -342,6 +347,16 @@ def init_simbev(args):
 
     start = dt.date(s_date[0], s_date[1], s_date[2])
     end = dt.date(e_date[0], e_date[1], e_date[2])
+
+    export_metadata(
+        main_path,
+        args.scenario,
+        cfg,
+        tech_data,
+        charge_prob_slow,
+        charge_prob_fast,
+        timestamp_start
+    )
 
     if grid_output:
         compile_output(main_path, start, end, region_mode, cfg_dict["stepsize"])
