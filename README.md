@@ -25,7 +25,7 @@ Install package with
 
 Make sure you have conda installed, e.g. miniconda. Then create the env:
     
-    conda create -n simbev /local/path/to/simbev/environment.yml
+    conda env create -n simbev -f /local/path/to/simbev/environment.yml
     conda activate simbev
 
 ## Run simBEV
