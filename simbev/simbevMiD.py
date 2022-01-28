@@ -1,3 +1,8 @@
+"""
+This module represents the core of SimBEV. Here you find the main functions to run simulations and
+create driving profiles.
+"""
+
 import datetime as dt
 import math
 from pathlib import Path
