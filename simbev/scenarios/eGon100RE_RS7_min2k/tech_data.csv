@@ -1,0 +1,7 @@
+type,max_charging_capacity_slow,max_charging_capacity_fast,battery_capacity,energy_consumption
+bev_mini,11,120,70,0.1185
+bev_medium,22,350,100,0.1482
+bev_luxury,50,350,120,0.1778
+phev_mini,3.7,120,25,0.1214
+phev_medium,11,120,30,0.1517
+phev_luxury,11,120,40,0.182
