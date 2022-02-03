@@ -263,8 +263,8 @@ def init_simbev(args):
     charge_prob = {'slow': charge_prob_slow,
                    'fast': charge_prob_fast}
 
-    home_private = cfg.getfloat('charging_probabilities', 'private_charging_home')
-    work_private = cfg.getfloat('charging_probabilities', 'private_charging_work')
+    home_private = cfg.getfloat('charging_probabilities', 'private_charging_home', fallback=1.0)
+    work_private = cfg.getfloat('charging_probabilities', 'private_charging_work', fallback=1.0)
 
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
