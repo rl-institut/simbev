@@ -202,10 +202,10 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 charging_car,
                 car_type_name,
                 icar,
-                stepsize,
-                len(tseries_purpose),
                 tech_data_car.battery_capacity,
                 rng,
+                cfg_dict["home_private"],
+                cfg_dict["work_private"],
                 eta_cp,
                 region_path,
                 tseries_purpose,
@@ -263,6 +263,9 @@ def init_simbev(args):
     charge_prob = {'slow': charge_prob_slow,
                    'fast': charge_prob_fast}
 
+    home_private = cfg.getfloat('charging_probabilities', 'private_charging_home')
+    work_private = cfg.getfloat('charging_probabilities', 'private_charging_work')
+
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
 
@@ -290,6 +293,8 @@ def init_simbev(args):
                 'eta_cp': eta_cp,
                 'start_date': s_date,
                 'end_date': e_date,
+                'home_private': home_private,
+                'work_private': work_private,
                 }
 
     # create directory for standing times data
