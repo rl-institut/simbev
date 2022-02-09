@@ -226,7 +226,7 @@ def availability(
         date_now = date_im[im]
         date_now = str(date_now.day) + '.' + str(date_now.month) + '.' + '2022'
 
-        temp_date = temperature['Datum']
+        temp_date = temperature['Date']
         temp_temp = temperature['Temperature']
         for it in range(len(temperature)):
             if temp_date[it] == date_now:
