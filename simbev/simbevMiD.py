@@ -146,6 +146,7 @@ def availability(
         cooling,
         heating,
         temp_inside,
+        temperature,
 ):
 
     # day_mins = 1440

@@ -181,6 +181,10 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 soc_min,
                 tseries_purpose,
                 carstatus,
+                cooling,
+                heating,
+                temp_inside,
+                temperature,
             )
 
             # add results for this day to availability timeseries
