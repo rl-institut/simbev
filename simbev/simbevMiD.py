@@ -1161,3 +1161,19 @@ def fast_charging_capacity(
         fast_charging_capacity = 350
 
     return fast_charging_capacity
+
+# Definition of variable:
+# temperature_carinside: temperature
+# energie use cooling/heating: KWh verbraucht pro Einheit??
+
+
+def total_consumption(temperature, timesteps, temperature_carinside, energy_use_cooling, energy_use_heating,
+                      con, distance):
+    temperature_diff = temperature_carinside - temperature
+
+    if temperature_diff > 0:
+        extra_kwh = temperature_diff * energy_use_heating * timesteps
+    else:
+        extra_kwh = (temperature_diff * -1) * energy_use_cooling * timesteps
+    consumption = distance * con + extra_kwh
+    return consumption
