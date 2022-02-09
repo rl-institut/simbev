@@ -32,6 +32,13 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
     eta_cp = cfg_dict['eta_cp']
     rng = cfg_dict['rng']
     soc_min = cfg_dict['soc_min']
+    heating = cfg_dict['heating']
+    cooling = cfg_dict['cooling']
+    temp_inside = cfg_dict['temp_inside']
+
+    # get temperature timeline
+    temperature = pd.read_csv("C:/Users/Tim.Kirschner/python_projects/simbev/simbev/simbev/scenarios"
+                              "/Temperature_dummy.csv", sep=";")
 
     # get probabilities
     probdata, tseries_purpose, days = simbevMiD.get_prob(

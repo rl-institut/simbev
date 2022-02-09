@@ -143,6 +143,9 @@ def availability(
         soc_min,
         tseries_purpose,
         carstatus,
+        cooling,
+        heating,
+        temp_inside,
 ):
 
     # day_mins = 1440
