@@ -345,7 +345,8 @@ def availability(
                 staytime = math.ceil(staytime / stepsize)
                 # print("staytime done: " + str(staytime))
 
-                driveconsumption = distance * con
+                driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, cooling, heating, con,
+                                                     distance)
                 range_remaining = (soc_list[-1] * batcap) / con
 
                 # fast charging events
@@ -358,7 +359,8 @@ def availability(
                     distance_remaining = distance - distance_stop
                     drivetime = (distance_stop / speed) * 60
                     drivetime = math.ceil(drivetime / stepsize)
-                    driveconsumption = distance_stop * con
+                    driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, cooling, heating, con,
+                                                     distance)
                     # get timesteps for car status of driving
                     drive_start = im + 1
                     drive_end = int(drive_start + drivetime)
@@ -423,7 +425,8 @@ def availability(
                         distance_stop = range_bat
                         drivetime = (distance_stop / speed) * 60
                         drivetime = math.ceil(drivetime / stepsize)
-                        driveconsumption = distance_stop * con
+                        driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, cooling, heating, con,
+                                                     distance)
                         purp_list.append("driving")
                         # get timesteps for car status of driving
                         drive_start = im + 1
@@ -485,7 +488,10 @@ def availability(
                     continue
 
                 # driving
-                driveconsumption = distance * con
+                drivetime = (distance / speed) * 60
+                drivetime = math.ceil(drivetime / stepsize)
+                driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, cooling, heating, con,
+                                                     distance)
                 soc = soc_list[-1] - (driveconsumption / batcap)
                 if car_type == "PHEV":
                     # SOC can't be negative
@@ -493,8 +499,6 @@ def availability(
                         soc = 0
                         driveconsumption = soc_list[-1] * batcap
 
-                drivetime = (distance / speed) * 60
-                drivetime = math.ceil(drivetime / stepsize)
                 purp_list.append("driving")
                 # get timesteps for car status of driving
                 drive_start = im + 1
