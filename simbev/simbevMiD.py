@@ -224,12 +224,18 @@ def availability(
         date_im = daykey
         date_im = date_im.date
         date_now = date_im[im]
-        date_now = str(date_now.day) + '.' + str(date_now.month) + '.' + '2022'
-
+        if int(date_now.month) < 10:
+            date_cur = str(date_now.day) + '.' + '0' + str(date_now.month) + '.' + '2022'
+        else:
+            date_cur = str(date_now.day) + '.' + str(date_now.month) + '.' + '2022'
+        if int(date_now.day) < 10:
+            date_cur = '0' + date_cur
+        else:
+            date_cur = date_cur
         temp_date = temperature['Date']
         temp_temp = temperature['Temperature']
         for it in range(len(temperature)):
-            if temp_date[it] == date_now:
+            if temp_date[it] == date_cur:
                 temperature_now = temp_temp[it]
         # get car status
         go = car_status[im]
@@ -345,8 +351,8 @@ def availability(
                 staytime = math.ceil(staytime / stepsize)
                 # print("staytime done: " + str(staytime))
 
-                driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, cooling, heating, con,
-                                                     distance)
+                # driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, cooling, heating, con,
+                #                                     distance)
                 range_remaining = (soc_list[-1] * batcap) / con
 
                 # fast charging events
