@@ -159,6 +159,7 @@ def availability(
     st = probdata["start"]
     # probability for trip purpose depending on weekday
     p_all = probdata["purpose"]
+    daykey = st.index
     # p = p_all[::96]
     # init car_status, 1,5 days for trips over 24h
     # car_status = np.zeros(int(range_sim) + int(range_sim / 2))
@@ -219,6 +220,11 @@ def availability(
         st_trips = st["trips"]
         st_now = st_trips.iloc[im]
 
+        # get temperature
+        date_im = daykey
+        date_im = date_im.date
+        date_now = date_im[im]
+        date_now = str(date_now.day) + '.' + str(date_now.month) + '.' + '2022'
         # get car status
         go = car_status[im]
 
