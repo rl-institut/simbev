@@ -173,7 +173,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 eta_cp,
                 soc_min,
                 tseries_purpose,
-                carstatus
+                carstatus,
             )
 
             # add results for this day to availability timeseries
@@ -246,6 +246,9 @@ def init_simbev(args):
 
     # set eta cp from config
     eta_cp = cfg.getfloat('basic', 'eta_cp')
+    cooling = cfg.getfloat('basic', 'energy_use_cooling'),
+    heating = cfg.getfloat('basic', 'energy_use_heating'),
+    temp_inside = cfg.getint('basic', 'temp_carinside'),
 
     # get minimum soc value in %
     soc_min = cfg.getfloat('basic', 'soc_min')
@@ -291,6 +294,9 @@ def init_simbev(args):
                 'end_date': e_date,
                 'home_private': home_private,
                 'work_private': work_private,
+                'cooling': cooling,
+                'heating': heating,
+                'temp_inside': temp_inside,
                 }
 
     # create directory for standing times data
