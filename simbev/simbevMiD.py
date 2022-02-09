@@ -225,6 +225,12 @@ def availability(
         date_im = date_im.date
         date_now = date_im[im]
         date_now = str(date_now.day) + '.' + str(date_now.month) + '.' + '2022'
+
+        temp_date = temperature['Datum']
+        temp_temp = temperature['Temperature']
+        for it in range(len(temperature)):
+            if temp_date[it] == date_now:
+                temperature_now = temp_temp[it]
         # get car status
         go = car_status[im]
 
