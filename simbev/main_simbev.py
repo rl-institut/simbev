@@ -356,7 +356,8 @@ def init_simbev(args):
         tech_data,
         charge_prob_slow,
         charge_prob_fast,
-        timestamp_start
+        timestamp_start,
+        regions
     )
 
     if grid_output:

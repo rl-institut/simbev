@@ -72,12 +72,14 @@ def export_metadata(
         tech_data,
         charge_prob_slow,
         charge_prob_fast,
-        timestamp_start
+        timestamp_start,
+        regions
 ):
     """Export metadata of run to JSON file in result's root directory
 
     Parameters
     ----------
+    regions
     result_dir : :obj:`Path`
         Path to scenario results
     scenario : :obj:`str`
@@ -96,6 +98,7 @@ def export_metadata(
     -------
     None
     """
+    car_sums = regions[["bev_mini", "bev_medium", "bev_luxury", "phev_mini", "phev_medium", "phev_luxury"]].sum()
     meta_dict = {
         "simBEV_version": __version__,
         "scenario": scenario,
@@ -104,7 +107,8 @@ def export_metadata(
         "config": config._sections,
         "tech_data": tech_data.to_dict(orient="index"),
         "charge_prob_slow": charge_prob_slow.to_dict(orient="index"),
-        "charge_prob_fast": charge_prob_fast.to_dict(orient="index")
+        "charge_prob_fast": charge_prob_fast.to_dict(orient="index"),
+        "car_amount": car_sums.to_dict()
     }
     outfile = os.path.join(result_dir, 'metadata_simbev_run.json')
     with open(outfile, 'w') as f:
