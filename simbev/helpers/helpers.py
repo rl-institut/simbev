@@ -79,7 +79,6 @@ def export_metadata(
 
     Parameters
     ----------
-    regions
     result_dir : :obj:`Path`
         Path to scenario results
     scenario : :obj:`str`
@@ -93,6 +92,8 @@ def export_metadata(
         Charging point probabilities for fast charging
     timestamp_start : :obj:`str`
         Timestamp of run in format %Y-%m-%d_%H%M%S
+    regions : pd.DataFrame
+        amount of car type per region
 
     Returns
     -------
