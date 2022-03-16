@@ -38,8 +38,8 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
 
     # get temperature timeline
     temperature = pd.read_csv("C:/Users/Tim.Kirschner/python_projects/simbev/simbev/simbev/scenarios"
-                              "/Temperature_dummy.csv", sep=";")
-
+                              "/Wetterdaten_Berlin.csv", sep=";", skiprows=1)
+    temperature = temperature[['date', 'tavg']]
     # get probabilities
     probdata, tseries_purpose, days = simbevMiD.get_prob(
         region_data.RegioStaR7,
@@ -201,7 +201,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
             charging_car = charging_car.append(demand)
             # print(key, charging_car)
 
-            last_charging_capacity = charging_car.netto_charging_capacity.iat[-1]
+            # last_charging_capacity = charging_car.netto_charging_capacity.iat[-1]
             # print("car" + str(icar) + "done")
 
             simbevMiD.charging_flexibility(
@@ -260,7 +260,9 @@ def init_simbev(args):
     cooling = cfg.getfloat('basic', 'energy_use_cooling'),
     heating = cfg.getfloat('basic', 'energy_use_heating'),
     temp_inside = cfg.getint('basic', 'temp_carinside'),
-
+    heating = float('.'.join(str(ele) for ele in heating))
+    cooling = float('.'.join(str(ele) for ele in cooling))
+    temp_inside = float('.'.join(str(ele) for ele in temp_inside))
     # get minimum soc value in %
     soc_min = cfg.getfloat('basic', 'soc_min')
 

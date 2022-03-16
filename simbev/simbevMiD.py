@@ -2,8 +2,9 @@
 This module represents the core of SimBEV. Here you find the main functions to run simulations and
 create driving profiles.
 """
-
+from datetime import datetime
 import datetime as dt
+
 import math
 from pathlib import Path
 
@@ -222,20 +223,24 @@ def availability(
 
         # get temperature
         date_im = daykey
-        date_im = date_im.date
+        # date_im = date_im.strftime('%m-%d')
         date_now = date_im[im]
-        if int(date_now.month) < 10:
-            date_cur = str(date_now.day) + '.' + '0' + str(date_now.month) + '.' + '2022'
-        else:
-            date_cur = str(date_now.day) + '.' + str(date_now.month) + '.' + '2022'
-        if int(date_now.day) < 10:
-            date_cur = '0' + date_cur
-        else:
-            date_cur = date_cur
-        temp_date = temperature['Date']
-        temp_temp = temperature['Temperature']
+        date_cur = date_now.strftime('%m-%d')
+
+        #if int(date_now.month) < 10:
+        #   date_cur = str(date_now.day) + '.' + '0' + str(date_now.month) + '.' + '2022'
+        #else:
+         #   date_cur = str(date_now.day) + '.' + str(date_now.month) + '.' + '2022'
+        #if int(date_now.day) < 10:
+         #   date_cur = '0' + date_cur
+        #else:
+         #   date_cur = date_cur
+        temp_date = temperature['date']
+        temp_temp = temperature['tavg']
         for it in range(len(temperature)):
-            if temp_date[it] == date_cur:
+            date_temp = datetime.strptime(temp_date[it], '%d.%m.%Y')
+            date_temp = date_temp.strftime('%m-%d')
+            if date_temp == date_cur:
                 temperature_now = temp_temp[it]
         # get car status
         go = car_status[im]
@@ -1175,6 +1180,8 @@ def fast_charging_capacity(
 
 def total_consumption(temperature, timesteps, temperature_carinside, energy_use_cooling, energy_use_heating,
                       con, distance):
+    temperature = temperature.replace(',', '.')
+    temperature = float(temperature)
     temperature_diff = temperature_carinside - temperature
 
     if temperature_diff > 0:
