@@ -383,14 +383,12 @@ def temperture_adapting(start_date, end_date):
     datume = date(int(yeare), int(monthe), int(daye))
     days_in_period = (datume - datums).days
 
-    list1 = []
     for z, it in enumerate(temperature['date']):
         date_need = it[:5]
         if date_need == startdate:
             start_i = z
         if date_need == enddate:
             end_i = z
-        list1.append(date_need)
 
     temp = []
     for i in temperature['tavg']:
