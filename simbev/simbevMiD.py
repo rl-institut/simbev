@@ -2,7 +2,7 @@
 This module represents the core of SimBEV. Here you find the main functions to run simulations and
 create driving profiles.
 """
-from datetime import datetime
+from datetime import date
 import datetime as dt
 
 import math
@@ -144,8 +144,6 @@ def availability(
         soc_min,
         tseries_purpose,
         carstatus,
-        cooling,
-        heating,
         temp_inside,
         temperature,
 ):
@@ -160,7 +158,6 @@ def availability(
     st = probdata["start"]
     # probability for trip purpose depending on weekday
     p_all = probdata["purpose"]
-    daykey = st.index
     # p = p_all[::96]
     # init car_status, 1,5 days for trips over 24h
     # car_status = np.zeros(int(range_sim) + int(range_sim / 2))
@@ -203,7 +200,7 @@ def availability(
     demand = []
     # init break_key
     break_key = 0
-
+    z = len(tseries_purpose)
     # im = 0
     # loop minutes per day
     for im in range(len(tseries_purpose)):
@@ -220,28 +217,7 @@ def availability(
         # st_day = st[daykey]
         st_trips = st["trips"]
         st_now = st_trips.iloc[im]
-
-        # get temperature
-        date_im = daykey
-        # date_im = date_im.strftime('%m-%d')
-        date_now = date_im[im]
-        date_cur = date_now.strftime('%m-%d')
-
-        #if int(date_now.month) < 10:
-        #   date_cur = str(date_now.day) + '.' + '0' + str(date_now.month) + '.' + '2022'
-        #else:
-         #   date_cur = str(date_now.day) + '.' + str(date_now.month) + '.' + '2022'
-        #if int(date_now.day) < 10:
-         #   date_cur = '0' + date_cur
-        #else:
-         #   date_cur = date_cur
-        temp_date = temperature['date']
-        temp_temp = temperature['tavg']
-        for it in range(len(temperature)):
-            date_temp = datetime.strptime(temp_date[it], '%d.%m.%Y')
-            date_temp = date_temp.strftime('%m-%d')
-            if date_temp == date_cur:
-                temperature_now = temp_temp[it]
+        temperature_now = temperature[im]
         # get car status
         go = car_status[im]
 
@@ -370,7 +346,7 @@ def availability(
                     distance_remaining = distance - distance_stop
                     drivetime = (distance_stop / speed) * 60
                     drivetime = math.ceil(drivetime / stepsize)
-                    driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, cooling, heating, con,
+                    driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, con,
                                                      distance)
                     # get timesteps for car status of driving
                     drive_start = im + 1
@@ -436,8 +412,7 @@ def availability(
                         distance_stop = range_bat
                         drivetime = (distance_stop / speed) * 60
                         drivetime = math.ceil(drivetime / stepsize)
-                        driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, cooling, heating, con,
-                                                     distance)
+                        driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, con, distance)
                         purp_list.append("driving")
                         # get timesteps for car status of driving
                         drive_start = im + 1
@@ -501,8 +476,7 @@ def availability(
                 # driving
                 drivetime = (distance / speed) * 60
                 drivetime = math.ceil(drivetime / stepsize)
-                driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, cooling, heating, con,
-                                                     distance)
+                driveconsumption = total_consumption(temperature_now, drivetime, temp_inside, con, distance)
                 soc = soc_list[-1] - (driveconsumption / batcap)
                 if car_type == "PHEV":
                     # SOC can't be negative
@@ -1178,10 +1152,9 @@ def fast_charging_capacity(
 # energie use cooling/heating: KWh verbraucht pro Einheit??
 
 
-def total_consumption(temperature, timesteps, temperature_carinside, energy_use_cooling, energy_use_heating,
-                      con, distance):
-    temperature = temperature.replace(',', '.')
-    temperature = float(temperature)
+def total_consumption(temperature, timesteps, temperature_carinside, con, distance):
+    energy_use_cooling = 0.01575
+    energy_use_heating = 0.025
     temperature_diff = temperature_carinside - temperature
 
     if temperature_diff > 0:
@@ -1190,3 +1163,6 @@ def total_consumption(temperature, timesteps, temperature_carinside, energy_use_
         extra_kwh = (temperature_diff * -1) * energy_use_cooling * timesteps
     consumption = distance * con + extra_kwh
     return consumption
+
+
+

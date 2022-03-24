@@ -9,7 +9,7 @@ import pandas as pd
 from pathlib import Path
 import multiprocessing as mp
 import helpers.helpers as helper
-
+from datetime import date
 # regiotypes:
 # Ländliche Regionen
 # LR_Klein - Kleinstädtischer, dörflicher Raum
@@ -23,7 +23,7 @@ import helpers.helpers as helper
 
 
 def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
-               regions, tech_data, main_path):
+               regions, tech_data, main_path, temperature):
     """Run simbev for single region"""
     print(f'===== Region: {region_id} ({region_ctr + 1}/{len(regions)}) =====')
 
@@ -32,14 +32,8 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
     eta_cp = cfg_dict['eta_cp']
     rng = cfg_dict['rng']
     soc_min = cfg_dict['soc_min']
-    heating = cfg_dict['heating']
-    cooling = cfg_dict['cooling']
     temp_inside = cfg_dict['temp_inside']
 
-    # get temperature timeline
-    temperature = pd.read_csv("C:/Users/Tim.Kirschner/python_projects/simbev/simbev/simbev/scenarios"
-                              "/Wetterdaten_Berlin.csv", sep=";", skiprows=1)
-    temperature = temperature[['date', 'tavg']]
     # get probabilities
     probdata, tseries_purpose, days = simbevMiD.get_prob(
         region_data.RegioStaR7,
@@ -181,8 +175,6 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 soc_min,
                 tseries_purpose,
                 carstatus,
-                cooling,
-                heating,
                 temp_inside,
                 temperature,
             )
@@ -257,11 +249,7 @@ def init_simbev(args):
 
     # set eta cp from config
     eta_cp = cfg.getfloat('basic', 'eta_cp')
-    cooling = cfg.getfloat('basic', 'energy_use_cooling'),
-    heating = cfg.getfloat('basic', 'energy_use_heating'),
     temp_inside = cfg.getint('basic', 'temp_carinside'),
-    heating = float('.'.join(str(ele) for ele in heating))
-    cooling = float('.'.join(str(ele) for ele in cooling))
     temp_inside = float('.'.join(str(ele) for ele in temp_inside))
     # get minimum soc value in %
     soc_min = cfg.getfloat('basic', 'soc_min')
@@ -307,8 +295,6 @@ def init_simbev(args):
                 'end_date': e_date,
                 'home_private': home_private,
                 'work_private': work_private,
-                'cooling': cooling,
-                'heating': heating,
                 'temp_inside': temp_inside,
                 }
 
@@ -354,7 +340,7 @@ def init_simbev(args):
     if num_threads == 1:
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
             run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
-                       regions, tech_data, main_path)
+                       regions, tech_data, main_path, temperature)
     else:
         pool = mp.Pool(processes=num_threads)
 
@@ -382,6 +368,67 @@ def init_simbev(args):
         helper.compile_output(main_path, start, end, region_mode, cfg_dict["stepsize"])
     if uc_output:
         helper.compile_output_by_usecase(main_path, start, end, region_mode, cfg_dict["stepsize"])
+
+
+def temperture_adapting(start_date, end_date):
+    temperature = pd.read_csv("data/Wetterdaten_Berlin.csv", sep=";", skiprows=1)
+    temperature = temperature[['date', 'tavg']]
+    [year, month, day] = start_date.split('-')
+    [yeare, monthe, daye] = end_date.split('-')
+    startdate = day + '.' + month
+    enddate = daye + '.' + monthe
+
+    datums = date(int(year), int(month), int(day))
+    datume = date(int(yeare), int(monthe), int(daye))
+    days_in_period = (datume - datums).days
+
+    list1 = []
+    for z, it in enumerate(temperature['date']):
+        date_need = it[:5]
+        if date_need == startdate:
+            start_i = z
+        if date_need == enddate:
+            end_i = z
+        list1.append(date_need)
+
+    temp = []
+    for i in temperature['tavg']:
+        rtem = i.replace(',', '.')
+        rtem = float(rtem)
+        temp.append(rtem)
+
+    temperature_list = []
+    for it in range(672):
+        temperature_list.append(0)
+    if days_in_period > 365 and start_i > end_i:
+        for it in temp[start_i:]:
+            for jt in range(96):
+                temperature_list.append(it)
+        for it in temp:
+            for jt in range(96):
+                temperature_list.append(it)
+        for it in temp[:end_i + 1]:
+            for jt in range(96):
+                temperature_list.append(it)
+    elif days_in_period < 365 and start_i < end_i:
+        for it in temp[start_i:end_i + 1]:
+            for jt in range(96):
+                temperature_list.append(it)
+    elif days_in_period < 365 and start_i > end_i:
+        for it in temp[start_i:]:
+            for jt in range(96):
+                temperature_list.append(it)
+        for it in temp[:end_i + 1]:
+            for jt in range(96):
+                temperature_list.append(it)
+    else:
+        for it in temp[start_i:]:
+            for jt in range(96):
+                temperature_list.append(it)
+        for it in temp[:end_i + 1]:
+            for jt in range(96):
+                temperature_list.append(it)
+    return temperature_list
 
 
 if __name__ == "__main__":
