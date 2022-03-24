@@ -271,6 +271,7 @@ def init_simbev(args):
     # get start and end date
     start_date = cfg.get('basic', 'start_date')   # kann man so mit isoformat benutzen wenn man python 3.9 hat
     end_date = cfg.get('basic', 'end_date')
+    temperature = temperture_adapting(start_date, end_date)
     start_date = start_date.split('-')
     s_date = []
     for it in start_date:
