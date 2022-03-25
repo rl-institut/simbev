@@ -1153,6 +1153,16 @@ def fast_charging_capacity(
 
 
 def total_consumption(temperature, timesteps, temperature_carinside, con, distance):
+    """ this function calculates the the consumption of the car and the energy loses to
+    cooling and heating
+
+    temperature: float the temperature for the timestep
+    timesteps: int timesteps for the trip
+    temperature_carinside: int
+    con: float consumption of the car
+    distance: the distance of the drive
+    return: consumption
+    """
     energy_use_cooling = 0.01575
     energy_use_heating = 0.025
     temperature_diff = temperature_carinside - temperature
@@ -1163,6 +1173,82 @@ def total_consumption(temperature, timesteps, temperature_carinside, con, distan
         extra_kwh = (temperature_diff * -1) * energy_use_cooling * timesteps
     consumption = distance * con + extra_kwh
     return consumption
+
+
+def temperture_adapting(start_date, end_date):
+    """ This function provides a temperature list which will be needed for further
+    calculations concerning the loses to heating and cooling in a car.
+
+    start_date: str Start date of simulation
+    end_date: str End date of simulation
+    return: temperature_list list with different temperatures
+    """
+    # read in csv
+    temperature = pd.read_csv("data/Wetterdaten_Berlin.csv", sep=";", skiprows=1)
+    temperature = temperature[['date', 'tavg']]
+
+    # change format of start/end_date to same format as csv
+    [year, month, day] = start_date.split('-')
+    [yeare, monthe, daye] = end_date.split('-')
+    startdate = day + '.' + month
+    enddate = daye + '.' + monthe
+
+    # are we simulating more than one year?
+    datums = date(int(year), int(month), int(day))
+    datume = date(int(yeare), int(monthe), int(daye))
+    days_in_period = (datume - datums).days
+
+    # get start/end index in list temperature
+    for z, it in enumerate(temperature['date']):
+        date_need = it[:5]
+        if date_need == startdate:
+            start_i = z
+        if date_need == enddate:
+            end_i = z
+
+    # changing input data into list with float temperature
+    temp = []
+    for i in temperature['tavg']:
+        rtem = i.replace(',', '.')
+        rtem = float(rtem)
+        temp.append(rtem)
+
+    # init temperature list and appending one week
+    temperature_list = []
+    for it in range(672):
+        temperature_list.append(0)
+
+    # appending the temperature for every timesteps
+    if days_in_period > 365 and start_i > end_i:
+        for it in temp[start_i:]:
+            # this extra iteration is needed because every day has 96 timesteps
+            for jt in range(96):
+                temperature_list.append(it)
+        for it in temp:
+            for jt in range(96):
+                temperature_list.append(it)
+        for it in temp[:end_i + 1]:
+            for jt in range(96):
+                temperature_list.append(it)
+    elif days_in_period < 365 and start_i < end_i:
+        for it in temp[start_i:end_i + 1]:
+            for jt in range(96):
+                temperature_list.append(it)
+    elif days_in_period < 365 and start_i > end_i:
+        for it in temp[start_i:]:
+            for jt in range(96):
+                temperature_list.append(it)
+        for it in temp[:end_i + 1]:
+            for jt in range(96):
+                temperature_list.append(it)
+    else:
+        for it in temp[start_i:]:
+            for jt in range(96):
+                temperature_list.append(it)
+        for it in temp[:end_i + 1]:
+            for jt in range(96):
+                temperature_list.append(it)
+    return temperature_list
 
 
 

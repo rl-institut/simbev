@@ -9,7 +9,8 @@ import pandas as pd
 from pathlib import Path
 import multiprocessing as mp
 import helpers.helpers as helper
-from datetime import date
+from simbevMiD import temperture_adapting
+
 # regiotypes:
 # Ländliche Regionen
 # LR_Klein - Kleinstädtischer, dörflicher Raum
@@ -271,6 +272,7 @@ def init_simbev(args):
     # get start and end date
     start_date = cfg.get('basic', 'start_date')   # kann man so mit isoformat benutzen wenn man python 3.9 hat
     end_date = cfg.get('basic', 'end_date')
+    # get temperature for every timestep
     temperature = temperture_adapting(start_date, end_date)
     start_date = start_date.split('-')
     s_date = []
@@ -369,65 +371,6 @@ def init_simbev(args):
         helper.compile_output(main_path, start, end, region_mode, cfg_dict["stepsize"])
     if uc_output:
         helper.compile_output_by_usecase(main_path, start, end, region_mode, cfg_dict["stepsize"])
-
-
-def temperture_adapting(start_date, end_date):
-    temperature = pd.read_csv("data/Wetterdaten_Berlin.csv", sep=";", skiprows=1)
-    temperature = temperature[['date', 'tavg']]
-    [year, month, day] = start_date.split('-')
-    [yeare, monthe, daye] = end_date.split('-')
-    startdate = day + '.' + month
-    enddate = daye + '.' + monthe
-
-    datums = date(int(year), int(month), int(day))
-    datume = date(int(yeare), int(monthe), int(daye))
-    days_in_period = (datume - datums).days
-
-    for z, it in enumerate(temperature['date']):
-        date_need = it[:5]
-        if date_need == startdate:
-            start_i = z
-        if date_need == enddate:
-            end_i = z
-
-    temp = []
-    for i in temperature['tavg']:
-        rtem = i.replace(',', '.')
-        rtem = float(rtem)
-        temp.append(rtem)
-
-    temperature_list = []
-    for it in range(672):
-        temperature_list.append(0)
-    if days_in_period > 365 and start_i > end_i:
-        for it in temp[start_i:]:
-            for jt in range(96):
-                temperature_list.append(it)
-        for it in temp:
-            for jt in range(96):
-                temperature_list.append(it)
-        for it in temp[:end_i + 1]:
-            for jt in range(96):
-                temperature_list.append(it)
-    elif days_in_period < 365 and start_i < end_i:
-        for it in temp[start_i:end_i + 1]:
-            for jt in range(96):
-                temperature_list.append(it)
-    elif days_in_period < 365 and start_i > end_i:
-        for it in temp[start_i:]:
-            for jt in range(96):
-                temperature_list.append(it)
-        for it in temp[:end_i + 1]:
-            for jt in range(96):
-                temperature_list.append(it)
-    else:
-        for it in temp[start_i:]:
-            for jt in range(96):
-                temperature_list.append(it)
-        for it in temp[:end_i + 1]:
-            for jt in range(96):
-                temperature_list.append(it)
-    return temperature_list
 
 
 if __name__ == "__main__":
