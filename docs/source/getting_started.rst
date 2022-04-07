@@ -100,7 +100,27 @@ availability(cardata,probdata,stepsize,batcap,con,chargepower_slow,chargepower_f
 Examples
 ========
 
-TODO
+Energy loss to cooling and heating:
+This feature is used to make the consumption of the BEV's and PHEV's more realistic.
+To use it you need to get a temperature timeline of the location you want to simulate.
+This timeline is read in and adapted to the code in the function: Temperature adapting.
+You also need to determine what the temperature of the car inside should be.
+
+What simbev now does is it gets the current temperature for each timestep out of the temperature timeline and feeds
+it into the function 'total consumption'.
+
+In this function there are to variables initialized: energy_use_heat and energy_use_cool.
+These to variables represent the the average energy loses in KWh if the air condition heats or
+cools the car for 1 degree in comparison to the outside temperature. These variable are calculated for
+each timestep in simbev (15 minutes).
+
+extra_kwh = temperature_diff * energy_use_heating * timesteps
+This equation takes the temperature difference between the desired temperature
+and the current temperature outside the car and multiplies it with the variable (for cooling/heating)
+and the timesteps which simply means the time the car is used (drivetime).
+
+consumption = distance * con + extra_kwh
+Than the extra energy loses are added to the consumption.
 
 Scenarios
 =========
