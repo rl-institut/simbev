@@ -187,7 +187,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
             # charging_all = charging_all.append(demand)
 
             # add results for this day to demand time series for a single car
-            charging_car = charging_car.append(demand)
+            charging_car = pd.concat([charging_car, demand])
             # print(key, charging_car)
 
             last_charging_capacity = charging_car.netto_charging_capacity.iat[-1]
