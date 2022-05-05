@@ -11,17 +11,21 @@ class SimBEV:
         self.tech_data = tech_data
 
         # parameters from config_dict
-        self.step_size = config_dict("step_size")
-        self.soc_min = config_dict("soc_min")
-        self.rng = config_dict("rng")
-        self.eta_cp = config_dict("eta_cp")
-        self.start_date = config_dict("start_date")
-        self.end_data = config_dict("end_date")
+        self.step_size = config_dict["step_size"]
+        self.soc_min = config_dict["soc_min"]
+        self.rng = config_dict["rng"]
+        self.eta_cp = config_dict["eta_cp"]
+        self.start_date = config_dict["start_date"]
+        self.end_data = config_dict["end_date"]
+        self.home_private = config_dict["home_private"]
+        self.work_private = config_dict["work_private"]
 
         # additional parameters
         self.regions = []
 
-    def add_regions_from_dataframe(self):
+        self._add_regions_from_dataframe()
+
+    def _add_regions_from_dataframe(self):
         for i in range(len(self.region_data.index)):
             region_id = self.region_data.iat[i, 0]
             region_type = self.region_data.iat[i, 1]
@@ -45,8 +49,9 @@ if __name__ == '__main__':
                 'rng': 3,
                 'eta_cp': 1,
                 'start_date': [2022, 5, 6],
-                'end_date': [2022, 6, 2]
+                'end_date': [2022, 6, 2],
+                'home_private': 0.5,
+                'work_private': 0.7,
                 }
     s1 = SimBEV(region_df, {}, tech_df, cfg_dict)
-    s1.add_regions_from_dataframe()
     print(s1.regions[0].cars[0].consumption)
