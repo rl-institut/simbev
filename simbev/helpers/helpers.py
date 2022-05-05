@@ -1,4 +1,10 @@
+import os
+import json
 import pandas as pd
+from pathlib import Path
+import datetime as dt
+
+from simbev import __version__
 
 
 def single_to_multi_scenario(region_type,
@@ -49,3 +55,238 @@ def single_to_multi_scenario(region_type,
     tech_data.index.name = 'type'
 
     return regions, tech_data
+
+
+def progress_bar(current, total, name: str, bar_length=20):
+    percent = float(current) * 100 / total
+    arrow = '-' * int(percent/100 * bar_length - 1) + '>'
+    spaces = ' ' * (bar_length - len(arrow))
+
+    print(name + ': [%s%s] %d %%' % (arrow, spaces, percent), end='\r')
+
+
+def export_metadata(
+        result_dir: Path,
+        scenario,
+        config,
+        tech_data,
+        charge_prob_slow,
+        charge_prob_fast,
+        timestamp_start,
+        regions
+):
+    """Export metadata of run to JSON file in result's root directory
+
+    Parameters
+    ----------
+    result_dir : :obj:`Path`
+        Path to scenario results
+    scenario : :obj:`str`
+        Scenario name
+    config : cp.ConfigParser
+    tech_data : pd.DataFrame
+        EVs' tech data
+    charge_prob_slow : pd.DataFrame
+        Charging point probabilities for slow charging
+    charge_prob_fast : pd.DataFrame
+        Charging point probabilities for fast charging
+    timestamp_start : :obj:`str`
+        Timestamp of run in format %Y-%m-%d_%H%M%S
+    regions : pd.DataFrame
+        amount of car type per region
+
+    Returns
+    -------
+    None
+    """
+    car_sums = regions[["bev_mini", "bev_medium", "bev_luxury", "phev_mini", "phev_medium", "phev_luxury"]].sum()
+    meta_dict = {
+        "simBEV_version": __version__,
+        "scenario": scenario,
+        "timestamp_start": timestamp_start,
+        "timestamp_end": dt.datetime.now().strftime("%Y-%m-%d_%H%M%S"),
+        "config": config._sections,
+        "tech_data": tech_data.to_dict(orient="index"),
+        "charge_prob_slow": charge_prob_slow.to_dict(orient="index"),
+        "charge_prob_fast": charge_prob_fast.to_dict(orient="index"),
+        "car_amount": car_sums.to_dict()
+    }
+    outfile = os.path.join(result_dir, 'metadata_simbev_run.json')
+    with open(outfile, 'w') as f:
+        json.dump(meta_dict, f, indent=4)
+
+
+def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
+    """
+
+    Parameters
+    ----------
+    result_dir : :obj:`Path`
+        Path to scenario results
+    start : :obj:`datetime`
+        starting time of simulation
+    end : :obj:`datetime`
+        ending time of simulation
+    region_mode : :obj:`string`
+        single or multi region simulation
+    timestep : :obj:`int`
+        time step of simulation in minutes
+
+    Returns
+    -------
+
+    """
+    # create Dataframe, take start and end date + timestep as parameter, build timeseries as index
+    dt_range = pd.date_range(start, end + dt.timedelta(days=1), freq=str(timestep)+'min')
+    pd_result = pd.DataFrame(0.0, index=range(len(dt_range)),
+                             columns=["time", "sum CS power", "sum UC work", "sum UC business", "sum UC school",
+                                      "sum UC shopping", "sum UC private/ridesharing", "sum UC leisure",
+                                      "sum UC home", "sum UC hub"])
+    # fill rest with zeroes
+    pd_result["time"] = dt_range
+    pd_result_sum = pd_result.copy()
+    power_columns = ["sum CS power", "sum UC work", "sum UC business", "sum UC school",
+                     "sum UC shopping", "sum UC private/ridesharing", "sum UC leisure",
+                     "sum UC home", "sum UC hub"]
+
+    # run through all csv result files of this run that include "standing_times" in the title
+    sub_dirs = [f for f in result_dir.iterdir() if f.is_dir()]
+    for dir_count, sub_dir in enumerate(sub_dirs):
+        files = list(sub_dir.rglob("*events.csv"))
+        print('Compiling output for region %d/%d' % (dir_count+1, len(sub_dirs)), end='\n')
+        for file_count, file in enumerate(files):
+            progress_bar(file_count, len(files), sub_dir.name + " progress")
+            file_df = pd.read_csv(file, sep=',', decimal='.')
+            # file_df relevant columns: location,netto_charging_capacity,chargingdemand,charge_time,park_start,park_end
+            for i in file_df.index:
+                demand = file_df.loc[i, "chargingdemand_kWh"]
+                if demand > 0:
+                    # extract parameters for the charging event
+                    uc = file_df.loc[i, "location"].split('_')
+                    col = "sum UC " + uc[-1]
+                    park_time = file_df.loc[i, "park_time_timesteps"]
+                    park_start = file_df.loc[i, "park_start_timesteps"]
+                    cap_car = file_df.loc[i, "battery_charging_capacity_kW"]
+                    cap_grid = file_df.loc[i, "grid_charging_capacity_kW"]
+                    max_charge = cap_car * timestep / 60
+                    # average power in each time step
+                    power = []
+                    for k in range(park_time):
+                        # if possible charge with max power, greedy strat
+                        if demand >= max_charge:
+                            power.append(cap_grid)
+                            demand -= max_charge
+                        else:
+                            power.append(demand / timestep * 60 * cap_grid / cap_car)
+                            demand = 0
+                    # add charging series to result pandas
+                    for count, p in enumerate(power):
+                        if park_start + count < len(pd_result.index):
+                            pd_result.loc[park_start + count, col] += p
+                        else:
+                            # print("There is " + str(p) + " kW to charge in timestep " + str(park_start + count))
+                            break
+
+        pd_result["sum CS power"] = (pd_result["sum UC work"] + pd_result["sum UC business"] +
+                                     pd_result["sum UC school"] + pd_result["sum UC shopping"] +
+                                     pd_result["sum UC private/ridesharing"] + pd_result["sum UC leisure"] +
+                                     pd_result["sum UC hub"] + pd_result["sum UC home"])
+
+        pd_result = pd_result.round(4)
+
+        pd_result.to_csv(Path(result_dir, sub_dir.name + "_grid_timeseries.csv"), sep=',', decimal='.')
+        if region_mode == "multi":
+            pd_result_sum[power_columns] += pd_result[power_columns]
+        pd_result[power_columns] = 0.0
+
+    if region_mode == "multi":
+        pd_result_sum = pd_result_sum.round(4)
+        pd_result_sum.to_csv(Path(result_dir, "0_grid_timeseries_all_regions.csv"), sep=',', decimal='.')
+
+
+def compile_output_by_usecase(result_dir: Path, start, end, region_mode, timestep=15):
+    """
+
+    Parameters
+    ----------
+    result_dir : :obj:`Path`
+        Path to scenario results
+    start : :obj:`datetime`
+        starting time of simulation
+    end : :obj:`datetime`
+        ending time of simulation
+    region_mode : :obj:`string`
+        single or multi region simulation
+    timestep : :obj:`int`
+        time step of simulation in minutes
+
+    Returns
+    -------
+
+    """
+    # create Dataframe, take start and end date + timestep as parameter, build timeseries as index
+    dt_range = pd.date_range(start, end + dt.timedelta(days=1), freq=str(timestep)+'min')
+    pd_result = pd.DataFrame(0.0, index=range(len(dt_range)),
+                             columns=["time", "sum cs power", "sum hpc", "sum public", "sum home", "sum work"])
+    # fill rest with zeroes
+    pd_result["time"] = dt_range
+    pd_result_sum = pd_result.copy()
+    power_columns = ["sum cs power", "sum hpc", "sum public", "sum home", "sum work"]
+
+    # run through all csv result files of this run that include "standing_times" in the title
+    sub_dirs = [f for f in result_dir.iterdir() if f.is_dir()]
+    for dir_count, sub_dir in enumerate(sub_dirs):
+        files = list(sub_dir.rglob("*events.csv"))
+        print('Compiling usecase output for region %d/%d' % (dir_count+1, len(sub_dirs)), end='\n')
+        for file_count, file in enumerate(files):
+            progress_bar(file_count, len(files), sub_dir.name + " progress")
+            file_df = pd.read_csv(file, sep=',', decimal='.')
+            # file_df relevant columns: location,netto_charging_capacity,chargingdemand,charge_time,park_start,park_end
+            for i in file_df.index:
+                demand = file_df.loc[i, "chargingdemand_kWh"]
+                if demand > 0:
+                    # extract parameters for the charging event
+                    uc = file_df.loc[i, "use_case"]
+                    col = "sum " + uc
+                    park_time = file_df.loc[i, "park_time_timesteps"]
+                    park_start = file_df.loc[i, "park_start_timesteps"]
+                    cap_car = file_df.loc[i, "battery_charging_capacity_kW"]
+                    cap_grid = file_df.loc[i, "grid_charging_capacity_kW"]
+                    max_charge = cap_car * timestep / 60
+                    # average power in each time step
+                    power = []
+                    for k in range(park_time):
+                        # if possible charge with max power, greedy strat
+                        if demand >= max_charge:
+                            power.append(cap_grid)
+                            demand -= max_charge
+                        else:
+                            power.append(demand / timestep * 60 * cap_grid / cap_car)
+                            demand = 0
+                    # add charging series to result pandas
+                    for count, p in enumerate(power):
+                        if park_start + count < len(pd_result.index):
+                            pd_result.loc[park_start + count, col] += p
+                        else:
+                            # print("There is " + str(p) + " kW to charge in timestep " + str(park_start + count))
+                            break
+
+        pd_result["sum cs power"] = (pd_result["sum work"] + pd_result["sum public"] +
+                                     pd_result["sum hpc"] + pd_result["sum home"])
+
+        pd_result = pd_result.round(4)
+
+        pd_result.to_csv(Path(result_dir, sub_dir.name + "_grid_timeseries_uc.csv"), sep=',', decimal='.')
+        if region_mode == "multi":
+            pd_result_sum[power_columns] += pd_result[power_columns]
+        pd_result[power_columns] = 0.0
+
+    if region_mode == "multi":
+        pd_result_sum = pd_result_sum.round(4)
+        pd_result_sum.to_csv(Path(result_dir, "0_grid_timeseries_all_regions_uc.csv"), sep=',', decimal='.')
+
+
+# if __name__ == '__main__':
+#     # s = dt.datetime(2021, 9, 17)
+#     # e = dt.datetime(2021, 9, 30)
+#     # compile_output(Path('..', 'res', 'default_multi_2021-12-08_143738_simbev_run'), s, e, region_mode="multi")

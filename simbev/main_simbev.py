@@ -3,13 +3,12 @@ import simbevMiD
 import os
 import argparse
 import configparser as cp
-from datetime import datetime
+import datetime as dt
 import numpy as np
 import pandas as pd
 from pathlib import Path
 import multiprocessing as mp
-from helpers.helpers import single_to_multi_scenario
-
+import helpers.helpers as helper
 
 # regiotypes:
 # Ländliche Regionen
@@ -35,9 +34,9 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
     soc_min = cfg_dict['soc_min']
 
     # get probabilities
-    probdata, tseries_purpose = simbevMiD.get_prob(
+    probdata, tseries_purpose, days = simbevMiD.get_prob(
         region_data.RegioStaR7,
-        stepsize, cfg_dict['start_date'], cfg_dict['end_date'], cfg_dict['weekdays'], cfg_dict['min_per_day'],)
+        stepsize, cfg_dict['start_date'], cfg_dict['end_date'])
 
     car_type_list = sorted([t for t in regions.columns if t != 'RegioStaR7'])
 
@@ -188,7 +187,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
             # charging_all = charging_all.append(demand)
 
             # add results for this day to demand time series for a single car
-            charging_car = charging_car.append(demand)
+            charging_car = pd.concat([charging_car, demand])
             # print(key, charging_car)
 
             last_charging_capacity = charging_car.netto_charging_capacity.iat[-1]
@@ -198,13 +197,16 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 charging_car,
                 car_type_name,
                 icar,
-                stepsize,
-                len(tseries_purpose),
                 tech_data_car.battery_capacity,
                 rng,
+                cfg_dict["home_private"],
+                cfg_dict["work_private"],
                 eta_cp,
                 region_path,
                 tseries_purpose,
+                days,
+                tech_data_car.battery_capacity,
+                region_data.RegioStaR7,
             )
 
         # clean up charging_car
@@ -256,12 +258,11 @@ def init_simbev(args):
     charge_prob = {'slow': charge_prob_slow,
                    'fast': charge_prob_fast}
 
+    home_private = cfg.getfloat('charging_probabilities', 'private_charging_home', fallback=1.0)
+    work_private = cfg.getfloat('charging_probabilities', 'private_charging_work', fallback=1.0)
+
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
-
-    # get params for timeseries
-    weekday = cfg.getint('basic', 'weekdays')
-    minutes_per_day = cfg.getint('basic', 'min_per_day')
 
     # get start and end date
     start_date = cfg.get('basic', 'start_date')   # kann man so mit isoformat benutzen wenn man python 3.9 hat
@@ -277,6 +278,10 @@ def init_simbev(args):
         it = int(it)
         e_date.append(it)
 
+    # get output option
+    grid_output = cfg.getboolean('basic', 'grid_timeseries', fallback=False)
+    uc_output = cfg.getboolean('basic', 'grid_timeseries_by_usecase', fallback=False)
+
     # combine config params in one dict
     cfg_dict = {'stepsize': stepsize,
                 'soc_min': soc_min,
@@ -284,8 +289,8 @@ def init_simbev(args):
                 'eta_cp': eta_cp,
                 'start_date': s_date,
                 'end_date': e_date,
-                'weekdays': weekday,
-                'min_per_day': minutes_per_day,
+                'home_private': home_private,
+                'work_private': work_private,
                 }
 
     # create directory for standing times data
@@ -293,7 +298,8 @@ def init_simbev(args):
     directory = Path(directory)
 
     # result dir
-    result_dir = f'{args.scenario}_{datetime.now().strftime("%Y-%m-%d_%H%M%S")}_simbev_run'
+    timestamp_start = dt.datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    result_dir = f'{args.scenario}_{timestamp_start}_simbev_run'
 
     # path join
     main_path = directory.joinpath(result_dir)
@@ -310,7 +316,7 @@ def init_simbev(args):
             num_threads = 1
             print('Warning: Single region mode selected, therefore number of threads is set to 1.')
 
-        regions, tech_data = single_to_multi_scenario(
+        regions, tech_data = helper.single_to_multi_scenario(
             region_type=cfg.get('basic', 'regio_type'),
             rampup=dict(cfg['rampup_ev']),
             max_charging_capacity_slow=dict(cfg['tech_data_cc_slow']),
@@ -339,6 +345,25 @@ def init_simbev(args):
 
         pool.close()
         pool.join()
+
+    start = dt.date(s_date[0], s_date[1], s_date[2])
+    end = dt.date(e_date[0], e_date[1], e_date[2])
+
+    helper.export_metadata(
+        main_path,
+        args.scenario,
+        cfg,
+        tech_data,
+        charge_prob_slow,
+        charge_prob_fast,
+        timestamp_start,
+        regions
+    )
+
+    if grid_output:
+        helper.compile_output(main_path, start, end, region_mode, cfg_dict["stepsize"])
+    if uc_output:
+        helper.compile_output_by_usecase(main_path, start, end, region_mode, cfg_dict["stepsize"])
 
 
 if __name__ == "__main__":

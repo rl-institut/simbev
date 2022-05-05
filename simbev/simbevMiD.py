@@ -1,3 +1,8 @@
+"""
+This module represents the core of SimBEV. Here you find the main functions to run simulations and
+create driving profiles.
+"""
+
 import datetime as dt
 import math
 from pathlib import Path
@@ -9,7 +14,7 @@ from mid_timeseries import get_timeseries
 
 def get_prob(
         region,
-        stepsize, start_date, end_date, weekdays, min_per_day,
+        stepsize, start_date, end_date,
 ):
     # destinations = [
     #     "time",
@@ -42,7 +47,7 @@ def get_prob(
     # end_date = datetime.date.fromisoformat(end_date)
     end_date = dt.date(end_date[0], end_date[1], end_date[2])
 
-    tseries_purpose = get_timeseries(start_date, end_date, region, stepsize, weekdays, min_per_day)
+    tseries_purpose, days = get_timeseries(start_date, end_date, region, stepsize)
 
     # get start data
     tseries_start = tseries_purpose.sum(axis=1)
@@ -87,7 +92,7 @@ def get_prob(
                 purp_key = "4_private/ridesharing"
             probs[key][purp_key] = ts
     # wd = sorted(wd, key=lambda x: int("".join([r for r in x if r.isdigit()])))
-    return probs, tseries_purpose
+    return probs, tseries_purpose, days
 
 
 def get_purpose(
@@ -338,12 +343,16 @@ def availability(
                     drivetime = (distance_stop / speed) * 60
                     drivetime = math.ceil(drivetime / stepsize)
                     driveconsumption = distance_stop * con
-                    purp_list.append("driving")
                     # get timesteps for car status of driving
                     drive_start = im + 1
                     drive_end = int(drive_start + drivetime)
+                    if drive_start > (len(car_status) - 1):
+                        break
+                    if drive_end > (len(car_status) - 1):
+                        drive_end = len(car_status)
+                    purp_list.append("driving")
                     dr_start.append(drive_start)
-                    dr_end.append(drive_end)
+                    dr_end.append(drive_end-1)
                     consumption.append(driveconsumption)
                     soc = soc_list[-1] - (driveconsumption / batcap)
                     soc_list.append(soc)
@@ -352,7 +361,7 @@ def availability(
                     ch_time.append(0)
                     ch_capacity.append(0)
                     demand.append(0)
-                    car_status[drive_start - 1:drive_end] = 3
+                    car_status[drive_start:drive_end] = 3
                     im = drive_end
 
                     # fast charging
@@ -363,7 +372,7 @@ def availability(
                             rng,
                         ),
                         chargepower_fast,
-                    ) * eta
+                    )
                     # fastcharging for 15 minutes
                     chen = min(((15 / 60) * fastcharge), ((0.8 - soc_list[-1]) * batcap))
                     ch_time.append(1)
@@ -376,10 +385,13 @@ def availability(
                     dr_start.append(0)
                     dr_end.append(0)
                     consumption.append(0)
-                    charge_start = im + 1
+                    charge_start = im
                     ch_start.append(charge_start)
                     ch_end.append(charge_start + 1)
-                    car_status[charge_start-1] = 2
+                    if charge_start > (len(car_status) - 1):
+                        car_status[(len(car_status) - 1)] = 2
+                        break
+                    car_status[charge_start] = 2
                     im = charge_start + 1
 
                     # calculate remainig charging events for the rest of the distance
@@ -401,7 +413,7 @@ def availability(
                         drive_start = im + 1
                         drive_end = int(drive_start + drivetime)
                         dr_start.append(drive_start)
-                        dr_end.append(drive_end)
+                        dr_end.append(drive_end-1)
                         consumption.append(driveconsumption)
                         soc = soc_list[-1] - (driveconsumption / batcap)
                         soc_list.append(soc)
@@ -410,12 +422,11 @@ def availability(
                         ch_time.append(0)
                         ch_capacity.append(0)
                         demand.append(0)
-                        if drive_end > len(car_status):
-                            drive_end = len(car_status)
-                            car_status[drive_start-2:drive_end] = 3
-                            im = drive_end
+                        if drive_end > (len(car_status) - 1):
+                            car_status[drive_start-2:] = 3
+                            im = len(car_status)
                             break
-                        car_status[drive_start-2:drive_end] = 3
+                        car_status[drive_start-1:drive_end] = 3
                         im = drive_end
 
                         # fast charging
@@ -426,7 +437,7 @@ def availability(
                                 rng,
                             ),
                             chargepower_fast,
-                        ) * eta
+                        )
                         # fastcharging for 15 minutes
                         chen = min(((15 / 60) * fastcharge), ((0.8 - soc_list[-1]) * batcap))
                         ch_time.append(1)
@@ -439,20 +450,20 @@ def availability(
                         dr_start.append(0)
                         dr_end.append(0)
                         consumption.append(0)
-                        charge_start = im + 1
+                        charge_start = im
                         ch_start.append(charge_start)
                         ch_end.append(charge_start + 1)
-                        if charge_start > len(car_status):
-                            charge_start = len(car_status)
-                            car_status[charge_start] = 2
+                        if charge_start > (len(car_status) - 1):
+                            car_status[-1] = 2
                             break
-                        car_status[charge_start-1] = 2
+                        car_status[charge_start] = 2
                         im = charge_start + 1
 
                         # update values
                         distance_remaining = distance_remaining - distance_stop
 
                     distance = distance_remaining
+                    #im = im - 1
 
                 if im == len(car_status):
                     continue
@@ -502,7 +513,7 @@ def availability(
                                 rng,
                             ),
                             chargepower_slow,
-                        ) * eta
+                        )
                         home_charging_capacity = charging_capacity
                     else:
                         charging_capacity = home_charging_capacity
@@ -517,7 +528,7 @@ def availability(
                                 rng,
                             ),
                             chargepower_slow,
-                        ) * eta
+                        )
                         work_charging_capacity = charging_capacity
                     else:
                         charging_capacity = work_charging_capacity
@@ -530,7 +541,7 @@ def availability(
                             rng,
                         ),
                         chargepower_slow,
-                    ) * eta
+                    )
 
                 # if firstdrive == 1:
                 #     charging_capacity = last_charging_capacity
@@ -723,13 +734,16 @@ def charging_flexibility(
         charging_car,
         car_type,
         car_number,
-        stepsize,
-        day_count,
         bat_cap,
         rng,
+        home_private,
+        work_private,
         eta,
         path,
         tseries_purpose,
+        days,
+        batterycap,
+        region_type,
 ):
     """
 
@@ -741,16 +755,19 @@ def charging_flexibility(
         Car type
     car_number : int
         Number of car in it's car type group
-    stepsize : int
-        Stepsize of timestamps
-    day_count : int
-        Number of simulated days
     bat_cap : int
         Battery Capacity of the car type
-    directory : str
-        Directory with sub-directories. Default: res.
-    sub_directory : str
-        Sub-directory with the standing times CSVs. Default: SR_Metro.
+    rng : :obj:`int`
+        seed for use of random
+    home_private
+    work_private
+    eta
+    path
+    tseries_purpose
+    days
+    batterycap : int
+        Battery Capacity of the car type
+    region_type
 
     """
 
@@ -819,62 +836,23 @@ def charging_flexibility(
             break
         diff = charging_car.loc[row + 1, 'drive_start'] - charging_car.loc[row, 'charge_end']
         if diff > 1:
-            val = charging_car.loc[row + 1, 'drive_start'] - 1
-            charging_car.loc[row, 'charge_end'] = val
+            val = charging_car.loc[row, 'charge_end'] + 1
+            charging_car.loc[row + 1, 'drive_start'] = val
 
         diff = charging_car.loc[row + 2, 'charge_start'] - charging_car.loc[row + 1, 'drive_end']
         if diff > 1:
-            val = charging_car.loc[row + 1, 'drive_end'] + 1
-            charging_car.loc[row + 2, 'charge_start'] = val
+            val = charging_car.loc[row + 2, 'charge_start'] - 1
+            charging_car.loc[row + 1, 'drive_end'] = val
 
-    # recalculate chargingdemand an charge_time
-    # TODO: sometimes the recharging energy is too high for the number of timesteps
-    # # The loss is around 5% of energy, which is missing in the load timeseries due to that
-    # mask_zero = charging_car.chargingdemand == 0
-    # charging_car.loc[~mask_zero, 'charge_time'] = charging_car.loc[~mask_zero, 'charge_end'] - charging_car.loc[~mask_zero, 'charge_start'] + 1
-    #
-    # chargingdemand_soc = ((charging_car.SoC_end - charging_car.SoC_start) * bat_cap).to_list()
-    # chargingdemand_time = (charging_car.netto_charging_capacity * charging_car.charge_time * stepsize / 60).to_list()
-    #
-    # chargingdemand = [
-    #     min(
-    #         chargingdemand,
-    #         chargingdemand_time[count],
-    #     ) for count, chargingdemand in enumerate(chargingdemand_soc)
-    # ]
-    #
-    # charging_car.iloc[0, 2] = chargingdemand[0]
-    #
-    # # recalculate soc_end
-    # mask_drive = charging_car.location == "driving"
-    # soc_start = charging_car.loc[~mask_drive, 'SoC_start'].to_list()
-    #
-    # new_soc_end = [
-    #     min(
-    #         soc + charging_car.iloc[count, 2] / bat_cap,
-    #         1,
-    #     ) for count, soc in enumerate(soc_start)
-    # ]
-    #
-    #
-    # charging_car.loc[~mask_drive, 'SoC_end'] = new_soc_end
-
-    # get charging capacity work and home
-    charging_capacity_home = charging_car[charging_car.location == "6_home"]
-
-    if len(charging_capacity_home) > 0:
-        charging_capacity_home = charging_capacity_home.netto_charging_capacity.iat[0]
-        charging_capacity_home = int(round(charging_capacity_home / eta, 0))
-    else:
-        charging_capacity_home = 0
-
-    charging_capacity_work = charging_car[charging_car.location == "0_work"]
-
-    if len(charging_capacity_work) > 0:
-        charging_capacity_work = charging_capacity_work.netto_charging_capacity.iat[0]
-        charging_capacity_work = int(round(charging_capacity_work / eta, 0))
-    else:
-        charging_capacity_work = 0
+    # Efficiency of the internal components of the vehicle ToDo: add eta_vehicle to config
+    eta_vehicle = 1
+    # add row with grid power
+    cc_nominal = charging_car["netto_charging_capacity"]
+    cc_grid = cc_nominal/eta
+    cc_vehicle = cc_nominal * eta_vehicle
+    charging_car['nominal_charging_capacity_kW'] = cc_nominal
+    charging_car['grid_charging_capacity_kW'] = cc_grid
+    charging_car['battery_charging_capacity_kW'] = cc_vehicle
 
     # add row with car_type
     charging_car["car_type"] = car_type
@@ -895,19 +873,15 @@ def charging_flexibility(
     charging_car.rename(columns={"charge_start": "park_start"}, inplace=True)
     charging_car.rename(columns={"charge_end": "park_end"}, inplace=True)
 
-    # check SoC
-    # check_soc = charging_car['SoC_end'] < 0.19
-    # if check_soc.any():
-    #     print('SoC error')
-    #     breakpoint()
-
     # reorder columns
     charging_car = charging_car[
         [
             "car_type",
             "bat_cap",
             "location",
-            "netto_charging_capacity",
+            "nominal_charging_capacity_kW",
+            "grid_charging_capacity_kW",
+            "battery_charging_capacity_kW",
             "SoC_start",
             "SoC_end",
             "chargingdemand",
@@ -925,6 +899,16 @@ def charging_flexibility(
     first_time = first_time.index[0]
 
     charging_car = charging_car.iloc[first_time:]
+    first_row = charging_car.iloc[0]
+    if first_row['chargingdemand']>0:
+        if first_row['park_start'] < 672:
+            cut_time = (abs(first_row['park_start'] - 672) * 15)/60 #h
+            cc = first_row['battery_charging_capacity_kW']
+            cut_demand = cut_time * cc
+            if cut_demand > first_row['chargingdemand']:
+                charging_car['chargingdemand'].iloc[0] = 0
+            else:
+                charging_car['chargingdemand'].iloc[0] = first_row['chargingdemand'] - cut_demand
 
     x = -672
     # index von park start end und drive start und end minus eine woche
@@ -978,9 +962,86 @@ def charging_flexibility(
             liste4[it] = liste3[it]
     charging_car['charge_time'] = liste4
 
-    filename = "{}_{:05d}_standing_times.csv".format(car_type, car_number)
+    # testing of the continuity of the timesteps
+    start_drive_c = list(charging_car['drive_start'])
+    end_drive_c = list(charging_car['drive_end'])
+    start_park_c = list(charging_car['park_start'])
+    end_park_c = list(charging_car['park_end'])
+    bound = (days + 1) * 24 * 4
+
+    for row in range(len(start_drive_c) - 2):
+        diff_drive_to_park = start_drive_c[row + 1] - end_park_c[row]
+        diff_park_to_drive = start_park_c[row + 2] - end_drive_c[row + 1]
+        if start_drive_c[row] > end_drive_c[row]:
+            print('Error in line:', row)
+        if start_park_c[row] > end_park_c[row]:
+            print('Error in line:', row)
+        if diff_drive_to_park > 1:
+            print('Error, park_end is more than 1 timestep away from drive_start in row', row)
+        if diff_park_to_drive > 1:
+            print('Error, drive_end is more than 1 timestep away from park_start in row', row + 1)
+        # if charging_car.loc[row + 2, 'park_end'] > bound:
+        #     charging_car.loc[row + 2, 'park_end'] = bound
+        #     print('Error out of bound')
+        # if charging_car.loc[row + 1, 'drive_end'] > bound:
+        #     charging_car.loc[row + 1, 'drive_end'] = bound
+        #     print('Error out of bound')
+    list_park_end = list(charging_car['park_end'])
+    # last index
+    last = list_park_end[-1]
+
+    if last > bound:
+        # charging_car.loc[len(charging_car), 'park_end'] = bound
+        print('Error: out of Bound')
+
+    baca = int(batterycap)
+    filename = "{}_{:05d}_{}kWh_{}_events.csv".format(car_type, car_number, baca, region_type)
 
     file_path = path.joinpath(filename)
+
+    # drop columns
+    charging_car = charging_car.drop(['car_type', 'bat_cap'], axis=1)
+
+    # reset index
+    charging_car = charging_car.reset_index(drop=True)
+
+    # rename columns
+    charging_car = charging_car.rename(columns={
+        "location": "location",
+        "nominal_charging_capacity_kW": "nominal_charging_capacity_kW",
+        "grid_charging_capacity_kW": "grid_charging_capacity_kW",
+        "battery_charging_capacity_kW": "battery_charging_capacity_kW",
+        "SoC_start": "soc_start",
+        "SoC_end": "soc_end",
+        "chargingdemand": "chargingdemand_kWh",
+        "charge_time": "park_time_timesteps",
+        "park_start": "park_start_timesteps",
+        "park_end": "park_end_timesteps",
+        "drive_start": "drive_start_timesteps",
+        "drive_end": "drive_end_timesteps",
+        "consumption": "consumption_kWh",
+    })
+
+    # add use case column
+    charging_car.insert(1, "use_case", "")
+    # determine if car has access to private charging at home/work
+    home_charge = home_private >= rng.random()
+    work_charge = work_private >= rng.random()
+    for i in charging_car.index:
+        loc = charging_car.loc[i, "location"]
+        if loc == "driving":
+            continue
+        elif loc == "7_charging_hub":
+            charging_car.loc[i, "use_case"] = "hpc"
+        elif loc == "0_work" and work_charge:
+            charging_car.loc[i, "use_case"] = "work"
+        elif loc == "6_home" and home_charge:
+            charging_car.loc[i, "use_case"] = "home"
+        else:
+            charging_car.loc[i, "use_case"] = "public"
+
+    # round values in dataframe to decrease file size
+    charging_car = charging_car.round(4)
 
     # export charging times per car
     charging_car.to_csv(file_path)

@@ -16,17 +16,24 @@ Here is a template for new release sections
 ### Removed
 -
 ```
-## [Unreleased]
+
+## [0.1.2] - 2022-01-10
 
 ### Added
-- Support multiple regions #3
-- Add multiprocessing #20
+
+- Export metadata of run to JSON #27
+
+## Changed
+
+- Fix package config in setup.py
+- Fix conda install instructions
+
+## [0.1.1] - 2022-01-04
 
 ### Changed
-- Fixed #17
-- Fixed #18
 
-### Removed
-- yet another thing
+- Fix missing EVs (CSVs) in output #54
 
+## [0.1.0] - 2021-12-21
 
+First version of simBEV to run simulations of electric vehicle charging demands.
