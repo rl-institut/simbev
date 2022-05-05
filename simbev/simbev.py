@@ -1,6 +1,4 @@
 import pandas as pd
-
-from simbev import car
 from region import Region
 
 
@@ -32,15 +30,17 @@ class SimBEV:
             new_region.add_cars_from_config(car_dict, self.tech_data)
             self.regions.append(new_region)
 
-    def _add_parameters_from_config(self):
-
+    def run(self):
+        time = pd.date_range(self.start_date, self.end_data, freq=self.step_size)
+        for i in time:
+            return
 
 
 # tests
 if __name__ == '__main__':
     region_df = pd.read_csv("scenarios/default_multi/regions.csv", sep=',')
     tech_df = pd.read_csv("scenarios/default_multi/tech_data.csv", sep=',', index_col=0)
-    cfg_dict = {'stepsize': 15,
+    cfg_dict = {'step_size': 15,
                 'soc_min': 0.2,
                 'rng': 3,
                 'eta_cp': 1,
@@ -50,5 +50,3 @@ if __name__ == '__main__':
     s1 = SimBEV(region_df, {}, tech_df, cfg_dict)
     s1.add_regions_from_dataframe()
     print(s1.regions[0].cars[0].consumption)
-
-
