@@ -54,4 +54,4 @@ if __name__ == '__main__':
                 'work_private': 0.7,
                 }
     s1 = SimBEV(region_df, {}, tech_df, cfg_dict)
-    print(s1.regions[0].cars[0].consumption)
+    print(s1.regions[0].cars[0].car_type.consumption)
