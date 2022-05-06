@@ -23,8 +23,8 @@ class Car:
         self.activity = np.array([self.status, self._get_usecase()], dtype=str)
         self.energy = np.array(self.soc, dtype=float)
 
-        self.name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
-                                                        car_type.battery_capacity)
+        self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
+                                                             car_type.battery_capacity)
 
     def _update_activity(self):
         """Records newest energy and activity"""

@@ -2,6 +2,7 @@ from typing import List
 
 import pandas as pd
 from region import Region, RegionType
+from car import CarType
 import multiprocessing as mp
 import pathlib
 import datetime
@@ -31,16 +32,33 @@ class SimBEV:
         # additional parameters
         self.regions: List[Region] = []
         self.created_region_types = {}
-        directory_name = "{}_{}_simbev_run".format(
-            name, datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S"))
+        self.car_types = {}
 
-        self.save_directory = pathlib.Path("res", directory_name)
+        save_directory_name = "{}_{}_simbev_run".format(
+            name, datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S"))
+        self.save_directory = pathlib.Path("res", save_directory_name)
         self.data_directory = pathlib.Path("data")
 
-        self._add_regions_from_dataframe()
         self.step_size_str = str(self.step_size) + "min"
         # self.time_series = pd.date_range(self.start_date, self.end_data, freq=time_step)
         self.time_series = []
+
+        # run setup functions
+        self._create_car_types()
+        self._add_regions_from_dataframe()
+
+    def _create_car_types(self):
+        # create new car type
+        for car_type_name in self.tech_data.index:
+            # TODO: add charging curve and implement in code
+            bat_cap = self.tech_data.at[car_type_name, 'battery_capacity']
+            consumption = self.tech_data.at[car_type_name, 'energy_consumption']
+            charging_capacity_slow = self.tech_data.at[car_type_name, 'max_charging_capacity_slow']
+            charging_capacity_fast = self.tech_data.at[car_type_name, 'max_charging_capacity_fast']
+            charging_capacity = {'slow': charging_capacity_slow, 'fast': charging_capacity_fast}
+            # TODO: add charging curve
+            car_type = CarType(car_type_name, bat_cap, charging_capacity, {}, consumption)
+            self.car_types[car_type_name] = car_type
 
     def _create_region_type(self, region_type):
         rs7_region = RegionType(region_type)
@@ -62,7 +80,7 @@ class SimBEV:
 
             # create region objects
             new_region = Region(region_id, self.created_region_types[region_type])
-            new_region.add_cars_from_config(car_dict, self.tech_data)
+            new_region.add_cars_from_config(car_dict, self.car_types)
             self.regions.append(new_region)
 
     def run_multi(self):
@@ -89,4 +107,4 @@ class SimBEV:
             # TODO: simulate car
 
             # export vehicle csv
-            car.export(pathlib.Path(region_directory, car.name))
+            car.export(pathlib.Path(region_directory, car.file_name))
