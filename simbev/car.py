@@ -13,8 +13,8 @@ class CarType:
 
 
 class Car:
-    def __init__(self,
-                 soc: float, car_type: CarType, work_station, home_station, status: str = "home"):
+    def __init__(self, soc: float, car_type: CarType, work_station, home_station, number: int,
+                 status: str = "home"):
         self.car_type = car_type
         self.soc = soc
         self.work_station = work_station
@@ -22,6 +22,9 @@ class Car:
         self.status = status  # replace with enum?
         self.activity = np.array([self.status, self._get_usecase()], dtype=str)
         self.energy = np.array(self.soc, dtype=float)
+
+        self.name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
+                                                        car_type.battery_capacity)
 
     def _update_activity(self):
         """Records newest energy and activity"""
@@ -51,6 +54,7 @@ class Car:
         else:
             return "public"
 
-    def export(self):
+    def export(self, save_path):
         activity = pd.DataFrame(self.activity)
-        activity.to_csv()
+        # TODO: decide format
+        activity.to_csv(save_path)

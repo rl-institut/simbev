@@ -1,11 +1,13 @@
 import pandas as pd
 from region import Region
 import multiprocessing as mp
+import pathlib
+import datetime
 
 
 class SimBEV:
-    def __init__(self, region_data: pd.DataFrame, charging_prob_dict,
-                 tech_data: pd.DataFrame, config_dict, num_threads=1):
+    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
+                 config_dict, name, num_threads=1):
         # parameters from arguments
         self.region_data = region_data
         self.charging_prob = charging_prob_dict
@@ -25,6 +27,9 @@ class SimBEV:
 
         # additional parameters
         self.regions = []
+        directory_name = name + "_" + datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S") + \
+                         "_simbev_run"
+        self.save_directory = pathlib.Path("res", directory_name)
 
         self._add_regions_from_dataframe()
         # time_step = str(self.step_size) + "min"
@@ -43,8 +48,8 @@ class SimBEV:
     def run_multi(self):
         self.num_threads = min(self.num_threads, len(self.regions))
         if self.num_threads == 1:
-            for region_ctr, region in enumerate(self.regions):
-                self.run(region, region_ctr)
+            for region_ctr in range(len(self.regions)):
+                self.run(region_ctr)
         else:
             pool = mp.Pool(processes=self.num_threads)
 
@@ -54,26 +59,14 @@ class SimBEV:
             pool.close()
             pool.join()
 
-    def run(self, region, counter):
-        print(f'===== Region: {region.id} ({counter + 1}/{len(self.regions)}) =====')
+    def run(self, region_number):
+        region = self.regions[region_number]
+        print(f'===== Region: {region.id} ({region_number + 1}/{len(self.regions)}) =====')
+        region_directory = pathlib.Path(self.save_directory, region.id)
+        region_directory.mkdir(parents=True, exist_ok=True)
 
-        for i in region.cars:
-            return
+        for car in region.cars:
+            # TODO: simulate car
 
-
-# tests
-if __name__ == '__main__':
-    region_df = pd.read_csv("scenarios/default_multi/regions.csv", sep=',')
-    tech_df = pd.read_csv("scenarios/default_multi/tech_data.csv", sep=',', index_col=0)
-    cfg_dict = {'step_size': 15,
-                'soc_min': 0.2,
-                'rng': 3,
-                'eta_cp': 1,
-                'start_date': [2022, 5, 6],
-                'end_date': [2022, 6, 2],
-                'home_private': 0.5,
-                'work_private': 0.7,
-                }
-    simbev = SimBEV(region_df, {}, tech_df, cfg_dict)
-    simbev.run_multi()
-    print(simbev.regions[0].cars[0].car_type.name)
+            # export vehicle csv
+            car.export(pathlib.Path(region_directory, car.name))
