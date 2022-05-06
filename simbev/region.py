@@ -21,6 +21,6 @@ class Region:
             car_type = CarType(car_type_name, bat_cap, charging_capacity, {}, consumption)
             for i in range(car_count):
                 # create new car objects
-                # TODO: randomize starting SoC
-                new_car = Car(1, car_type, None, None)
+                # TODO: randomize starting SoC and location, charging station availability
+                new_car = Car(1, car_type, False, False)
                 self.cars.append(new_car)

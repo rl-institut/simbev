@@ -57,7 +57,7 @@ class SimBEV:
     def run(self, region, counter):
         print(f'===== Region: {region.id} ({counter + 1}/{len(self.regions)}) =====')
 
-        for i in self.time_series:
+        for i in region.cars:
             return
 
 
