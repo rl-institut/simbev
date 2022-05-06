@@ -40,8 +40,6 @@ class SimBEV:
         self.data_directory = pathlib.Path("data")
 
         self.step_size_str = str(self.step_size) + "min"
-        # self.time_series = pd.date_range(self.start_date, self.end_data, freq=time_step)
-        self.time_series = []
 
         # run setup functions
         self._create_car_types()
@@ -58,6 +56,10 @@ class SimBEV:
             charging_capacity = {'slow': charging_capacity_slow, 'fast': charging_capacity_fast}
             # TODO: add charging curve
             car_type = CarType(car_type_name, bat_cap, charging_capacity, {}, consumption)
+            if "bev" in car_type.name:
+                car_type.label = "BEV"
+            else:
+                car_type.label = "PHEV"
             self.car_types[car_type_name] = car_type
 
     def _create_region_type(self, region_type):
@@ -68,26 +70,26 @@ class SimBEV:
 
     def _add_regions_from_dataframe(self):
         # variable to check which region types have been created
-        for i in range(len(self.region_data.index)):
+        for region_counter in range(len(self.region_data.index)):
             # get data from inputs
-            region_id = self.region_data.iat[i, 0]
-            region_type = self.region_data.iat[i, 1]
-            car_dict = self.region_data.iloc[i, 2:].to_dict()
+            region_id = self.region_data.iat[region_counter, 0]
+            region_type = self.region_data.iat[region_counter, 1]
+            car_dict = self.region_data.iloc[region_counter, 2:].to_dict()
 
             # create region_type
             if region_type not in self.created_region_types.keys():
                 self._create_region_type(region_type)
 
             # create region objects
-            new_region = Region(region_id, self.created_region_types[region_type])
+            new_region = Region(region_id, self.created_region_types[region_type], region_counter)
             new_region.add_cars_from_config(car_dict, self.car_types)
             self.regions.append(new_region)
 
     def run_multi(self):
         self.num_threads = min(self.num_threads, len(self.regions))
         if self.num_threads == 1:
-            for region_ctr in range(len(self.regions)):
-                self.run(region_ctr)
+            for region in self.regions:
+                self.run(region)
         else:
             pool = mp.Pool(processes=self.num_threads)
 
@@ -97,14 +99,24 @@ class SimBEV:
             pool.close()
             pool.join()
 
-    def run(self, region_number):
-        region = self.regions[region_number]
-        print(f'===== Region: {region.id} ({region_number + 1}/{len(self.regions)}) =====')
+    def run(self, region):
+        print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
         region_directory = pathlib.Path(self.save_directory, region.id)
         region_directory.mkdir(parents=True, exist_ok=True)
 
-        for car in region.cars:
+        for car_count, car in enumerate(region.cars):
+            print("\r{}% {} {} / {}".format(
+                round((car_count + 1) * 100 / len(region.cars)),
+                car.car_type.name,
+                (car.number + 1), region.car_dict[car.car_type.name]
+            ), end="", flush=True)
             # TODO: simulate car
+
+            # test
+            for i in range(20):
+                car.drive(None, "work", 10)
 
             # export vehicle csv
             car.export(pathlib.Path(region_directory, car.file_name))
+
+        print(" - done")
