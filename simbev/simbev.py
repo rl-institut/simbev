@@ -1,10 +1,11 @@
 import pandas as pd
 from region import Region
+import multiprocessing as mp
 
 
 class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict,
-                 tech_data: pd.DataFrame, config_dict):
+                 tech_data: pd.DataFrame, config_dict, num_threads=1):
         # parameters from arguments
         self.region_data = region_data
         self.charging_prob = charging_prob_dict
@@ -20,10 +21,14 @@ class SimBEV:
         self.home_private = config_dict["home_private"]
         self.work_private = config_dict["work_private"]
 
+        self.num_threads = num_threads
+
         # additional parameters
         self.regions = []
 
         self._add_regions_from_dataframe()
+
+        self.time_series = pd.date_range(self.start_date, self.end_data, freq=self.step_size)
 
     def _add_regions_from_dataframe(self):
         for i in range(len(self.region_data.index)):
@@ -34,9 +39,24 @@ class SimBEV:
             new_region.add_cars_from_config(car_dict, self.tech_data)
             self.regions.append(new_region)
 
-    def run(self):
-        time = pd.date_range(self.start_date, self.end_data, freq=self.step_size)
-        for i in time:
+    def run_multi(self):
+        self.num_threads = min(self.num_threads, len(self.regions))
+        if self.num_threads == 1:
+            for region_ctr, region in enumerate(self.regions):
+                self.run(region, region_ctr)
+        else:
+            pool = mp.Pool(processes=self.num_threads)
+
+            for region_ctr, region in enumerate(self.regions):
+                pool.apply_async(self.run, (region, region_ctr))
+
+            pool.close()
+            pool.join()
+
+    def run(self, region, counter):
+        print(f'===== Region: {region.id} ({counter + 1}/{len(self.regions)}) =====')
+
+        for i in self.time_series:
             return
 
 
@@ -53,5 +73,6 @@ if __name__ == '__main__':
                 'home_private': 0.5,
                 'work_private': 0.7,
                 }
-    s1 = SimBEV(region_df, {}, tech_df, cfg_dict)
-    print(s1.regions[0].cars[0].car_type.consumption)
+    simbev = SimBEV(region_df, {}, tech_df, cfg_dict, 7)
+    simbev.run_multi()
+    print(simbev.regions[0].cars[0].car_type.name)
