@@ -17,7 +17,8 @@ class Region:
             charging_capacity_slow = tech_data.at[car_type_name, 'max_charging_capacity_slow']
             charging_capacity_fast = tech_data.at[car_type_name, 'max_charging_capacity_fast']
             charging_capacity = {'slow': charging_capacity_slow, 'fast': charging_capacity_fast}
-            car_type = CarType(car_type_name, bat_cap, charging_capacity, None, consumption)
+            # TODO: add charging curve
+            car_type = CarType(car_type_name, bat_cap, charging_capacity, {}, consumption)
             for i in range(car_count):
                 # create new car objects
                 # TODO: randomize starting SoC

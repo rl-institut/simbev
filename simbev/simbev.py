@@ -27,8 +27,9 @@ class SimBEV:
         self.regions = []
 
         self._add_regions_from_dataframe()
-
-        self.time_series = pd.date_range(self.start_date, self.end_data, freq=self.step_size)
+        # time_step = str(self.step_size) + "min"
+        # self.time_series = pd.date_range(self.start_date, self.end_data, freq=time_step)
+        self.time_series = []
 
     def _add_regions_from_dataframe(self):
         for i in range(len(self.region_data.index)):
@@ -73,6 +74,6 @@ if __name__ == '__main__':
                 'home_private': 0.5,
                 'work_private': 0.7,
                 }
-    simbev = SimBEV(region_df, {}, tech_df, cfg_dict, 7)
+    simbev = SimBEV(region_df, {}, tech_df, cfg_dict)
     simbev.run_multi()
     print(simbev.regions[0].cars[0].car_type.name)
