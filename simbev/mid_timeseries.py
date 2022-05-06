@@ -8,13 +8,13 @@ from pathlib import Path
 # returns season as string
 def get_season(date: datetime.date):
     if date.month <= 2 or date.month == 12:
-        season = "Winter"
+        season = "winter"
     elif date.month <= 5:
-        season = "Fruehling"
+        season = "spring"
     elif date.month <= 8:
-        season = "Sommer"
+        season = "summer"
     elif date.month <= 11:
-        season = "Herbst"
+        season = "fall"
     else:
         raise ValueError()
     return season
@@ -49,7 +49,7 @@ def get_cutoff(date: datetime.date):
 
 # Args: region (as string), example: get_name_csv("SR_Metro", get_season(datetime.date.today()))
 def get_name_csv(region, season):
-    return Path('data', 'seasonal', region + "_" + season + ".csv")
+    return Path('data', region,  season + ".csv")
 
 
 # main function, returns pandas

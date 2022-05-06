@@ -30,6 +30,7 @@ class SimBEV:
 
         # additional parameters
         self.regions: List[Region] = []
+        self.created_region_types = {}
         directory_name = "{}_{}_simbev_run".format(
             name, datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S"))
 
@@ -41,9 +42,14 @@ class SimBEV:
         # self.time_series = pd.date_range(self.start_date, self.end_data, freq=time_step)
         self.time_series = []
 
+    def _create_region_type(self, region_type):
+        rs7_region = RegionType(region_type)
+        rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
+        rs7_region.get_probabilities(self.data_directory)
+        self.created_region_types[region_type] = rs7_region
+
     def _add_regions_from_dataframe(self):
         # variable to check which region types have been created
-        created_region_types = {}
         for i in range(len(self.region_data.index)):
             # get data from inputs
             region_id = self.region_data.iat[i, 0]
@@ -51,14 +57,11 @@ class SimBEV:
             car_dict = self.region_data.iloc[i, 2:].to_dict()
 
             # create region_type
-            if region_type not in created_region_types.keys():
-                rs7_region = RegionType(region_type)
-                rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
-                rs7_region.get_probabilities(self.data_directory)
-                created_region_types[region_type] = rs7_region
+            if region_type not in self.created_region_types.keys():
+                self._create_region_type(region_type)
 
             # create region objects
-            new_region = Region(region_id, created_region_types[region_type])
+            new_region = Region(region_id, self.created_region_types[region_type])
             new_region.add_cars_from_config(car_dict, self.tech_data)
             self.regions.append(new_region)
 
