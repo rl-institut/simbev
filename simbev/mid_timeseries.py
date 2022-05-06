@@ -57,11 +57,9 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
     # build a matrix containing information about each season during the time span
     weekdays = 7
     min_per_day = 1440
-    days = (end - start).days - 7
     # set up variables
     pd_result = pd.DataFrame()
     weekdays_left = weekdays - start.weekday()
-    minutes_per_day = min_per_day
     # weeklist: 0 - season, 1 - weeks, 2 - days, 3 - start date, 4 - end date
     weeklist = []
     # build a matrix containing information about each season during the time span
@@ -77,29 +75,29 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
         start = cutoff
 
     # iteration over the created matrix. uses weeklist information to create time series dataframe
-    for t in weeklist:
-        file_name = get_name_csv(region, t[0])
+    for current_season in weeklist:
+        file_name = get_name_csv(region, current_season[0])
         data_df = pd.read_csv(file_name, sep=';', decimal=',', usecols=range(1, 8))
         temp = pd.DataFrame()
         # check if weekdays are left over from last month, add to start of series
         if weekdays_left < weekdays:
-            if t[2] < weekdays_left and t[1] == 0:
-                temp = temp.append(data_df.tail(t[2] * minutes_per_day))
-                t[2] = 0
+            if current_season[2] < weekdays_left and current_season[1] == 0:
+                temp = pd.concat([temp, data_df.tail(current_season[2] * min_per_day)])
+                current_season[2] = 0
             else:
-                temp = pd.concat([temp, data_df.tail(weekdays_left * minutes_per_day)])
-                if t[2] < weekdays_left:
-                    t[2] = t[2] - weekdays_left + 7
-                    t[1] = t[1] - 1
+                temp = pd.concat([temp, data_df.tail(weekdays_left * min_per_day)])
+                if current_season[2] < weekdays_left:
+                    current_season[2] = current_season[2] - weekdays_left + 7
+                    current_season[1] = current_season[1] - 1
                 else:
-                    t[2] = t[2] - weekdays_left
+                    current_season[2] = current_season[2] - weekdays_left
         # add full weeks to the series
-        for i in range(0, t[1]):
+        for i in range(0, current_season[1]):
             temp = pd.concat([temp, data_df], ignore_index=True)
         # add leftover partial week at the end of series
-        temp = pd.concat([temp, data_df.head(t[2] * minutes_per_day)], ignore_index=True)
+        temp = pd.concat([temp, data_df.head(current_season[2] * min_per_day)], ignore_index=True)
 
-        date_rng = pd.date_range(t[3], t[4], freq='min', inclusive='left')
+        date_rng = pd.date_range(current_season[3], current_season[4], freq='min', inclusive='left')
 
         # date = pd.DatetimeIndex(date_rng)
         # day_key = date.day_name()
@@ -107,11 +105,11 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
         temp.index = date_rng
         temp = temp.resample(datetime.timedelta(minutes=stepsize)).sum()
         pd_result = pd.concat([pd_result, temp])
-        weekdays_left = weekdays - t[2]
+        weekdays_left = weekdays - current_season[2]
 
-    pd_result.columns = ['0_work', '1_business', '2_school', '3_shopping',
-                         '4_private/ridesharing', '5_leisure', '6_home']
-    return pd_result, days
+    pd_result.columns = ['work', 'business', 'school', 'shopping',
+                         'private', 'leisure', 'home']
+    return pd_result
 
 
 # tests

@@ -204,7 +204,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 eta_cp,
                 region_path,
                 tseries_purpose,
-                days,
+                days,   # used to come from get_timeseries
                 tech_data_car.battery_capacity,
                 region_data.RegioStaR7,
             )
