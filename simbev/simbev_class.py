@@ -116,8 +116,16 @@ class SimBEV:
 
             # test
             for i in range(20):
-                if i % 2 == 0:
-                    car.charge(i, 1, 22, "public")
+                if not i % 2:
+                    distance = 0
+                    if not i % 4:
+                        destination = "hub"
+                        distance = 100
+                    else:
+                        destination = "work"
+
+                    station_capacity = self.get_charging_capacity(destination, distance)
+                    car.charge(i, 1, station_capacity, destination)
                 else:
                     car.drive(i, 1, i)
 
@@ -127,3 +135,31 @@ class SimBEV:
         # TODO: maybe drop region from self.regions to remove reference => let it be deleted?
         # might be necessary for big simulations
         print(" - done")
+
+    # TODO: rename
+    def _get_charging_capacity_from_random(self, probability):
+        probability.iloc[:, -1] = 1
+
+        random_number = self.rng.random()
+
+        probability = probability.loc[:, probability.iloc[0, :] > random_number]
+        return float(probability.columns[0])
+
+    def get_charging_capacity(self, destination=None, distance=None, distance_limit=50):
+        # TODO: check if this destination is used for fast charging
+        if destination == "hub" and distance:
+            if distance > distance_limit:
+                destination = "ex-urban"
+            else:
+                destination = "urban"
+            probability = self.charging_probabilities["fast"].cumsum(axis=1)
+            probability = probability.loc[[d for d in probability.index if destination == d]]
+            return self._get_charging_capacity_from_random(probability)
+
+        elif destination:
+            probability = self.charging_probabilities["slow"].cumsum(axis=1)
+            probability = probability.loc[[d for d in probability.index if destination in d]]
+            return self._get_charging_capacity_from_random(probability)
+
+        else:
+            raise ValueError("Missing arguments in get_charging_capacity.")
