@@ -114,9 +114,14 @@ class SimBEV:
 
             # test
             for i in range(20):
-                car.drive(None, "work", 10)
+                if i % 2 == 0:
+                    car.charge(i, 1, 22, "public")
+                else:
+                    car.drive(i, 1, i)
 
             # export vehicle csv
             car.export(pathlib.Path(region_directory, car.file_name))
 
+        # TODO: maybe drop region from self.regions to remove reference => let it be deleted?
+        # might be necessary for big simulations
         print(" - done")
