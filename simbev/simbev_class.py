@@ -50,11 +50,11 @@ class SimBEV:
         # create new car type
         for car_type_name in self.tech_data.index:
             # TODO: add charging curve and implement in code
-            bat_cap = self.tech_data.at[car_type_name, 'battery_capacity']
-            consumption = self.tech_data.at[car_type_name, 'energy_consumption']
-            charging_capacity_slow = self.tech_data.at[car_type_name, 'max_charging_capacity_slow']
-            charging_capacity_fast = self.tech_data.at[car_type_name, 'max_charging_capacity_fast']
-            charging_capacity = {'slow': charging_capacity_slow, 'fast': charging_capacity_fast}
+            bat_cap = self.tech_data.at[car_type_name, "battery_capacity"]
+            consumption = self.tech_data.at[car_type_name, "energy_consumption"]
+            charging_capacity_slow = self.tech_data.at[car_type_name, "max_charging_capacity_slow"]
+            charging_capacity_fast = self.tech_data.at[car_type_name, "max_charging_capacity_fast"]
+            charging_capacity = {"slow": charging_capacity_slow, "fast": charging_capacity_fast}
             # TODO: add charging curve
             car_type = CarType(car_type_name, bat_cap, charging_capacity, {}, consumption)
             if "bev" in car_type.name:
@@ -118,14 +118,16 @@ class SimBEV:
             for i in range(20):
                 if not i % 2:
                     distance = 0
+                    charging_type = "slow"
                     if not i % 4:
                         destination = "hub"
                         distance = 100
+                        charging_type = "fast"
                     else:
                         destination = "work"
 
                     station_capacity = self.get_charging_capacity(destination, distance)
-                    car.charge(i, 1, station_capacity, destination)
+                    car.charge(i, 1, station_capacity, destination, charging_type)
                 else:
                     car.drive(i, 1, i)
 
