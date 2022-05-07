@@ -1,5 +1,5 @@
 from typing import List
-
+import helpers.helpers as helpers
 import pandas as pd
 import numpy as np
 from region import Region, RegionType
@@ -115,21 +115,36 @@ class SimBEV:
             # TODO: simulate car
 
             # test
-            for i in range(20):
-                if not i % 2:
-                    distance = 0
-                    charging_type = "slow"
-                    if not i % 4:
-                        destination = "hub"
-                        distance = 100
-                        charging_type = "fast"
-                    else:
-                        destination = "work"
+            distance = 10
+            arrival_time = 0
+            # iterate through all time steps
+            for step in range(len(region.region_type.trip_starts.index)):
+                # check if car isn't driving and if a trip can be started
+                if step >= arrival_time and region.region_type.trip_starts.iat[step]:
+                    # check if trip starts
+                    # TODO: more checks, trips start too often currently
+                    if self.rng.random() < region.region_type.trip_starts.iat[step]:
+                        # find next trip destination
+                        destination = region.get_purpose(self.rng, step)
+                        # don't use same destination twice in a row
+                        if destination == car.status:
+                            continue
 
-                    station_capacity = self.get_charging_capacity(destination, distance)
-                    car.charge(i, 1, station_capacity, destination, charging_type)
-                else:
-                    car.drive(i, 1, i)
+                        if car.status == "hub":
+                            distance = 100
+                            charging_type = "fast"
+                        else:
+                            charging_type = "slow"
+
+                        # process last charging event, since standing time is now known
+                        station_capacity = self.get_charging_capacity(car.status, distance)
+                        charging_time = step - arrival_time
+                        car.charge(arrival_time, charging_time, station_capacity, charging_type)
+
+                        # start new driving event
+                        drive_time = 5  # TODO get this from region probabilities
+                        car.drive(step, drive_time, distance, destination)
+                        arrival_time = step + drive_time
 
             # export vehicle csv
             car.export(pathlib.Path(region_directory, car.file_name))
@@ -138,15 +153,6 @@ class SimBEV:
         # might be necessary for big simulations
         print(" - done")
 
-    # TODO: rename
-    def _get_charging_capacity_from_random(self, probability):
-        probability.iloc[:, -1] = 1
-
-        random_number = self.rng.random()
-
-        probability = probability.loc[:, probability.iloc[0, :] > random_number]
-        return float(probability.columns[0])
-
     def get_charging_capacity(self, destination=None, distance=None, distance_limit=50):
         # TODO: check if this destination is used for fast charging
         if destination == "hub" and distance:
@@ -154,14 +160,16 @@ class SimBEV:
                 destination = "ex-urban"
             else:
                 destination = "urban"
-            probability = self.charging_probabilities["fast"].cumsum(axis=1)
+            probability = self.charging_probabilities["fast"]
             probability = probability.loc[[d for d in probability.index if destination == d]]
-            return self._get_charging_capacity_from_random(probability)
+            probability = probability.squeeze()
+            return float(helpers.get_column_by_random_number(probability, self.rng.random()))
 
         elif destination:
-            probability = self.charging_probabilities["slow"].cumsum(axis=1)
+            probability = self.charging_probabilities["slow"]
             probability = probability.loc[[d for d in probability.index if destination in d]]
-            return self._get_charging_capacity_from_random(probability)
+            probability = probability.squeeze()
+            return float(helpers.get_column_by_random_number(probability, self.rng.random()))
 
         else:
             raise ValueError("Missing arguments in get_charging_capacity.")

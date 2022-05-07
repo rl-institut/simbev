@@ -56,33 +56,36 @@ class Car:
         self.output["charging_power"].append(charging_power)
         self.output["consumption"].append(self._get_last_consumption())
 
-    def park(self, start, time, location):
-        self.status = location
+    def park(self, start, time):
         self._update_activity(start, time)
 
-    def charge(self, start, time, power, location, charging_type):
+    def charge(self, start, time, power, charging_type):
         # TODO: implement charging function here
         usable_power = min(power, self.car_type.charging_capacity[charging_type])
         self.soc = min(self.soc + time * usable_power / self.car_type.battery_capacity, 1)
-        self.status = location
         self._update_activity(start, time, nominal_charging_capacity=power,
                               charging_power=usable_power)
 
-    def drive(self, start, time, distance):
+    def drive(self, start, time, distance, destination):
         # is this needed or does it happen in the simulation?
         self.status = "driving"
         self.soc -= self.car_type.consumption * distance / self.car_type.battery_capacity
         self._update_activity(start, time)
+        self.status = destination
 
     def _get_last_charging_demand(self):
         if len(self.output["soc"]) > 1:
-            return max(round(self.output["soc"][-1] - self.output["soc"][-2], 4), 0)
+            charging_demand = (self.output["soc"][-1] - self.output["soc"][-2])
+            charging_demand *= self.car_type.battery_capacity
+            return max(round(charging_demand, 4), 0)
         else:
             return 0
 
     def _get_last_consumption(self):
         if len(self.output["soc"]) > 1:
-            return min(round(self.output["soc"][-1] - self.output["soc"][-2], 4), 0)
+            last_consumption = self.output["soc"][-1] - self.output["soc"][-2]
+            last_consumption *= self.car_type.battery_capacity
+            return abs(min(round(last_consumption, 4), 0))
         else:
             return 0
 

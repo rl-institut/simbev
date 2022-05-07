@@ -70,6 +70,20 @@ def date_string_to_datetime(date_str):
     return datetime.date(int(date_str[0]), int(date_str[1]), int(date_str[2]))
 
 
+def get_column_by_random_number(probability_series, random_number):
+    """
+    Takes a random number and a pandas.DataFrame with one row
+    that contains probabilities,
+    returns a column name.
+    """
+    probability_series = probability_series / probability_series.sum()
+    probability_series = probability_series.cumsum()
+    probability_series.iloc[-1] = 1
+
+    probability_series = probability_series.loc[probability_series > random_number]
+    return probability_series.index[0]
+
+
 def export_metadata(
         result_dir: Path,
         scenario,
