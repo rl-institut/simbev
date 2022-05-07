@@ -64,3 +64,6 @@ class Region:
                 soc_init = rng.random() ** (1 / 3) * 0.8 + 0.2 if rng.random() < 0.12 else 1
                 new_car = Car(soc_init, car_type, False, False, car_number)
                 self.cars.append(new_car)
+
+    def get_charging_capacity(self):
+        pass

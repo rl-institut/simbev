@@ -2,7 +2,7 @@ import os
 import json
 import pandas as pd
 from pathlib import Path
-import datetime as dt
+import datetime
 
 from simbev import __version__
 
@@ -65,6 +65,11 @@ def progress_bar(current, total, name: str, bar_length=20):
     print(name + ': [%s%s] %d %%' % (arrow, spaces, percent), end='\r')
 
 
+def date_string_to_datetime(date_str):
+    date_str = date_str.split("-")
+    return datetime.date(int(date_str[0]), int(date_str[1]), int(date_str[2]))
+
+
 def export_metadata(
         result_dir: Path,
         scenario,
@@ -104,7 +109,7 @@ def export_metadata(
         "simBEV_version": __version__,
         "scenario": scenario,
         "timestamp_start": timestamp_start,
-        "timestamp_end": dt.datetime.now().strftime("%Y-%m-%d_%H%M%S"),
+        "timestamp_end": datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S"),
         "config": config._sections,
         "tech_data": tech_data.to_dict(orient="index"),
         "charge_prob_slow": charge_prob_slow.to_dict(orient="index"),
@@ -137,7 +142,7 @@ def compile_output(result_dir: Path, start, end, region_mode, timestep=15):
 
     """
     # create Dataframe, take start and end date + timestep as parameter, build timeseries as index
-    dt_range = pd.date_range(start, end + dt.timedelta(days=1), freq=str(timestep)+'min')
+    dt_range = pd.date_range(start, end + datetime.timedelta(days=1), freq=str(timestep)+'min')
     pd_result = pd.DataFrame(0.0, index=range(len(dt_range)),
                              columns=["time", "sum CS power", "sum UC work", "sum UC business", "sum UC school",
                                       "sum UC shopping", "sum UC private/ridesharing", "sum UC leisure",
@@ -225,7 +230,7 @@ def compile_output_by_usecase(result_dir: Path, start, end, region_mode, timeste
 
     """
     # create Dataframe, take start and end date + timestep as parameter, build timeseries as index
-    dt_range = pd.date_range(start, end + dt.timedelta(days=1), freq=str(timestep)+'min')
+    dt_range = pd.date_range(start, end + datetime.timedelta(days=1), freq=str(timestep)+'min')
     pd_result = pd.DataFrame(0.0, index=range(len(dt_range)),
                              columns=["time", "sum cs power", "sum hpc", "sum public", "sum home", "sum work"])
     # fill rest with zeroes

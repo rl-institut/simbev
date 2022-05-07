@@ -14,13 +14,13 @@ class SimBEV:
                  config_dict, name, num_threads=1):
         # parameters from arguments
         self.region_data = region_data
-        self.charging_prob = charging_prob_dict
+        self.charging_probabilities = charging_prob_dict
         self.tech_data = tech_data
 
         # parameters from config_dict
         self.step_size = config_dict["step_size"]
         self.soc_min = config_dict["soc_min"]
-        self.rng = np.random.default_rng(config_dict["rng"])
+        self.rng = np.random.default_rng(config_dict["rng_seed"])
         self.eta_cp = config_dict["eta_cp"]
         self.start_date_input = config_dict["start_date"]
         self.start_date = self.start_date_input - datetime.timedelta(days=7)
@@ -94,6 +94,7 @@ class SimBEV:
         else:
             pool = mp.Pool(processes=self.num_threads)
 
+            # TODO: fix multiprocessing, produces on results (on windows)
             for region_ctr, region in enumerate(self.regions):
                 pool.apply_async(self.run, (region, region_ctr))
 
