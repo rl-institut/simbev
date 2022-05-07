@@ -1,6 +1,7 @@
 from typing import List
 
 import pandas as pd
+import numpy as np
 from region import Region, RegionType
 from car import CarType
 import multiprocessing as mp
@@ -19,7 +20,7 @@ class SimBEV:
         # parameters from config_dict
         self.step_size = config_dict["step_size"]
         self.soc_min = config_dict["soc_min"]
-        self.rng = config_dict["rng"]
+        self.rng = np.random.default_rng(config_dict["rng"])
         self.eta_cp = config_dict["eta_cp"]
         self.start_date_input = config_dict["start_date"]
         self.start_date = self.start_date_input - datetime.timedelta(days=7)
@@ -82,7 +83,7 @@ class SimBEV:
 
             # create region objects
             new_region = Region(region_id, self.created_region_types[region_type], region_counter)
-            new_region.add_cars_from_config(car_dict, self.car_types)
+            new_region.add_cars_from_config(car_dict, self.car_types, self.rng)
             self.regions.append(new_region)
 
     def run_multi(self):

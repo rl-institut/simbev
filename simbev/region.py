@@ -52,12 +52,15 @@ class Region:
         self.car_dict = {}
         self.cars = []
 
-    def add_cars_from_config(self, car_dict, car_types):
+    def add_cars_from_config(self, car_dict, car_types, rng):
         self.car_dict = car_dict
         for car_type_name, car_count in car_dict.items():
             for car_number in range(car_count):
                 car_type = car_types[car_type_name]
                 # create new car objects
                 # TODO: randomize starting SoC and location, charging station availability
-                new_car = Car(1, car_type, False, False, car_number)
+                # SOC init value for the first monday
+                # TODO: check formula (taken from main_simbev line 74)
+                soc_init = rng.random() ** (1 / 3) * 0.8 + 0.2 if rng.random() < 0.12 else 1
+                new_car = Car(soc_init, car_type, False, False, car_number)
                 self.cars.append(new_car)
