@@ -987,11 +987,20 @@ def charging_flexibility(
         #     charging_car.loc[row + 1, 'drive_end'] = bound
         #     print('Error out of bound')
 
+    # =============== QUICK FIX for #66 ===============
+    # remove last event if bound is exceeded
+    if charging_car["park_start"].iloc[-1] > bound:
+        charging_car = charging_car.iloc[:-1]
+    if charging_car["drive_start"].iloc[-1] > bound:
+        charging_car = charging_car.iloc[:-1]
+
     # set last event end to final time step
+    # CAUTION: The consumption might get flawed at this event
     if charging_car["park_end"].iloc[-1]:
         charging_car.loc[charging_car.index[-1], "park_end"] = bound
     elif charging_car["drive_end"].iloc[-1]:
         charging_car.loc[charging_car.index[-1], "drive_end"] = bound
+    # =================================================
 
     list_park_end = list(charging_car['park_end'])
     # last index
