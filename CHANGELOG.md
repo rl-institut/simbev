@@ -15,7 +15,7 @@ Here is a template for new release sections
 
 ### Changed
 
-- Fix last event in event list #66
+- Fix last event in event list when time range is exceeded #66
 
 ### Removed
 
