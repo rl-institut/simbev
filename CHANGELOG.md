@@ -10,10 +10,15 @@ Here is a template for new release sections
 ## [_._._] - 20XX-MM-DD
 
 ### Added
+
 -
+
 ### Changed
--
+
+- Fix last event in event list #66
+
 ### Removed
+
 -
 ```
 
