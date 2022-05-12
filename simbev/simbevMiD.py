@@ -1000,6 +1000,10 @@ def charging_flexibility(
         charging_car.loc[charging_car.index[-1], "park_end"] = bound
     elif charging_car["drive_end"].iloc[-1]:
         charging_car.loc[charging_car.index[-1], "drive_end"] = bound
+
+    # make first event start with 0
+    if charging_car["park_start"].iloc[0] > 0:
+        charging_car.loc[charging_car.index[0], "park_start"] = 0
     # =================================================
 
     list_park_end = list(charging_car['park_end'])
