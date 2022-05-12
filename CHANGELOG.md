@@ -15,13 +15,23 @@ Here is a template for new release sections
 
 ### Changed
 
-- Fix last event in event list when time range is exceeded #66
-- Fix first event in event list: set `park_start` to 0 when `park_start`>0 #66
-
 ### Removed
 
 -
 ```
+
+## [0.1.3] - 2022-05-12
+
+### Added
+
+- Add documentation for simBEV
+- Add total car amounts to metadata output #62
+- Distinguish between private and public charging at use cases home and work #33
+
+## Changed
+
+- Fix last event in event list when time range is exceeded #66
+- Fix first event in event list: set `park_start` to 0 when `park_start`>0 #66
 
 ## [0.1.2] - 2022-01-10
 
