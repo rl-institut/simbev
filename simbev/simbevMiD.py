@@ -1,3 +1,8 @@
+"""
+This module represents the core of SimBEV. Here you find the main functions to run simulations and
+create driving profiles.
+"""
+
 import datetime as dt
 import math
 from pathlib import Path
@@ -729,10 +734,10 @@ def charging_flexibility(
         charging_car,
         car_type,
         car_number,
-        stepsize,
-        day_count,
         bat_cap,
         rng,
+        home_private,
+        work_private,
         eta,
         path,
         tseries_purpose,
@@ -750,16 +755,19 @@ def charging_flexibility(
         Car type
     car_number : int
         Number of car in it's car type group
-    stepsize : int
-        Stepsize of timestamps
-    day_count : int
-        Number of simulated days
     bat_cap : int
         Battery Capacity of the car type
-    directory : str
-        Directory with sub-directories. Default: res.
-    sub_directory : str
-        Sub-directory with the standing times CSVs. Default: SR_Metro.
+    rng : :obj:`int`
+        seed for use of random
+    home_private
+    work_private
+    eta
+    path
+    tseries_purpose
+    days
+    batterycap : int
+        Battery Capacity of the car type
+    region_type
 
     """
 
@@ -865,12 +873,6 @@ def charging_flexibility(
     charging_car.rename(columns={"charge_start": "park_start"}, inplace=True)
     charging_car.rename(columns={"charge_end": "park_end"}, inplace=True)
 
-    # check SoC
-    # check_soc = charging_car['SoC_end'] < 0.19
-    # if check_soc.any():
-    #     print('SoC error')
-    #     breakpoint()
-
     # reorder columns
     charging_car = charging_car[
         [
@@ -907,7 +909,6 @@ def charging_flexibility(
                 charging_car['chargingdemand'].iloc[0] = 0
             else:
                 charging_car['chargingdemand'].iloc[0] = first_row['chargingdemand'] - cut_demand
-
 
     x = -672
     # index von park start end und drive start und end minus eine woche
@@ -985,6 +986,26 @@ def charging_flexibility(
         # if charging_car.loc[row + 1, 'drive_end'] > bound:
         #     charging_car.loc[row + 1, 'drive_end'] = bound
         #     print('Error out of bound')
+
+    # =============== QUICK FIX for #66 ===============
+    # remove last event if bound is exceeded
+    if charging_car["park_start"].iloc[-1] > bound:
+        charging_car = charging_car.iloc[:-1]
+    if charging_car["drive_start"].iloc[-1] > bound:
+        charging_car = charging_car.iloc[:-1]
+
+    # set last event end to final time step
+    # CAUTION: The consumption might get flawed at this event
+    if charging_car["park_end"].iloc[-1]:
+        charging_car.loc[charging_car.index[-1], "park_end"] = bound
+    elif charging_car["drive_end"].iloc[-1]:
+        charging_car.loc[charging_car.index[-1], "drive_end"] = bound
+
+    # make first event start with 0
+    if charging_car["park_start"].iloc[0] > 0:
+        charging_car.loc[charging_car.index[0], "park_start"] = 0
+    # =================================================
+
     list_park_end = list(charging_car['park_end'])
     # last index
     last = list_park_end[-1]
@@ -1006,20 +1027,38 @@ def charging_flexibility(
 
     # rename columns
     charging_car = charging_car.rename(columns={
-        "location" : "location",
-        "nominal_charging_capacity_kW" : "nominal_charging_capacity_kW",
-        "grid_charging_capacity_kW" : "grid_charging_capacity_kW",
-        "battery_charging_capacity_kW" : "battery_charging_capacity_kW",
-        "SoC_start" : "soc_start",
-        "SoC_end" : "soc_end",
-        "chargingdemand" : "chargingdemand_kWh",
-        "charge_time" : "park_time_timesteps",
-        "park_start" : "park_start_timesteps",
-        "park_end" : "park_end_timesteps",
-        "drive_start" : "drive_start_timesteps",
-        "drive_end" : "drive_end_timesteps",
-        "consumption" : "consumption_kWh",
+        "location": "location",
+        "nominal_charging_capacity_kW": "nominal_charging_capacity_kW",
+        "grid_charging_capacity_kW": "grid_charging_capacity_kW",
+        "battery_charging_capacity_kW": "battery_charging_capacity_kW",
+        "SoC_start": "soc_start",
+        "SoC_end": "soc_end",
+        "chargingdemand": "chargingdemand_kWh",
+        "charge_time": "park_time_timesteps",
+        "park_start": "park_start_timesteps",
+        "park_end": "park_end_timesteps",
+        "drive_start": "drive_start_timesteps",
+        "drive_end": "drive_end_timesteps",
+        "consumption": "consumption_kWh",
     })
+
+    # add use case column
+    charging_car.insert(1, "use_case", "")
+    # determine if car has access to private charging at home/work
+    home_charge = home_private >= rng.random()
+    work_charge = work_private >= rng.random()
+    for i in charging_car.index:
+        loc = charging_car.loc[i, "location"]
+        if loc == "driving":
+            continue
+        elif loc == "7_charging_hub":
+            charging_car.loc[i, "use_case"] = "hpc"
+        elif loc == "0_work" and work_charge:
+            charging_car.loc[i, "use_case"] = "work"
+        elif loc == "6_home" and home_charge:
+            charging_car.loc[i, "use_case"] = "home"
+        else:
+            charging_car.loc[i, "use_case"] = "public"
 
     # round values in dataframe to decrease file size
     charging_car = charging_car.round(4)

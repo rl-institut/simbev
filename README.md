@@ -4,6 +4,10 @@
 
 Simulation of electric vehicle charging demand.
 
+## Documentation
+
+The full documentation can be found [here](https://simbev.readthedocs.io/en/latest/)
+
 ## Installation
 
 ### Install using pip
