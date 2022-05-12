@@ -2,19 +2,21 @@ import pandas as pd
 from car import Car, CarType
 import pathlib
 from mid_timeseries import get_timeseries
+import helpers.helpers
 
 
 class RegionType:
     def __init__(self, rs7_type):
         self.rs7_type = rs7_type
         self.time_series = None
+        self.trip_starts = None
         self.probabilities = {}
 
     def create_timeseries(self, start_date, end_date, step_size):
         if not self.time_series:
             self.time_series = get_timeseries(start_date, end_date, self.rs7_type, step_size)
-            self.time_series["trips"] = self.time_series.sum(axis=1)
-            self.time_series["trips"] = self.time_series["trips"] / self.time_series["trips"].max()
+            self.trip_starts = self.time_series.sum(axis=1)
+            self.trip_starts = self.trip_starts / self.trip_starts.max()
 
     def get_probabilities(self, data_directory):
 
@@ -64,3 +66,8 @@ class Region:
                 soc_init = rng.random() ** (1 / 3) * 0.8 + 0.2 if rng.random() < 0.12 else 1
                 new_car = Car(soc_init, car_type, False, False, car_number)
                 self.cars.append(new_car)
+
+    def get_purpose(self, rng, time_step):
+        random_number = rng.random()
+        purpose_probabilities = self.region_type.time_series.iloc[time_step]
+        return helpers.helpers.get_column_by_random_number(purpose_probabilities, random_number)
