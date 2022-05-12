@@ -204,14 +204,7 @@ def availability(
     # im = 0
     # loop minutes per day
     # Attraktivität von 0 bis 1 festlegen (o = niedrig; 1 = hoch)
-    if user_spec == 'A':
-        hpc_attrac = 0.27
-    if user_spec == 'B':
-        hpc_attrac = 0.56
-    if user_spec == 'C':
-        hpc_attrac = 0.56
-    if user_spec == 'D':
-        hpc_attrac = 0.85
+    hpc_attrac = hpc_methodology.get_hpc_attrac(user_spec)
 
     anz_hpc_events = 0
     for im in range(len(tseries_purpose)):
@@ -556,6 +549,7 @@ def availability(
                 if p_now.find("home") != -1:
                     # make sure home charging capacity stays constant
                     if user_spec == 'C' or user_spec == 'D':
+
                         home_charging_capacity = 0
                         charging_capacity = home_charging_capacity
                     else:
@@ -1121,9 +1115,9 @@ def charging_flexibility(
             continue
         elif loc == "7_charging_hub":
             charging_car.loc[i, "use_case"] = "hpc"
-        elif loc == "0_work" and (user_spec == 'A' or user_spec == 'C'):
+        elif loc == "0_work":
             charging_car.loc[i, "use_case"] = "work"
-        elif loc == "6_home" and (user_spec == 'A' or user_spec == 'B'):
+        elif loc == "6_home":
             charging_car.loc[i, "use_case"] = "home"
         elif charging_car.loc[i, "nominal_charging_capacity_kW"] >= 150:
             charging_car.loc[i, "use_case"] = "hpc"

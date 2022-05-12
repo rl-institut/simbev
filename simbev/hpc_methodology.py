@@ -1,23 +1,44 @@
 import numpy as np
 
 
+def get_hpc_attrac(user_spec):
+    # Attraktivität von 0 bis 1 festlegen (o = niedrig; 1 = hoch)
+    if user_spec == 'A':
+        hpc_attrac = 0.25
+    if user_spec == 'B':
+        hpc_attrac = 0.5
+    if user_spec == 'C':
+        hpc_attrac = 0.5
+    if user_spec == 'D':
+        hpc_attrac = 0.75
+
+    return hpc_attrac
+
+
 def get_user_spec(rng, region):
     if region == 'LR_Klein':
+        prob_home_private = 0.9
         prob_home = 0.55
     elif region == 'LR_Mitte':
+        prob_home_private = 0.85
         prob_home = 0.525
     elif region == 'LR_Zentr':
+        prob_home_private = 0.725
         prob_home = 0.49
     elif region == 'SR_Gross':
+        prob_home_private = 0.6
         prob_home = 0.485
     elif region == 'SR_Klein':
+        prob_home_private = 0.875
         prob_home = 0.53
     elif region == 'SR_Metro':
+        prob_home_private = 0.4
         prob_home = 0.475
     elif region == 'SR_Mittel':
+        prob_home_private = 0.8
         prob_home = 0.495
 
-    prob_work = 0.75
+    prob_work = 0.875
     # random_number = rng.random()
     user_spec = ''
 
