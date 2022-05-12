@@ -16,6 +16,7 @@ Here is a template for new release sections
 ### Changed
 
 - Fix last event in event list when time range is exceeded #66
+- Fix first event in event list: set `park_start` to 0 when `park_start`>0 #66
 
 ### Removed
 
