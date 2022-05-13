@@ -9,7 +9,7 @@ import helpers.helpers
 def main():
     parser = argparse.ArgumentParser(description="SimBEV modelling tool for generating timeseries of electric "
                                                  "vehicles.")
-    parser.add_argument("scenario", default="default_multi", nargs='?',
+    parser.add_argument("scenario", default="default", nargs='?',
                         help="Set the scenario which is located in ./scenarios .")
     p_args = parser.parse_args()
 

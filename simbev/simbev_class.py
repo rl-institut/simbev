@@ -94,7 +94,7 @@ class SimBEV:
         else:
             pool = mp.Pool(processes=self.num_threads)
 
-            # TODO: fix multiprocessing, produces on results (on windows)
+            # TODO: fix multiprocessing, produces no results (on windows)
             for region_ctr, region in enumerate(self.regions):
                 pool.apply_async(self.run, (region, region_ctr))
 
