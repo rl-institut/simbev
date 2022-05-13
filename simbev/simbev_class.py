@@ -116,6 +116,7 @@ class SimBEV:
 
             # test
             distance = 10
+            # TODO replace with standing time probability
             arrival_time = 0
             # iterate through all time steps
             for step in range(len(region.region_type.trip_starts.index)):
@@ -124,6 +125,7 @@ class SimBEV:
                     # check if trip starts
                     # TODO: more checks, trips start too often currently
                     if self.rng.random() < region.region_type.trip_starts.iat[step]:
+                        # combine into single function to call
                         # find next trip destination
                         destination = region.get_purpose(self.rng, step)
                         # don't use same destination twice in a row
@@ -136,6 +138,7 @@ class SimBEV:
                         else:
                             charging_type = "slow"
 
+                        # TODO: fast or slow charging?
                         # process last charging event, since standing time is now known
                         station_capacity = self.get_charging_capacity(car.status, distance)
                         charging_time = step - arrival_time
@@ -173,3 +176,6 @@ class SimBEV:
 
         else:
             raise ValueError("Missing arguments in get_charging_capacity.")
+
+    def get_trip(self):
+        pass

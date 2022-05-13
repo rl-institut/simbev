@@ -68,8 +68,10 @@ class Car:
 
     def drive(self, start, time, distance, destination):
         # is this needed or does it happen in the simulation?
+        # TODO implement
         self.status = "driving"
         self.soc -= self.car_type.consumption * distance / self.car_type.battery_capacity
+        # TODO: can i make the trip? => HPC
         self._update_activity(start, time)
         self.status = destination
 
