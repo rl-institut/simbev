@@ -120,8 +120,6 @@ class SimBEV:
             # export vehicle csv
             car.export(pathlib.Path(region_directory, car.file_name))
 
-        # TODO: maybe drop region from self.regions to remove reference => let it be deleted?
-        # might be necessary for big simulations
         print(" - done")
 
     def get_charging_capacity(self, destination=None, distance=None, distance_limit=50):
