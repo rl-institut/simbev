@@ -120,7 +120,7 @@ class SimBEV:
             self.simulate_car(car, region)
 
             # export vehicle csv
-            car.export(pathlib.Path(region_directory, car.file_name))
+            car.export(region_directory)
 
         print(" - done")
 

@@ -1,5 +1,5 @@
 import pandas as pd
-from car import Car, CarType
+from car import Car
 import pathlib
 from mid_timeseries import get_timeseries
 import helpers.helpers

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
+import pathlib
 
 
 @dataclass
@@ -26,6 +27,7 @@ class Car:
         # lists to track output data
         # TODO: swap to np.array for better performance?
         self.output = {
+            "timestamp": [],
             "event_start": [],
             "event_time": [],
             "location": [],
@@ -40,11 +42,11 @@ class Car:
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
                                                              car_type.battery_capacity)
 
-    def _update_activity(self, event_start, event_time,
+    def _update_activity(self, timestamp, event_start, event_time,
                          nominal_charging_capacity=0, charging_power=0):
         """Records newest energy and activity"""
         self.soc = round(self.soc, 4)
-        # TODO: save corresponding event time steps somewhere (maybe in simbev.run())
+        self.output["timestamp"].append(timestamp)
         self.output["event_start"].append(event_start)
         self.output["event_time"].append(event_time)
         self.output["location"].append(self.status)
@@ -55,15 +57,15 @@ class Car:
         self.output["charging_power"].append(charging_power)
         self.output["consumption"].append(self._get_last_consumption())
 
-    def park(self, start, time):
-        self._update_activity(start, time)
+    def park(self, trip):
+        self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
 
     def charge(self, trip, power, charging_type):
         # TODO: implement charging function here
         usable_power = min(power, self.car_type.charging_capacity[charging_type])
         self.soc = min(self.soc + trip.park_time * usable_power / self.car_type.battery_capacity, 1)
-        self._update_activity(trip.park_start, trip.park_time, nominal_charging_capacity=power,
-                              charging_power=usable_power)
+        self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
+                              nominal_charging_capacity=power, charging_power=usable_power)
 
     def drive(self, trip):
         # is this needed or does it happen in the simulation?
@@ -71,7 +73,7 @@ class Car:
         self.status = "driving"
         self.soc -= self.car_type.consumption * trip.distance / self.car_type.battery_capacity
         # TODO: can i make the trip? => HPC
-        self._update_activity(trip.drive_start, trip.drive_time)
+        self._update_activity(trip.drive_timestamp, trip.drive_start, trip.drive_time)
         self.status = trip.destination
 
     def _get_last_charging_demand(self):
@@ -90,6 +92,7 @@ class Car:
         else:
             return 0
 
+    # TODO maybe solve this in charging (Jakob)
     def _get_usecase(self):
         if self.status == "driving":
             return ""
@@ -103,7 +106,9 @@ class Car:
         else:
             return "public"
 
-    def export(self, save_path):
+    def export(self, region_directory):
+        # TODO remove first week
         activity = pd.DataFrame(self.output)
+        activity.reset_index(drop=True)
         # TODO: decide format
-        activity.to_csv(save_path)
+        activity.to_csv(pathlib.Path(region_directory, self.file_name))

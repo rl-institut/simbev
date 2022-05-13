@@ -49,6 +49,8 @@ class Trip:
         self.drive_start = 0
         self.drive_time = 0
         self.trip_end = 0
+        self.park_timestamp = None
+        self.drive_timestamp = None
         self.drive_found = False
 
         self.location = car.status
@@ -96,6 +98,8 @@ class Trip:
             self.park_time = self.region.last_time_step - self.park_start
             self.trip_end = self.region.last_time_step
 
+        self._set_timestamps()
+
     def execute(self):
         """
         Executes created trip. Charging/parking and driving
@@ -106,3 +110,8 @@ class Trip:
 
         if self.drive_found:
             self.car.drive(self)
+
+    def _set_timestamps(self):
+        self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
+        if self.drive_found:
+            self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
