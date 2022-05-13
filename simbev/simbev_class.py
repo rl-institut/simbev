@@ -26,6 +26,8 @@ class SimBEV:
         self.eta_cp = config_dict["eta_cp"]
         self.start_date_input = config_dict["start_date"]
         self.start_date = self.start_date_input - datetime.timedelta(days=7)
+        self.start_date_output = datetime.datetime.combine(self.start_date_input,
+                                                           datetime.datetime.min.time())
         self.end_date = config_dict["end_date"]
         self.home_private = config_dict["home_private"]
         self.work_private = config_dict["work_private"]
@@ -120,7 +122,7 @@ class SimBEV:
             self.simulate_car(car, region)
 
             # export vehicle csv
-            car.export(region_directory)
+            car.export(region_directory, self)
 
         print(" - done")
 

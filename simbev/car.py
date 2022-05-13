@@ -106,9 +106,29 @@ class Car:
         else:
             return "public"
 
-    def export(self, region_directory):
-        # TODO remove first week
+    def export(self, region_directory, simbev):
+        """
+        Exports the output values collected in car object to a csv file.
+
+        Parameters
+        ----------
+        region_directory : :obj:`pathlib.Path`
+            save directory for the region
+        simbev : :obj:`SimBEV`
+            SimBEV object with scenario information
+
+        """
         activity = pd.DataFrame(self.output)
-        activity.reset_index(drop=True)
+        # remove first week from dataframe
+        week_time_steps = int(24 * 7 * 60 / simbev.step_size)
+        activity["event_start"] -= week_time_steps
+        activity = activity.loc[(activity["event_start"] + activity["event_time"]) >= 0]
+        # fit first row event to start at time step 0
+        activity.at[activity.index[0], "event_start"] = 0
+        activity.at[activity.index[0], "event_time"] = activity.at[activity.index[1], "event_start"]
+        activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
+        # TODO change first row event if it has charging_demand or consumption
+
+        activity = activity.reset_index(drop=True)
         # TODO: decide format
         activity.to_csv(pathlib.Path(region_directory, self.file_name))
