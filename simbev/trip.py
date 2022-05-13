@@ -67,8 +67,6 @@ class Trip:
         self.park_time = self.region.get_probability(self.rng, self.location, "stand")
         self.park_time = self.simbev.to_time_steps(self.park_time)
         self.drive_start = self.park_start + self.park_time
-        if self.drive_start < self.region.last_time_step:
-            self.park_time = self.region.last_time_step - self.park_start
 
         while not self.drive_found and self.drive_start < self.region.last_time_step:
             if self.rng.random() < self.region.region_type.trip_starts.iat[self.drive_start]:
@@ -92,6 +90,11 @@ class Trip:
                 self.park_time = self.drive_start - self.park_start
             else:
                 self.drive_start += 1
+
+        # check if drive happens after simulation end
+        if self.drive_start > self.region.last_time_step:
+            self.park_time = self.region.last_time_step - self.park_start
+            self.trip_end = self.region.last_time_step
 
     def execute(self):
         """

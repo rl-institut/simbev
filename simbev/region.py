@@ -51,7 +51,7 @@ class Region:
         self.region_type = region_type
         self.number = region_counter
 
-        self.last_time_step = len(self.region_type.trip_starts.index) - 1
+        self.last_time_step = len(self.region_type.trip_starts.index)
 
         self.car_dict = {}
         self.cars = []
