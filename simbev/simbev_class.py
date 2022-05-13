@@ -77,9 +77,9 @@ class SimBEV:
         # variable to check which region types have been created
         for region_counter in range(len(self.region_data.index)):
             # get data from inputs
-            region_id = self.region_data.iat[region_counter, 0]
-            region_type = self.region_data.iat[region_counter, 1]
-            car_dict = self.region_data.iloc[region_counter, 2:].to_dict()
+            region_id = self.region_data.index[region_counter]
+            region_type = self.region_data.iat[region_counter, 0]
+            car_dict = self.region_data.iloc[region_counter, 1:].to_dict()
 
             # create region_type
             if region_type not in self.created_region_types.keys():
@@ -100,7 +100,7 @@ class SimBEV:
 
             # TODO: fix multiprocessing, produces no results (on windows)
             for region_ctr, region in enumerate(self.regions):
-                pool.apply_async(self.run, (region, region_ctr))
+                pool.apply_async(self.run, (region,))
 
             pool.close()
             pool.join()

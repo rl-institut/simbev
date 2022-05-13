@@ -27,7 +27,7 @@ def main():
     except Exception:
         raise FileNotFoundError(f"Cannot read config file {cfg_file} - malformed?")
 
-    region_df = pd.read_csv(pathlib.Path(scenario_path, "regions.csv"), sep=',')
+    region_df = pd.read_csv(pathlib.Path(scenario_path, "regions.csv"), sep=',', index_col=0)
 
     # read chargepoint probabilities
     charge_prob_slow = pd.read_csv(pathlib.Path(scenario_path, cfg["charging_probabilities"]["slow"]))
@@ -54,8 +54,7 @@ def main():
                 "home_private": cfg.getfloat("charging_probabilities", "private_charging_home", fallback=1.0),
                 "work_private": cfg.getfloat("charging_probabilities", "private_charging_work", fallback=1.0),
                 }
-    # num_threads = cfg.getint('sim_params', 'num_threads')
-    num_threads = 1
+    num_threads = cfg.getint('sim_params', 'num_threads')
 
     simbev = SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, p_args.scenario, num_threads)
     simbev.run_multi()

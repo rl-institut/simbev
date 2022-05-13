@@ -1,4 +1,3 @@
-import os
 import json
 import pandas as pd
 from pathlib import Path
@@ -34,27 +33,11 @@ def export_metadata(
 
     Parameters
     ----------
-    result_dir : :obj:`Path`
-        Path to scenario results
-    scenario : :obj:`str`
-        Scenario name
+    simbev : :obj:`SimBEV`
+        SimBEV object with scenario information
     config : cp.ConfigParser
-    tech_data : pd.DataFrame
-        EVs' tech data
-    charge_prob_slow : pd.DataFrame
-        Charging point probabilities for slow charging
-    charge_prob_fast : pd.DataFrame
-        Charging point probabilities for fast charging
-    timestamp_start : :obj:`str`
-        Timestamp of run in format %Y-%m-%d_%H%M%S
-    regions : pd.DataFrame
-        amount of car type per region
-
-    Returns
-    -------
-    None
     """
-    car_sums = simbev.region_data[["bev_mini", "bev_medium", "bev_luxury", "phev_mini", "phev_medium", "phev_luxury"]].sum()
+    cars = simbev.region_data[["bev_mini", "bev_medium", "bev_luxury", "phev_mini", "phev_medium", "phev_luxury"]]
     meta_dict = {
         "simBEV_version": __version__,
         "scenario": simbev.name,
@@ -64,8 +47,9 @@ def export_metadata(
         "tech_data": simbev.tech_data.to_dict(orient="index"),
         "charge_prob_slow": simbev.charging_probabilities["slow"].to_dict(orient="index"),
         "charge_prob_fast": simbev.charging_probabilities["fast"].to_dict(orient="index"),
-        "car_amount": car_sums.to_dict()
+        "car_sum": cars.sum().to_dict(),
+        "car_amounts": cars.to_dict(orient="index")
     }
-    outfile = os.path.join(simbev.save_directory, 'metadata_simbev_run.json')
+    outfile = Path(simbev.save_directory, 'metadata_simbev_run.json')
     with open(outfile, 'w') as f:
         json.dump(meta_dict, f, indent=4)
