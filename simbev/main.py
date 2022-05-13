@@ -59,7 +59,7 @@ def main():
 
     simbev = SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, p_args.scenario, num_threads)
     simbev.run_multi()
-    print(simbev.regions[0].cars[0].car_type.name)
+    helpers.helpers.export_metadata(simbev, cfg)
 
 
 if __name__ == "__main__":

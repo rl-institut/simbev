@@ -37,8 +37,10 @@ class SimBEV:
         self.created_region_types = {}
         self.car_types = {}
 
+        self.name = name
+        self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
         save_directory_name = "{}_{}_simbev_run".format(
-            name, datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S"))
+            self.name, self.timestamp)
         self.save_directory = pathlib.Path("res", save_directory_name)
         self.data_directory = pathlib.Path("data")
 
