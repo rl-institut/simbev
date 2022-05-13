@@ -51,6 +51,8 @@ class Region:
         self.region_type = region_type
         self.number = region_counter
 
+        self.last_time_step = len(self.region_type.trip_starts.index) - 1
+
         self.car_dict = {}
         self.cars = []
 
@@ -71,3 +73,8 @@ class Region:
         random_number = rng.random()
         purpose_probabilities = self.region_type.time_series.iloc[time_step]
         return helpers.helpers.get_column_by_random_number(purpose_probabilities, random_number)
+
+    def get_probability(self, rng, destination, key):
+        probabilities = self.region_type.probabilities[key][destination]
+        prob = probabilities.sample(n=1, weights="distribution", random_state=rng)
+        return prob.iat[0, -1]

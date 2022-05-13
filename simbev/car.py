@@ -27,16 +27,15 @@ class Car:
         # TODO: swap to np.array for better performance?
         self.output = {
             "event_start": [],
+            "event_time": [],
             "location": [],
             "use_case": [],
             "soc": [],
             "charging_demand": [],
-            "event_time": [],  # or event end? only one needed
             "nominal_charging_capacity": [],  # rethink these?
             "charging_power": [],
             "consumption": []
         }
-        self._update_activity(0, 0)  # TODO: set initial event time
 
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
                                                              car_type.battery_capacity)
@@ -47,10 +46,10 @@ class Car:
         self.soc = round(self.soc, 4)
         # TODO: save corresponding event time steps somewhere (maybe in simbev.run())
         self.output["event_start"].append(event_start)
+        self.output["event_time"].append(event_time)
         self.output["location"].append(self.status)
         self.output["use_case"].append(self._get_usecase())
         self.output["soc"].append(self.soc)
-        self.output["event_time"].append(event_time)
         self.output["charging_demand"].append(self._get_last_charging_demand())
         self.output["nominal_charging_capacity"].append(nominal_charging_capacity)
         self.output["charging_power"].append(charging_power)
@@ -59,21 +58,21 @@ class Car:
     def park(self, start, time):
         self._update_activity(start, time)
 
-    def charge(self, start, time, power, charging_type):
+    def charge(self, trip, power, charging_type):
         # TODO: implement charging function here
         usable_power = min(power, self.car_type.charging_capacity[charging_type])
-        self.soc = min(self.soc + time * usable_power / self.car_type.battery_capacity, 1)
-        self._update_activity(start, time, nominal_charging_capacity=power,
+        self.soc = min(self.soc + trip.park_time * usable_power / self.car_type.battery_capacity, 1)
+        self._update_activity(trip.park_start, trip.park_time, nominal_charging_capacity=power,
                               charging_power=usable_power)
 
-    def drive(self, start, time, distance, destination):
+    def drive(self, trip):
         # is this needed or does it happen in the simulation?
         # TODO implement
         self.status = "driving"
-        self.soc -= self.car_type.consumption * distance / self.car_type.battery_capacity
+        self.soc -= self.car_type.consumption * trip.distance / self.car_type.battery_capacity
         # TODO: can i make the trip? => HPC
-        self._update_activity(start, time)
-        self.status = destination
+        self._update_activity(trip.drive_start, trip.drive_time)
+        self.status = trip.destination
 
     def _get_last_charging_demand(self):
         if len(self.output["soc"]) > 1:

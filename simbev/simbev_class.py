@@ -4,9 +4,11 @@ import pandas as pd
 import numpy as np
 from region import Region, RegionType
 from car import CarType
+from trip import Trip
 import multiprocessing as mp
 import pathlib
 import datetime
+import math
 
 
 class SimBEV:
@@ -113,41 +115,7 @@ class SimBEV:
                 (car.number + 1), region.car_dict[car.car_type.name]
             ), end="", flush=True)
             # TODO: simulate car
-
-            # test
-            distance = 10
-            # TODO replace with standing time probability
-            arrival_time = 0
-            # iterate through all time steps
-            for step in range(len(region.region_type.trip_starts.index)):
-                # check if car isn't driving and if a trip can be started
-                if step >= arrival_time and region.region_type.trip_starts.iat[step]:
-                    # check if trip starts
-                    # TODO: more checks, trips start too often currently
-                    if self.rng.random() < region.region_type.trip_starts.iat[step]:
-                        # combine into single function to call
-                        # find next trip destination
-                        destination = region.get_purpose(self.rng, step)
-                        # don't use same destination twice in a row
-                        if destination == car.status:
-                            continue
-
-                        if car.status == "hub":
-                            distance = 100
-                            charging_type = "fast"
-                        else:
-                            charging_type = "slow"
-
-                        # TODO: fast or slow charging?
-                        # process last charging event, since standing time is now known
-                        station_capacity = self.get_charging_capacity(car.status, distance)
-                        charging_time = step - arrival_time
-                        car.charge(arrival_time, charging_time, station_capacity, charging_type)
-
-                        # start new driving event
-                        drive_time = 5  # TODO get this from region probabilities
-                        car.drive(step, drive_time, distance, destination)
-                        arrival_time = step + drive_time
+            self.simulate_car(car, region)
 
             # export vehicle csv
             car.export(pathlib.Path(region_directory, car.file_name))
@@ -177,5 +145,18 @@ class SimBEV:
         else:
             raise ValueError("Missing arguments in get_charging_capacity.")
 
-    def get_trip(self):
-        pass
+    def to_time_steps(self, t):
+        return math.ceil(t * 60 / self.step_size)
+
+    def simulate_car(self, car, region):
+        # test
+        # create first trip
+        trip = Trip(region, car, 0, self)
+        # iterate through all time steps
+        for step in range(len(region.region_type.trip_starts.index)):
+            # check if car isn't driving and if a trip can be started
+            if step >= trip.trip_end:
+                # find next trip
+                trip = Trip(region, car, step, self)
+                trip.create()
+                trip.execute()
