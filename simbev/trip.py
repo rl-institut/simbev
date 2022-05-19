@@ -100,7 +100,7 @@ class Trip:
 
         self._set_timestamps()
 
-    def execute(self):
+    def execute(self, simbev):
         """
         Executes created trip. Charging/parking and driving
         """
@@ -114,7 +114,7 @@ class Trip:
             self.car.charge(self, station_capacity, "slow")
 
         if self.drive_found:
-            self.car.drive(self)
+            self.car.drive(self, simbev)
 
     def _set_timestamps(self):
         self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
