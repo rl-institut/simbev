@@ -840,7 +840,7 @@ def charging_flexibility(
 
         diff = charging_car.loc[row + 2, 'charge_start'] - charging_car.loc[row + 1, 'drive_end']
         if diff > 1:
-            charging_car.loc[row + 2, 'charge_start'] = charging_car.loc[row + 1, 'drive_end']
+            charging_car.loc[row + 2, 'charge_start'] = charging_car.loc[row + 1, 'drive_end'] + 1
 
     # Efficiency of the internal components of the vehicle ToDo: add eta_vehicle to config
     eta_vehicle = 1
