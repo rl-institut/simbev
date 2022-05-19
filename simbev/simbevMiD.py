@@ -329,8 +329,8 @@ def availability(
                 staytime = math.ceil(staytime / stepsize)
                 # print("staytime done: " + str(staytime))
 
-                driveconsumption = distance * con
-                range_remaining = (soc_list[-1] * batcap) / con
+                # driveconsumption = distance * con
+                # range_remaining = (soc_list[-1] * batcap) / con
 
                 # fast charging events
                 range_remaining = ((soc_list[-1] - soc_min) * batcap)/con
@@ -423,10 +423,10 @@ def availability(
                         ch_capacity.append(0)
                         demand.append(0)
                         if drive_end > (len(car_status) - 1):
-                            car_status[drive_start-2:] = 3
+                            car_status[drive_start-2:] = 3  # TODO
                             im = len(car_status)
                             break
-                        car_status[drive_start-1:drive_end] = 3
+                        car_status[drive_start-1:drive_end] = 3  # TODO: ask why these specific numbers get subtracted
                         im = drive_end
 
                         # fast charging
@@ -836,13 +836,11 @@ def charging_flexibility(
             break
         diff = charging_car.loc[row + 1, 'drive_start'] - charging_car.loc[row, 'charge_end']
         if diff > 1:
-            val = charging_car.loc[row, 'charge_end'] + 1
-            charging_car.loc[row + 1, 'drive_start'] = val
+            charging_car.loc[row, 'charge_end'] = charging_car.loc[row + 1, 'drive_start'] - 1
 
         diff = charging_car.loc[row + 2, 'charge_start'] - charging_car.loc[row + 1, 'drive_end']
         if diff > 1:
-            val = charging_car.loc[row + 2, 'charge_start'] - 1
-            charging_car.loc[row + 1, 'drive_end'] = val
+            charging_car.loc[row + 2, 'charge_start'] = charging_car.loc[row + 1, 'drive_end']
 
     # Efficiency of the internal components of the vehicle ToDo: add eta_vehicle to config
     eta_vehicle = 1
