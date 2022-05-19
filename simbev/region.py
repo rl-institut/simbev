@@ -63,7 +63,6 @@ class Region:
             for car_number in range(car_count):
                 car_type = self.simbev.car_types[car_type_name]
                 # create new car objects
-                # TODO: randomize starting SoC and location, charging station availability
                 work_parking = self.simbev.work_parking >= self.simbev.rng.random()
                 home_parking = self.simbev.home_parking >= self.simbev.rng.random()
                 work_power = self.simbev.get_charging_capacity("work")

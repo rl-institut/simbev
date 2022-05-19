@@ -100,7 +100,6 @@ class SimBEV:
         else:
             pool = mp.Pool(processes=self.num_threads)
 
-            # TODO: fix multiprocessing, produces no results (on windows)
             for region_ctr, region in enumerate(self.regions):
                 pool.apply_async(self.run, (region,))
 
@@ -118,7 +117,6 @@ class SimBEV:
                 car.car_type.name,
                 (car.number + 1), region.car_dict[car.car_type.name]
             ), end="", flush=True)
-            # TODO: simulate car
             self.simulate_car(car, region)
 
             # export vehicle csv

@@ -70,11 +70,9 @@ class Car:
                               nominal_charging_capacity=power, charging_power=usable_power)
 
     def charge_home(self, trip):
-        # TODO: implement charging function here
         self.charge(trip, self.home_capacity, "slow")
 
     def charge_work(self, trip):
-        # TODO: implement charging function here
         self.charge(trip, self.work_capacity, "slow")
 
     def drive(self, trip):
