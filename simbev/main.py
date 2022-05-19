@@ -51,8 +51,8 @@ def main():
                 "eta_cp": cfg.getfloat("basic", "eta_cp"),
                 "start_date": start_date,
                 "end_date": end_date,
-                "home_private": cfg.getfloat("charging_probabilities", "private_charging_home", fallback=1.0),
-                "work_private": cfg.getfloat("charging_probabilities", "private_charging_work", fallback=1.0),
+                "home_private": cfg.getfloat("charging_probabilities", "private_parking_home", fallback=0.5),
+                "work_private": cfg.getfloat("charging_probabilities", "private_parking_work", fallback=0.5),
                 }
     num_threads = cfg.getint('sim_params', 'num_threads')
 

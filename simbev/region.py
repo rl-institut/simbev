@@ -46,27 +46,32 @@ class RegionType:
 
 
 class Region:
-    def __init__(self, region_id, region_type: RegionType, region_counter):
+    def __init__(self, region_id, region_type: RegionType, region_counter, simbev_obj):
         self.id = region_id
         self.region_type = region_type
         self.number = region_counter
+        self.simbev = simbev_obj
 
         self.last_time_step = len(self.region_type.trip_starts.index)
 
         self.car_dict = {}
         self.cars = []
 
-    def add_cars_from_config(self, car_dict, car_types, rng):
+    def add_cars_from_config(self, car_dict):
         self.car_dict = car_dict
         for car_type_name, car_count in car_dict.items():
             for car_number in range(car_count):
-                car_type = car_types[car_type_name]
+                car_type = self.simbev.car_types[car_type_name]
                 # create new car objects
                 # TODO: randomize starting SoC and location, charging station availability
+                work_parking = self.simbev.work_parking >= self.simbev.rng.random()
+                home_parking = self.simbev.home_parking >= self.simbev.rng.random()
+                work_power = self.simbev.get_charging_capacity("work")
+                home_power = self.simbev.get_charging_capacity("home")
                 # SOC init value for the first monday
                 # TODO: check formula (taken from main_simbev line 74)
-                soc_init = rng.random() ** (1 / 3) * 0.8 + 0.2 if rng.random() < 0.12 else 1
-                new_car = Car(soc_init, car_type, False, False, car_number)
+                soc_init = self.simbev.rng.random() ** (1 / 3) * 0.8 + 0.2 if self.simbev.rng.random() < 0.12 else 1
+                new_car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, soc_init)
                 self.cars.append(new_car)
 
     def get_purpose(self, rng, time_step):

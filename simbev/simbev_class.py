@@ -29,8 +29,8 @@ class SimBEV:
         self.start_date_output = datetime.datetime.combine(self.start_date_input,
                                                            datetime.datetime.min.time())
         self.end_date = config_dict["end_date"]
-        self.home_private = config_dict["home_private"]
-        self.work_private = config_dict["work_private"]
+        self.home_parking = config_dict["home_private"]
+        self.work_parking = config_dict["work_private"]
 
         self.num_threads = num_threads
 
@@ -88,8 +88,8 @@ class SimBEV:
                 self._create_region_type(region_type)
 
             # create region objects
-            new_region = Region(region_id, self.created_region_types[region_type], region_counter)
-            new_region.add_cars_from_config(car_dict, self.car_types, self.rng)
+            new_region = Region(region_id, self.created_region_types[region_type], region_counter, self)
+            new_region.add_cars_from_config(car_dict)
             self.regions.append(new_region)
 
     def run_multi(self):

@@ -15,12 +15,14 @@ class CarType:
 
 
 class Car:
-    def __init__(self, soc: float, car_type: CarType, work_station, home_station, number: int,
-                 status: str = "home"):
+    def __init__(self, car_type: CarType, number: int, work_parking, home_parking,
+                 work_capacity, home_capacity, soc: float = 1., status: str = "home"):
         self.car_type = car_type
         self.soc = soc
-        self.work_station = work_station
-        self.home_station = home_station
+        self.work_parking = work_parking
+        self.home_parking = home_parking
+        self.work_capacity = work_capacity
+        self.home_capacity = home_capacity
         self.status = status  # replace with enum?
         self.number = number
 
@@ -67,6 +69,14 @@ class Car:
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
                               nominal_charging_capacity=power, charging_power=usable_power)
 
+    def charge_home(self, trip):
+        # TODO: implement charging function here
+        self.charge(trip, self.home_capacity, "slow")
+
+    def charge_work(self, trip):
+        # TODO: implement charging function here
+        self.charge(trip, self.work_capacity, "slow")
+
     def drive(self, trip):
         # is this needed or does it happen in the simulation?
         # TODO implement
@@ -96,9 +106,9 @@ class Car:
     def _get_usecase(self):
         if self.status == "driving":
             return ""
-        elif self.work_station and self.status == "work":
+        elif self.work_parking and self.status == "work":
             return "work"
-        elif self.home_station and self.status == "home":
+        elif self.home_parking and self.status == "home":
             return "home"
         # TODO: decide on status for hpc
         elif self.status == "hub":

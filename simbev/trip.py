@@ -105,8 +105,13 @@ class Trip:
         Executes created trip. Charging/parking and driving
         """
         # TODO charging and driving logic here
-        station_capacity = self.simbev.get_charging_capacity(self.location, self.distance)
-        self.car.charge(self, station_capacity, "slow")
+        if self.location == "home":
+            self.car.charge_home(self)
+        elif self.location == "work":
+            self.car.charge_work(self)
+        else:
+            station_capacity = self.simbev.get_charging_capacity(self.location, self.distance)
+            self.car.charge(self, station_capacity, "slow")
 
         if self.drive_found:
             self.car.drive(self)
