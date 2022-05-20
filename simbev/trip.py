@@ -100,6 +100,8 @@ class Trip:
 
         self._set_timestamps()
 
+    # TODO def create_hpc function, for trips that get called when hpc is needed to complete drive
+
     def execute(self, simbev):
         """
         Executes created trip. Charging/parking and driving

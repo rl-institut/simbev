@@ -124,27 +124,26 @@ class SimBEV:
 
         print(" - done")
 
-    def get_charging_capacity(self, destination=None, distance=None, distance_limit=50):
+    def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         # TODO: check if this destination is used for fast charging
-        if destination == "hub" and distance:
+        if location == "hub" and distance:
             if distance > distance_limit:
-                destination = "ex-urban"
+                location = "ex-urban"
             else:
-                destination = "urban"
+                location = "urban"
             probability = self.charging_probabilities["fast"]
-            probability = probability.loc[[d for d in probability.index if destination == d]]
+            probability = probability.loc[[d for d in probability.index if location == d]]
             probability = probability.squeeze()
             return float(helpers.get_column_by_random_number(probability, self.rng.random()))
 
-        elif destination:
+        elif location:
             probability = self.charging_probabilities["slow"]
-            probability = probability.loc[[d for d in probability.index if destination in d]]
+            probability = probability.loc[[d for d in probability.index if location in d]]
             probability = probability.squeeze()
             return float(helpers.get_column_by_random_number(probability, self.rng.random()))
 
         else:
             raise ValueError("Missing arguments in get_charging_capacity.")
-
 
     def _get_hpc_charging_capacity(self, trip, distance_limit=50):
         """
@@ -184,17 +183,16 @@ class SimBEV:
 
         return charging_capacity
 
-
-
     def to_time_steps(self, t):
         return math.ceil(t * 60 / self.step_size)
 
     def simulate_car(self, car, region):
         # test
-        #set user_spec
-        car._get_user_spec(region, self.rng)
-        #set hpc_attrac
-        car._get_hpc_attrac()
+        # set user_spec
+        # TODO: move this to car creation in region
+        car.get_user_spec(region, self.rng)
+        # set hpc_attrac
+        car.get_hpc_attrac()
         # create first trip
         trip = Trip(region, car, 0, self)
         # iterate through all time steps
@@ -205,3 +203,4 @@ class SimBEV:
                 trip = Trip(region, car, step, self)
                 trip.create()
                 trip.execute(self)
+                # TODO add additional trip here if hpc charging necessary

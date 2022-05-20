@@ -81,9 +81,8 @@ class Car:
     def charge_work(self, trip):
         self.charge(trip, self.work_capacity, "slow")
 
-
     def hpc_charge(self, trip, charging_type, simbev):
-        #print("hpc_event")
+        # print("hpc_event")
         # get end
         self.status = "hpc_hub"
         soc_start = self.soc
@@ -96,7 +95,7 @@ class Car:
             self.car_type.charging_capacity_fast
         )
 
-        #print("Fastcharge", fastcharge)
+        # print("Fastcharge", fastcharge)
         delta = (soc_end - soc_start) / 10
         # soc_range = np.arange(soc_start, soc_end, delta)
         soc_load_list = np.arange(soc_start + delta / 2, soc_end + delta / 2, delta)
@@ -244,8 +243,7 @@ class Car:
         else:
             return "public"
 
-
-    def _get_user_spec(self, region, rng):
+    def get_user_spec(self, region, rng):
         prob_home = 0
 
         if region.id == 'LR_Klein':
@@ -285,10 +283,9 @@ class Car:
             else:
                 self.user_spec = 'D'  # LIS not at home and not at work. Primarily HPC
 
-        #print(self.user_spec)
+        # print(self.user_spec)
 
-
-    def _get_hpc_attrac(self):
+    def get_hpc_attrac(self):
         if self.user_spec == 'A':
             self.hpc_attrac = 0.25
         if self.user_spec == 'B':
@@ -297,7 +294,6 @@ class Car:
             self.hpc_attrac = 0.5
         if self.user_spec == 'D':
             self.hpc_attrac = 0.75
-
 
     def export(self, region_directory, simbev):
         """
