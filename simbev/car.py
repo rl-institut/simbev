@@ -12,7 +12,6 @@ class CarType:
     charging_capacity: dict
     charging_curve: dict
     consumption: float
-    charging_capacity_fast: int
     label: str = None
 
 
@@ -92,7 +91,7 @@ class Car:
         charging_capacity = simbev._get_hpc_charging_capacity(trip)
         fastcharge = min(
             charging_capacity,
-            self.car_type.charging_capacity_fast
+            self.car_type.charging_capacity["fast"]
         )
 
         # print("Fastcharge", fastcharge)
