@@ -1,6 +1,7 @@
 import argparse
-from simbev_class import SimBEV
-import helpers.helpers
+from simbev.simbev_class import SimBEV
+import simbev.helpers.helpers as helpers
+import pathlib
 
 
 def main():
@@ -10,10 +11,11 @@ def main():
                         help="Set the scenario which is located in ./scenarios .")
     p_args = parser.parse_args()
 
-    simbev_obj, cfg = SimBEV.from_config(p_args.scenario)
+    scenario_path = pathlib.Path("simbev", "scenarios", p_args.scenario)
+    simbev_obj, cfg = SimBEV.from_config(scenario_path)
     simbev_obj.run_multi()
 
-    helpers.helpers.export_metadata(simbev_obj, cfg)
+    helpers.export_metadata(simbev_obj, cfg)
 
 
 if __name__ == "__main__":

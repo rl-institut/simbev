@@ -1,8 +1,8 @@
 import pandas as pd
-from car import Car
+from simbev.car import Car
 import pathlib
-from mid_timeseries import get_timeseries
-import helpers.helpers
+from simbev.mid_timeseries import get_timeseries
+import simbev.helpers.helpers as helpers
 
 
 class RegionType:
@@ -80,7 +80,7 @@ class Region:
     def get_purpose(self, rng, time_step):
         random_number = rng.random()
         purpose_probabilities = self.region_type.time_series.iloc[time_step]
-        return helpers.helpers.get_column_by_random_number(purpose_probabilities, random_number)
+        return helpers.get_column_by_random_number(purpose_probabilities, random_number)
 
     def get_probability(self, rng, destination, key):
         probabilities = self.region_type.probabilities[key][destination]

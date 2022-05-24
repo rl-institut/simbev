@@ -49,7 +49,7 @@ def get_cutoff(date: datetime.date):
 
 # Args: region (as string), example: get_name_csv("SR_Metro", get_season(datetime.date.today()))
 def get_name_csv(region, season):
-    return Path('data', region,  season + ".csv")
+    return Path("simbev", "data", region,  season + ".csv")
 
 
 # main function, returns pandas

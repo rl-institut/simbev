@@ -1,10 +1,10 @@
 from typing import List
-import helpers.helpers as helpers
+import simbev.helpers.helpers as helpers
 import pandas as pd
 import numpy as np
-from region import Region, RegionType
-from car import CarType
-from trip import Trip
+from simbev.region import Region, RegionType
+from simbev.car import CarType
+from simbev.trip import Trip
 import multiprocessing as mp
 import pathlib
 import datetime
@@ -44,8 +44,8 @@ class SimBEV:
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
         save_directory_name = "{}_{}_simbev_run".format(
             self.name, self.timestamp)
-        self.save_directory = pathlib.Path("res", save_directory_name)
-        self.data_directory = pathlib.Path("data")
+        self.save_directory = pathlib.Path("simbev", "res", save_directory_name)
+        self.data_directory = pathlib.Path("simbev", "data")
 
         self.step_size_str = str(self.step_size) + "min"
 
@@ -205,7 +205,7 @@ class SimBEV:
                     trip_completed = trip.execute(self)
 
     @classmethod
-    def from_config(cls, scenario_name):
+    def from_config(cls, scenario_path):
         """
         Creates a SimBEV object from a specified scenario name. The scenario needs to be located in /simbev/scenarios.
 
@@ -213,9 +213,8 @@ class SimBEV:
             SimBEV Object
             ConfigParser Object
         """
-        scenario_path = pathlib.Path("scenarios", scenario_name)
         if not scenario_path.is_dir():
-            raise FileNotFoundError(f'Scenario "{scenario_name}" not found in ./scenarios .')
+            raise FileNotFoundError(f'Scenario "{scenario_path.stem}" not found in ./scenarios .')
 
         # read config file
         cfg = cp.ConfigParser()
@@ -256,4 +255,4 @@ class SimBEV:
                     }
         num_threads = cfg.getint('sim_params', 'num_threads')
 
-        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_name, num_threads), cfg
+        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, num_threads), cfg
