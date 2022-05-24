@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from simbev.region import Region, RegionType
 from simbev.car import CarType
-from simbev.trip import Trip
+from simbev.trip import Trip, HPCTrip
 import multiprocessing as mp
 import pathlib
 import datetime
@@ -196,12 +196,10 @@ class SimBEV:
             if step >= trip.trip_end:
                 # find next trip
                 trip = Trip(region, car, step, self)
-                trip.create()
                 trip_completed = trip.execute(self)
                 # TODO add additional trip here if hpc charging necessary
                 while not trip_completed:
-                    trip = Trip(region, car, trip.trip_end, self)
-                    trip.create_hpc()
+                    trip = HPCTrip(region, car, trip.trip_end, self)
                     trip_completed = trip.execute(self)
 
     @classmethod

@@ -60,6 +60,8 @@ class Trip:
         self.rng = simbev.rng
         self.step_size = simbev.step_size
 
+        self.create()
+
     def create(self):
         """
         Creates new trip, starting from park_start.
@@ -100,11 +102,6 @@ class Trip:
 
         self._set_timestamps()
 
-    # TODO def create_hpc function, for trips that get called when hpc is needed to complete drive
-    def create_hpc(self):
-
-        pass
-
     def execute(self, simbev):
         """
         Executes created trip. Charging/parking and driving
@@ -128,3 +125,10 @@ class Trip:
         self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
         if self.drive_found:
             self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
+
+
+class HPCTrip(Trip):
+
+    def create(self):
+        # TODO function for trips that get called when hpc is needed to complete drive
+        pass
