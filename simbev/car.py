@@ -311,11 +311,22 @@ class Car:
         week_time_steps = int(24 * 7 * 60 / simbev.step_size)
         activity["event_start"] -= week_time_steps
         activity = activity.loc[(activity["event_start"] + activity["event_time"]) >= 0]
+
+        # change first row event if it has charging demand or consumption
+        event_length = activity.at[activity.index[0], "event_time"]
+        post_event_length = activity.at[activity.index[1], "event_start"]
+        pre_event_length = event_length - post_event_length
+
+        new_demand = max(activity.at[activity.index[0], "charging_demand"] -
+                         activity.at[activity.index[0], "charging_power"] * pre_event_length * simbev.step_size / 60, 0)
+        activity.at[activity.index[0], "charging_demand"] = new_demand
+        new_consumption = round(activity.at[activity.index[0], "consumption"] / (pre_event_length / event_length), 4)
+        activity.at[activity.index[0], "consumption"] = new_consumption
+
         # fit first row event to start at time step 0
         activity.at[activity.index[0], "event_start"] = 0
-        activity.at[activity.index[0], "event_time"] = activity.at[activity.index[1], "event_start"]
+        activity.at[activity.index[0], "event_time"] = post_event_length
         activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
-        # TODO change first row event if it has charging_demand or consumption
 
         activity = activity.reset_index(drop=True)
         # TODO: decide format
