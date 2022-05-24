@@ -187,20 +187,18 @@ class SimBEV:
         return math.ceil(t * 60 / self.step_size)
 
     def simulate_car(self, car, region):
-        # test
-        # set user_spec
-        # TODO: move this to car creation in region
-        car.get_user_spec(region, self.rng)
-        # set hpc_attrac
-        car.get_hpc_attrac()
         # create first trip
         trip = Trip(region, car, 0, self)
         # iterate through all time steps
         for step in range(len(region.region_type.trip_starts.index)):
-            # check if car isn't driving and if a trip can be started
+            # check if current trip is done
             if step >= trip.trip_end:
                 # find next trip
                 trip = Trip(region, car, step, self)
                 trip.create()
-                trip.execute(self)
+                trip_completed = trip.execute(self)
                 # TODO add additional trip here if hpc charging necessary
+                while not trip_completed:
+                    trip = Trip(region, car, trip.trip_end, self)
+                    trip.create_hpc()
+                    trip_completed = trip.execute(self)

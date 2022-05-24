@@ -78,7 +78,7 @@ class Trip:
                     self.drive_start += 1
                     continue
                 self.distance = self.region.get_probability(self.rng, self.destination, "distance")
-                # check if driving makes sense, max is set as x amount of hours TODO config?
+                # check if driving makes sense, max is set as x amount of hours TODO figure out better sanity check
                 while self.speed < 5 or self.drive_time > 20:
                     self.speed = self.region.get_probability(self.rng, self.destination, "speed")
                     self.drive_time = self.distance / self.speed
@@ -101,6 +101,9 @@ class Trip:
         self._set_timestamps()
 
     # TODO def create_hpc function, for trips that get called when hpc is needed to complete drive
+    def create_hpc(self):
+
+        pass
 
     def execute(self, simbev):
         """
@@ -116,7 +119,10 @@ class Trip:
             self.car.charge(self, station_capacity, "slow")
 
         if self.drive_found:
-            self.car.drive(self, simbev)
+            return self.car.drive(self, simbev)
+        # return True if no drive is started (end of simulation) to skip checking for hpc events
+        else:
+            return True
 
     def _set_timestamps(self):
         self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]

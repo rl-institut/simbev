@@ -29,7 +29,7 @@ class Car:
         self.status = status  # replace with enum?
         self.number = number
         self.user_spec = user_spec
-        self.hpc_attrac = hpc_attrac
+        self.hpc_pref = hpc_attrac
 
         # lists to track output data
         # TODO: swap to np.array for better performance?
@@ -41,7 +41,7 @@ class Car:
             "use_case": [],
             "soc": [],
             "charging_demand": [],
-            "nominal_charging_capacity": [],  # rethink these?
+            "nominal_charging_capacity": [],  # TODO rethink these?
             "charging_power": [],
             "consumption": []
         }
@@ -173,6 +173,7 @@ class Car:
 
         # TODO: can i make the trip? => HPC
         range_remaining = self.soc*self.car_type.battery_capacity/self.car_type.consumption
+        # TODO: Jakob: instead of doing this, return if trip can be completed as is (True) or needs hpc_charge (False)
         while trip.distance > range_remaining and self.car_type.label == "BEV":     # Todo SoC_min definieren
             # Drive until HPC Station
             #print('trip_distance', trip.distance)
@@ -242,7 +243,7 @@ class Car:
         else:
             return "public"
 
-    def get_user_spec(self, region, rng):
+    def set_user_spec(self, region, rng):
         prob_home = 0
 
         if region.id == 'LR_Klein':
@@ -284,15 +285,15 @@ class Car:
 
         # print(self.user_spec)
 
-    def get_hpc_attrac(self):
+    def set_hpc_pref(self):
         if self.user_spec == 'A':
-            self.hpc_attrac = 0.25
+            self.hpc_pref = 0.25
         if self.user_spec == 'B':
-            self.hpc_attrac = 0.5
+            self.hpc_pref = 0.5
         if self.user_spec == 'C':
-            self.hpc_attrac = 0.5
+            self.hpc_pref = 0.5
         if self.user_spec == 'D':
-            self.hpc_attrac = 0.75
+            self.hpc_pref = 0.75
 
     def export(self, region_directory, simbev):
         """
