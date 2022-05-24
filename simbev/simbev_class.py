@@ -9,6 +9,7 @@ import multiprocessing as mp
 import pathlib
 import datetime
 import math
+import configparser as cp
 
 
 class SimBEV:
@@ -202,3 +203,57 @@ class SimBEV:
                     trip = Trip(region, car, trip.trip_end, self)
                     trip.create_hpc()
                     trip_completed = trip.execute(self)
+
+    @classmethod
+    def from_config(cls, scenario_name):
+        """
+        Creates a SimBEV object from a specified scenario name. The scenario needs to be located in /simbev/scenarios.
+
+        Returns:
+            SimBEV Object
+            ConfigParser Object
+        """
+        scenario_path = pathlib.Path("scenarios", scenario_name)
+        if not scenario_path.is_dir():
+            raise FileNotFoundError(f'Scenario "{scenario_name}" not found in ./scenarios .')
+
+        # read config file
+        cfg = cp.ConfigParser()
+        cfg_file = pathlib.Path(scenario_path, "simbev_config.cfg")
+        if not cfg_file.is_file():
+            raise FileNotFoundError(f"Config file {cfg_file} not found.")
+        try:
+            cfg.read(cfg_file)
+        except Exception:
+            raise FileNotFoundError(f"Cannot read config file {cfg_file} - malformed?")
+
+        region_df = pd.read_csv(pathlib.Path(scenario_path, "regions.csv"), sep=',', index_col=0)
+
+        # read chargepoint probabilities
+        charge_prob_slow = pd.read_csv(pathlib.Path(scenario_path, cfg["charging_probabilities"]["slow"]))
+        charge_prob_slow = charge_prob_slow.set_index("destination")
+        charge_prob_fast = pd.read_csv(pathlib.Path(scenario_path, cfg["charging_probabilities"]["fast"]))
+        charge_prob_fast = charge_prob_fast.set_index("destination")
+        charge_prob_dict = {"slow": charge_prob_slow,
+                            "fast": charge_prob_fast}
+
+        tech_df = pd.read_csv(pathlib.Path(scenario_path, "tech_data.csv"), sep=',',
+                              index_col=0)
+
+        start_date = cfg.get("basic", "start_date")
+        start_date = helpers.date_string_to_datetime(start_date)
+        end_date = cfg.get("basic", "end_date")
+        end_date = helpers.date_string_to_datetime(end_date)
+
+        cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
+                    "soc_min": cfg.getfloat("basic", "soc_min"),
+                    "rng_seed": cfg["sim_params"].getint("seed", None),
+                    "eta_cp": cfg.getfloat("basic", "eta_cp"),
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "home_private": cfg.getfloat("charging_probabilities", "private_parking_home", fallback=0.5),
+                    "work_private": cfg.getfloat("charging_probabilities", "private_parking_work", fallback=0.5),
+                    }
+        num_threads = cfg.getint('sim_params', 'num_threads')
+
+        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_name, num_threads), cfg

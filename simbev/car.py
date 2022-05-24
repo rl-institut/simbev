@@ -212,6 +212,7 @@ class Car:
         # TODO: can i make the trip? => HPC
         self._update_activity(trip.drive_timestamp, trip.drive_start, trip.drive_time)
         self.status = trip.destination
+        return True
 
     def _get_last_charging_demand(self):
         if len(self.output["soc"]) > 1:
