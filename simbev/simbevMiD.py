@@ -991,15 +991,22 @@ def charging_flexibility(
     # remove last event if bound is exceeded
     if charging_car["park_start"].iloc[-1] > bound:
         charging_car = charging_car.iloc[:-1]
-    if charging_car["drive_start"].iloc[-1] > bound:
+    elif charging_car["drive_start"].iloc[-1] > bound:
         charging_car = charging_car.iloc[:-1]
 
-    # set last event end to final time step
-    # CAUTION: The consumption might get flawed at this event
+    # set last event end to final time step if bound is exceeded
+    # CAUTION - manual modifications:
+    # * parking: no charging takes place (charging demand is set to 0 and SoC
+    #   won't change)
+    # * driving: The consumption is set to 0
     if charging_car["park_end"].iloc[-1]:
         charging_car.loc[charging_car.index[-1], "park_end"] = bound
+        charging_car.loc[charging_car.index[-1], "chargingdemand"] = 0
+        charging_car.loc[charging_car.index[-1], "SoC_end"] = \
+            charging_car.loc[charging_car.index[-1], "SoC_start"]
     elif charging_car["drive_end"].iloc[-1]:
         charging_car.loc[charging_car.index[-1], "drive_end"] = bound
+        charging_car.loc[charging_car.index[-1], "consumption"] = 0
 
     # make first event start with 0
     if charging_car["park_start"].iloc[0] > 0:
