@@ -1,4 +1,4 @@
 [flake8]
 exclude = meta/migrations/, docs/
-max-line-length=120
+max-line-length = 120
 max-complexity = 10

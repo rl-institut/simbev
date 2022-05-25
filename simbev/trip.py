@@ -69,7 +69,7 @@ class Trip:
         """
 
         self.park_time = self.region.get_probability(self.rng, self.location, "stand")
-        self.park_time = self.simbev.to_time_steps(self.park_time)
+        self.park_time = self.simbev.hours_to_time_steps(self.park_time)
         self.drive_start = self.park_start + self.park_time
 
         while not self.drive_found and self.drive_start < self.region.last_time_step:
@@ -84,7 +84,7 @@ class Trip:
                 while self.speed < 5 or self.drive_time > 20:
                     self.speed = self.region.get_probability(self.rng, self.destination, "speed")
                     self.drive_time = self.distance / self.speed
-                self.drive_time = self.simbev.to_time_steps(self.drive_time)
+                self.drive_time = self.simbev.hours_to_time_steps(self.drive_time)
                 self.trip_end = self.drive_start + self.drive_time
                 if self.trip_end > self.region.last_time_step:
                     self.trip_end = self.region.last_time_step

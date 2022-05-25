@@ -184,7 +184,7 @@ class SimBEV:
 
         return charging_capacity
 
-    def to_time_steps(self, t):
+    def hours_to_time_steps(self, t):
         return math.ceil(t * 60 / self.step_size)
 
     def simulate_car(self, car, region):

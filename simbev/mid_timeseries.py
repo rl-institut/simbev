@@ -110,9 +110,3 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
     pd_result.columns = ['work', 'business', 'school', 'shopping',
                          'private', 'leisure', 'home']
     return pd_result
-
-
-# tests
-# if __name__ == '__main__':
-#    x = get_timeseries(datetime.date.today(), datetime.date(2022, 12, 1), "LR_Klein", 15, 1440)
-#    print(x)
