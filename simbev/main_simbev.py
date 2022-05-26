@@ -9,6 +9,10 @@ import pandas as pd
 from pathlib import Path
 import multiprocessing as mp
 import helpers.helpers as helper
+import hpc_methodology
+import simbevMiD
+
+import time
 
 # regiotypes:
 # Ländliche Regionen
@@ -22,7 +26,7 @@ import helpers.helpers as helper
 # SR_Metro - Metropole
 
 
-def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
+def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob, home_work_privat,
                regions, tech_data, main_path):
     """Run simbev for single region"""
     print(f'===== Region: {region_id} ({region_ctr + 1}/{len(regions)}) =====')
@@ -102,6 +106,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 columns=columns,
                 index=[0],
             )
+
             # print(icar)
             # indices to ensure home and work charging capacity does not alternate
             idx_home = 0
@@ -146,6 +151,33 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 tech_data_car.max_charging_capacity_slow,
             ) * eta_cp
 
+            if idx_home == 0:
+                charging_capacity = min(
+                    simbevMiD.slow_charging_capacity(
+                        charge_prob['slow'],
+                        'home',
+                        rng,
+                    ),
+                    tech_data_car.max_charging_capacity_slow,
+                )
+                home_charging_capacity = charging_capacity
+            idx_home += 1
+
+            if idx_work == 0:
+                charging_capacity = min(
+                    simbevMiD.slow_charging_capacity(
+                        charge_prob['slow'],
+                        'work',
+                        rng,
+                    ),
+                    tech_data_car.max_charging_capacity_slow,
+                )
+                work_charging_capacity = charging_capacity
+            idx_work += 1
+
+            user_spec = hpc_methodology.get_user_spec(rng, region_data.RegioStaR7, home_work_privat,
+                                                      home_charging_capacity, work_charging_capacity)
+
             # loop for days of the week
             # for key in wd:
             # create availability timeseries and charging times
@@ -173,7 +205,8 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 eta_cp,
                 soc_min,
                 tseries_purpose,
-                carstatus
+                carstatus,
+                user_spec
             )
 
             # add results for this day to availability timeseries
@@ -187,7 +220,10 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
             # charging_all = charging_all.append(demand)
 
             # add results for this day to demand time series for a single car
-            charging_car = charging_car.append(demand)
+
+            # charging_car = charging_car.append(demand)
+
+            charging_car = pd.concat([charging_car, demand])
             # print(key, charging_car)
 
             last_charging_capacity = charging_car.netto_charging_capacity.iat[-1]
@@ -207,6 +243,7 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 days,
                 tech_data_car.battery_capacity,
                 region_data.RegioStaR7,
+                user_spec
             )
 
         # clean up charging_car
@@ -226,7 +263,7 @@ def init_simbev(args):
     scenario_path = os.path.join('.', 'scenarios', args.scenario)
     if not os.path.isdir(scenario_path):
         raise FileNotFoundError(f'Scenario "{args.scenario}" not found in ./scenarios .')
-
+    print(scenario_path)
     # read config file
     cfg = cp.ConfigParser()
     cfg_file = os.path.join(scenario_path, 'simbev_config.cfg')
@@ -260,6 +297,10 @@ def init_simbev(args):
 
     home_private = cfg.getfloat('charging_probabilities', 'private_charging_home', fallback=1.0)
     work_private = cfg.getfloat('charging_probabilities', 'private_charging_work', fallback=1.0)
+
+    home_work_private = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['home_work_private']))
+    home_work_private = home_work_private.set_index('region')
+
 
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
@@ -334,13 +375,13 @@ def init_simbev(args):
     print(f'Running simbev in {num_threads} thread(s)...')
     if num_threads == 1:
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
+            run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob, home_work_private,
                        regions, tech_data, main_path)
     else:
         pool = mp.Pool(processes=num_threads)
 
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg_dict, charge_prob,
+            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg_dict, charge_prob, home_work_private,
                                           regions, tech_data, main_path))
 
         pool.close()
@@ -367,10 +408,13 @@ def init_simbev(args):
 
 
 if __name__ == "__main__":
-
+    t0 = time.time()
     parser = argparse.ArgumentParser(description='SimBEV modelling tool for generating timeseries of electric '
                                                  'vehicles.')
     parser.add_argument('scenario', default="default_single", nargs='?',
                         help='Set the scenario which is located in ./scenarios .')
     p_args = parser.parse_args()
     init_simbev(p_args)
+    t1 = time.time()
+    t = t1 - t0
+    print("time:", t)

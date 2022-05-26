@@ -5,11 +5,14 @@ create driving profiles.
 
 import datetime as dt
 import math
+import random
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from mid_timeseries import get_timeseries
+import hpc_methodology
 
 
 def get_prob(
@@ -143,8 +146,8 @@ def availability(
         soc_min,
         tseries_purpose,
         carstatus,
+        user_spec
 ):
-
     # day_mins = 1440
     range_sim = len(tseries_purpose)
     # get data from MiD
@@ -200,6 +203,10 @@ def availability(
 
     # im = 0
     # loop minutes per day
+    # Attraktivität von 0 bis 1 festlegen (o = niedrig; 1 = hoch)
+    hpc_attrac = hpc_methodology.get_attractivity(user_spec)
+
+    anz_hpc_events = 0
     for im in range(len(tseries_purpose)):
         # print("timestep: " + str(im))
         # get the current purpose of the car
@@ -333,12 +340,22 @@ def availability(
                 range_remaining = (soc_list[-1] * batcap) / con
 
                 # fast charging events
-                range_remaining = ((soc_list[-1] - soc_min) * batcap)/con
-                if distance > range_remaining and car_type == 'BEV':
-                    # print('Fast Charging')
+                range_remaining = 1*((soc_list[-1] - soc_min) * batcap)/con
+                #print('distance', distance)
+                #range_remaining = 1000
 
-                    # driving for the rest of the current batcap/soc
-                    distance_stop = range_remaining
+                while distance > range_remaining and car_type == 'BEV':
+                    anz_hpc_events += 1
+                    # print('Fast Charging Event in ts:', im)
+                    # print('driving until HPC-Station')
+
+                    rn_dist = rng.uniform(0.6, 1)
+                    # driving until HPC-Station
+                    # range_remaining = ((soc_list[-1] - soc_min) * batcap)/con
+                    distance_stop = range_remaining * rn_dist
+                    #print("range_remaining", range_remaining)
+                    #print("distance",distance)
+                    #print("distance_stop", distance_stop)
                     distance_remaining = distance - distance_stop
                     drivetime = (distance_stop / speed) * 60
                     drivetime = math.ceil(drivetime / stepsize)
@@ -352,7 +369,7 @@ def availability(
                         drive_end = len(car_status)
                     purp_list.append("driving")
                     dr_start.append(drive_start)
-                    dr_end.append(drive_end-1)
+                    dr_end.append(drive_end - 1)
                     consumption.append(driveconsumption)
                     soc = soc_list[-1] - (driveconsumption / batcap)
                     soc_list.append(soc)
@@ -364,106 +381,15 @@ def availability(
                     car_status[drive_start:drive_end] = 3
                     im = drive_end
 
-                    # fast charging
-                    fastcharge = min(
-                        fast_charging_capacity(
-                            charge_prob_fast,
-                            distance,
-                            rng,
-                        ),
-                        chargepower_fast,
-                    )
-                    # fastcharging for 15 minutes
-                    chen = min(((15 / 60) * fastcharge), ((0.8 - soc_list[-1]) * batcap))
-                    ch_time.append(1)
-                    ch_capacity.append(fastcharge)
-                    demand.append(chen)
-                    soc = soc_list[-1] + (chen / batcap)
-                    soc_list.append(soc)
-                    place_list.append("7_charging_hub")
-                    purp_list.append("7_charging_hub")
-                    dr_start.append(0)
-                    dr_end.append(0)
-                    consumption.append(0)
-                    charge_start = im
-                    ch_start.append(charge_start)
-                    ch_end.append(charge_start + 1)
-                    if charge_start > (len(car_status) - 1):
-                        car_status[(len(car_status) - 1)] = 2
-                        break
-                    car_status[charge_start] = 2
-                    im = charge_start + 1
-
-                    # calculate remainig charging events for the rest of the distance
-                    # soc_min = 0.2
-                    range_bat = ((soc_list[-1]-soc_min) * batcap) / con
-                    # range_bat = range_bat - 20
-                    num_stops = math.floor(distance_remaining/range_bat)
-                    distance_stop = range_bat
-                    for stops in range(num_stops):
-
-                        # driving
-                        range_bat = ((soc_list[-1] - soc_min) * batcap) / con
-                        distance_stop = range_bat
-                        drivetime = (distance_stop / speed) * 60
-                        drivetime = math.ceil(drivetime / stepsize)
-                        driveconsumption = distance_stop * con
-                        purp_list.append("driving")
-                        # get timesteps for car status of driving
-                        drive_start = im + 1
-                        drive_end = int(drive_start + drivetime)
-                        dr_start.append(drive_start)
-                        dr_end.append(drive_end-1)
-                        consumption.append(driveconsumption)
-                        soc = soc_list[-1] - (driveconsumption / batcap)
-                        soc_list.append(soc)
-                        ch_start.append(0)
-                        ch_end.append(0)
-                        ch_time.append(0)
-                        ch_capacity.append(0)
-                        demand.append(0)
-                        if drive_end > (len(car_status) - 1):
-                            car_status[drive_start-2:] = 3
-                            im = len(car_status)
-                            break
-                        car_status[drive_start-1:drive_end] = 3
-                        im = drive_end
-
-                        # fast charging
-                        fastcharge = min(
-                            fast_charging_capacity(
-                                charge_prob_fast,
-                                distance,
-                                rng,
-                            ),
-                            chargepower_fast,
-                        )
-                        # fastcharging for 15 minutes
-                        chen = min(((15 / 60) * fastcharge), ((0.8 - soc_list[-1]) * batcap))
-                        ch_time.append(1)
-                        ch_capacity.append(fastcharge)
-                        demand.append(chen)
-                        soc = soc_list[-1] + (chen / batcap)
-                        soc_list.append(soc)
-                        place_list.append("7_charging_hub")
-                        purp_list.append("7_charging_hub")
-                        dr_start.append(0)
-                        dr_end.append(0)
-                        consumption.append(0)
-                        charge_start = im
-                        ch_start.append(charge_start)
-                        ch_end.append(charge_start + 1)
-                        if charge_start > (len(car_status) - 1):
-                            car_status[-1] = 2
-                            break
-                        car_status[charge_start] = 2
-                        im = charge_start + 1
-
-                        # update values
-                        distance_remaining = distance_remaining - distance_stop
+                    # print('charging')
+                    place = "7_charging_hub"
+                    timestep = stepsize
+                    range_remaining, im = hpc_methodology.hpc_event(rng, fast_charging_capacity, charge_prob_fast, distance, chargepower_fast, batcap, im,
+                              timestep, ch_time, ch_capacity, demand, soc_list, place_list, purp_list, dr_start, dr_end,
+                              consumption,
+                              ch_start, ch_end, car_status, soc_min, con, place)
 
                     distance = distance_remaining
-                    #im = im - 1
 
                 if im == len(car_status):
                     continue
@@ -499,40 +425,47 @@ def availability(
                 park_start = drive_end + 1
 
                 park_end = park_start + staytime
-                # add current location
-                purp_list.append(p_now)
 
                 # get charging capacity at destination
                 if p_now.find("home") != -1:
                     # make sure home charging capacity stays constant
-                    if idx_home == 0:
-                        charging_capacity = min(
-                            slow_charging_capacity(
-                                charge_prob_slow,
-                                p_now,
-                                rng,
-                            ),
-                            chargepower_slow,
-                        )
-                        home_charging_capacity = charging_capacity
-                    else:
+                    if user_spec == 'C' or user_spec == 'D':
+                        home_charging_capacity = 0
                         charging_capacity = home_charging_capacity
-                    idx_home += 1
+                    else:
+                        if idx_home == 0:
+                            charging_capacity = min(
+                                slow_charging_capacity(
+                                    charge_prob_slow,
+                                    p_now,
+                                    rng,
+                                ),
+                                chargepower_slow,
+                            )
+                            home_charging_capacity = charging_capacity
+                        else:
+                            charging_capacity = home_charging_capacity
+                        idx_home += 1
+
                 elif p_now.find("work") != -1:
                     # make sure work charging capacity stays constant
-                    if idx_work == 0:
-                        charging_capacity = min(
-                            slow_charging_capacity(
-                                charge_prob_slow,
-                                p_now,
-                                rng,
-                            ),
-                            chargepower_slow,
-                        )
-                        work_charging_capacity = charging_capacity
-                    else:
+                    if user_spec == 'B' or user_spec == 'D':
+                        work_charging_capacity = 0
                         charging_capacity = work_charging_capacity
-                    idx_work += 1
+                    else:
+                        if idx_work == 0:
+                            charging_capacity = min(
+                                slow_charging_capacity(
+                                    charge_prob_slow,
+                                    p_now,
+                                    rng,
+                                ),
+                                chargepower_slow,
+                            )
+                            work_charging_capacity = charging_capacity
+                        else:
+                            charging_capacity = work_charging_capacity
+                        idx_work += 1
                 else:
                     charging_capacity = min(
                         slow_charging_capacity(
@@ -543,12 +476,32 @@ def availability(
                         chargepower_slow,
                     )
 
-                # if firstdrive == 1:
-                #     charging_capacity = last_charging_capacity
-                #     firstdrive = 0
+                if (soc <= 0.5 and car_type == 'BEV' and rng.uniform(0, 1) < hpc_attrac and staytime <= 3 and
+                        p_now != "0_work" and p_now != "6_home"):
+                    # print("HPC_Special")
+                    im = drive_end+1
+                    place = p_now
+                    # print(place)
+                    range_remaining, im = hpc_methodology.hpc_event(rng, fast_charging_capacity, charge_prob_fast,
+                                                                    distance, chargepower_fast,
+                                                                    batcap, im, stepsize, ch_time, ch_capacity, demand,
+                                                                    soc_list, place_list,
+                                                                    purp_list, dr_start, dr_end, consumption, ch_start,
+                                                                    ch_end, car_status,
+                                                                    soc_min, con, place)
 
-                if charging_capacity > 0:
+                    car_status[park_start - 1:park_end] = 2
+                    chtime = park_end - park_start + 1
+                    #ch_time[-1] = chtime
+                    ch_start[-1] = park_start
+                    ch_end[-1] = park_end
+
+                elif charging_capacity > 0:
                     # status: 2 - charging
+
+                    # add current location
+                    purp_list.append(p_now)
+
                     car_status[park_start - 1:park_end] = 2
                     chtime = park_end - park_start + 1
                     ch_start.append(park_start)
@@ -564,6 +517,7 @@ def availability(
                         soc_list[-1],
                         p_now,
                     )
+
                     random_number = rng.random()
 
                     if charge_prob < random_number:
@@ -588,6 +542,9 @@ def availability(
                         consumption.append(0)
                 else:
                     # status: 1 - parking
+
+                    # add current location
+                    purp_list.append(p_now)
                     car_status[park_start - 1:park_end] = 1
                     ch_start.append(park_start)
                     ch_end.append(park_end)
@@ -598,7 +555,7 @@ def availability(
                     ch_capacity.append(0)
                     demand.append(0)
                     soc_list.append(soc_list[-1])
-
+    # print("Anzahl der HPC events:", anz_hpc_events)
     # status_list = car_status[:int(range_sim)].tolist()
     # status_nextday = car_status[int(range_sim):]           #kann raus ?
     data_availability = list(
@@ -744,6 +701,7 @@ def charging_flexibility(
         days,
         batterycap,
         region_type,
+        user_spec
 ):
     """
 
@@ -995,7 +953,7 @@ def charging_flexibility(
         print('Error: out of Bound')
 
     baca = int(batterycap)
-    filename = "{}_{:05d}_{}kWh_{}_events.csv".format(car_type, car_number, baca, region_type)
+    filename = "{}_{:05d}_{}_{}kWh_{}_events.csv".format(car_type, car_number, user_spec, baca, region_type)
 
     file_path = path.joinpath(filename)
 
@@ -1025,17 +983,18 @@ def charging_flexibility(
     # add use case column
     charging_car.insert(1, "use_case", "")
     # determine if car has access to private charging at home/work
-    home_charge = home_private >= rng.random()
-    work_charge = work_private >= rng.random()
+    # home_charge = home_private >= rng.random()
+    # work_charge = work_private >= rng.random()
     for i in charging_car.index:
         loc = charging_car.loc[i, "location"]
         if loc == "driving":
             continue
-        elif loc == "7_charging_hub":
+        elif loc == "7_charging_hub" or charging_car.loc[i, "nominal_charging_capacity_kW"] > 50:
+            # 50kW Grenze zu slow
             charging_car.loc[i, "use_case"] = "hpc"
-        elif loc == "0_work" and work_charge:
+        elif loc == "0_work" and (user_spec == 'A' or user_spec == 'C'):
             charging_car.loc[i, "use_case"] = "work"
-        elif loc == "6_home" and home_charge:
+        elif loc == "6_home" and (user_spec == 'A' or user_spec == 'B'):
             charging_car.loc[i, "use_case"] = "home"
         else:
             charging_car.loc[i, "use_case"] = "public"
@@ -1131,11 +1090,11 @@ def fast_charging_capacity(
     prob_50 = fast_charging_probability.loc[area].iloc[0]
     prob_150 = fast_charging_probability.loc[area].iloc[1] + prob_50
 
-    random_number = rng.random()
+    random_number = rng.random()        # random number between 0 and 1
 
-    if random_number <= prob_50:
-        fast_charging_capacity = 50
-    elif random_number <= prob_150:
+    # if random_number <= prob_50:
+    #    fast_charging_capacity = 50
+    if random_number <= prob_150:
         fast_charging_capacity = 150
     else:
         fast_charging_capacity = 350
