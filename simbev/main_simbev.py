@@ -220,9 +220,6 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob, home_w
             # charging_all = charging_all.append(demand)
 
             # add results for this day to demand time series for a single car
-
-            # charging_car = charging_car.append(demand)
-
             charging_car = pd.concat([charging_car, demand])
             # print(key, charging_car)
 
@@ -263,7 +260,7 @@ def init_simbev(args):
     scenario_path = os.path.join('.', 'scenarios', args.scenario)
     if not os.path.isdir(scenario_path):
         raise FileNotFoundError(f'Scenario "{args.scenario}" not found in ./scenarios .')
-    print(scenario_path)
+
     # read config file
     cfg = cp.ConfigParser()
     cfg_file = os.path.join(scenario_path, 'simbev_config.cfg')
