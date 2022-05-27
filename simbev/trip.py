@@ -81,7 +81,7 @@ class Trip:
                     continue
                 self.distance = self.region.get_probability(self.rng, self.destination, "distance")
                 # check if driving makes sense, max is set as x amount of hours TODO figure out better sanity check
-                while self.speed < 5 or self.drive_time > 20:
+                while self.speed < 5 or self.drive_time > 15:
                     self.speed = self.region.get_probability(self.rng, self.destination, "speed")
                     self.drive_time = self.distance / self.speed
                 self.drive_time = self.simbev.hours_to_time_steps(self.drive_time)
@@ -116,6 +116,7 @@ class Trip:
             self.car.charge(self, station_capacity, "slow")
 
         if self.drive_found:
+            # TODO return True if car can complete drive without extra charging, false otherwise
             return self.car.drive(self, simbev)
         # return True if no drive is started (end of simulation) to skip checking for hpc events
         else:

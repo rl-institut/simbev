@@ -199,6 +199,7 @@ class SimBEV:
                 trip_completed = trip.execute(self)
                 # TODO add additional trip here if hpc charging necessary
                 while not trip_completed:
+                    # TODO remaining drive time to new trip or distance + speed
                     trip = HPCTrip(region, car, trip.trip_end, self)
                     trip_completed = trip.execute(self)
 
