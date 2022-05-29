@@ -87,7 +87,7 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
                 temp = temp.append(data_df.tail(t[2] * minutes_per_day))
                 t[2] = 0
             else:
-                temp = temp.append(data_df.tail(weekdays_left * minutes_per_day))
+                temp = pd.concat([temp, data_df.tail(weekdays_left * minutes_per_day)])
                 if t[2] < weekdays_left:
                     t[2] = t[2] - weekdays_left + 7
                     t[1] = t[1] - 1
@@ -95,18 +95,18 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
                     t[2] = t[2] - weekdays_left
         # add full weeks to the series
         for i in range(0, t[1]):
-            temp = temp.append(data_df, ignore_index=True)
+            temp = pd.concat([temp, data_df], ignore_index=True)
         # add leftover partial week at the end of series
-        temp = temp.append(data_df.head(t[2] * minutes_per_day), ignore_index=True)
+        temp = pd.concat([temp, data_df.head(t[2] * minutes_per_day)], ignore_index=True)
 
-        date_rng = pd.date_range(t[3], t[4], freq='min', closed='left')
+        date_rng = pd.date_range(t[3], t[4], freq='min', inclusive='left')
 
         # date = pd.DatetimeIndex(date_rng)
         # day_key = date.day_name()
 
         temp.index = date_rng
         temp = temp.resample(datetime.timedelta(minutes=stepsize)).sum()
-        pd_result = pd_result.append(temp)
+        pd_result = pd.concat([pd_result, temp])
         weekdays_left = weekdays - t[2]
 
     pd_result.columns = ['0_work', '1_business', '2_school', '3_shopping',
