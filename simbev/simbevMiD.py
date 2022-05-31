@@ -204,7 +204,7 @@ def availability(
     # im = 0
     # loop minutes per day
     # Attraktivität von 0 bis 1 festlegen (o = niedrig; 1 = hoch)
-    hpc_attrac = hpc_methodology.get_hpc_attrac(user_spec)
+    hpc_attrac = hpc_methodology.get_attractivity(user_spec)
 
     anz_hpc_events = 0
     for im in range(len(tseries_purpose)):
@@ -389,109 +389,6 @@ def availability(
                               consumption,
                               ch_start, ch_end, car_status, soc_min, con, place)
 
-                    print(im, range_remaining)
-                    # # get socstart and end
-                    # soc_start = soc
-                    # random_soc = rng.uniform(0.8, 1)
-                    # soc_end = random_soc
-                    # # print("soc_start", soc_start)
-                    # # print("soc_end", soc_end)
-                    # # charging
-                    #
-                    # fastcharge = min(
-                    #     fast_charging_capacity(
-                    #         charge_prob_fast,
-                    #         distance,
-                    #         rng,
-                    #     ),
-                    #     chargepower_fast,
-                    # )
-                    # # print("Fastcharge", fastcharge)
-                    # delta = (soc_end - soc_start) / 10
-                    # # soc_range = np.arange(soc_start, soc_end, delta)
-                    # soc_load_list = np.arange(soc_start + delta / 2, soc_end + delta / 2, delta)
-                    # # print('soc_load_list', soc_load_list)
-                    # p_soc = np.zeros(len(soc_load_list))
-                    # t_load = np.zeros(len(soc_load_list))
-                    # e_load = np.zeros(len(soc_load_list))
-                    #
-                    # for i, soc in enumerate(soc_load_list):
-                    #     p_soc[i] = (-0.01339 * (soc * 100) ** 2 + 0.7143 * (
-                    #                 soc * 100) + 84.48) * fastcharge / 100  # polynomial iteration of the loadcurve
-                    #     e_load[i] = delta * batcap
-                    #     t_load[i] = delta * batcap / p_soc[i] * 60
-                    #
-                    # # print('p_soc:', p_soc)
-                    # # print('e_load:', e_load)
-                    # # print('t_load:', t_load)
-                    #
-                    # charging_time = sum(t_load)
-                    # # print('charging_time:', charging_time)
-                    #
-                    # charge_start = im
-                    # counter_c = 0
-                    # chen_timestep = []
-                    #
-                    # # Aufteilung des Ladevorgangs in 15 min Schritte
-                    # while charging_time > timestep:
-                    #     # print("loop")
-                    #     i = 0
-                    #     t_sum = 0
-                    #     # fill array for loading in timestep
-                    #     while t_sum <= timestep:
-                    #         t_sum = t_sum + t_load[i]
-                    #         i += 1
-                    #         t_load_new = t_load[:i]
-                    #     t_diff = timestep - t_sum  # last loading-step in timestep
-                    #
-                    #     t_load_new[i - 1] = t_load[i - 1] + t_diff
-                    #     p_soc_new = p_soc[:i]
-                    #     e_load_new = t_load_new * p_soc_new / 60  # e_load[:i]
-                    #
-                    #     chen_timestep.append(sum(e_load_new))
-                    #
-                    #     t_load = t_load[i - 1:]
-                    #     t_load[0] = -t_diff
-                    #
-                    #     p_soc = p_soc[i - 1:]
-                    #     e_load = p_soc * t_load / 60
-                    #     # print("t_load", t_load)
-                    #     # print('e_load', e_load)
-                    #
-                    #     charging_time = charging_time - timestep
-                    #     # print('neue Ladezeit:', charging_time)
-                    #
-                    #     counter_c += 1
-                    #     im = charge_start + counter_c
-                    #
-                    # # append timeseries charging timestep
-                    # chen_timestep.append(sum(e_load))
-                    #
-                    # chen = (soc_end - soc_start)*batcap    # sum(chen_timestep)
-                    # # print('chen', chen)
-                    # ch_time.append(counter_c + 1)
-                    # ch_capacity.append(fastcharge)
-                    # demand.append(chen)
-                    # # soc = soc_list[-1] + (chen / batcap)
-                    # soc_list.append(soc_end)
-                    # place_list.append("7_charging_hub")
-                    # purp_list.append("7_charging_hub")
-                    # dr_start.append(0)
-                    # dr_end.append(0)
-                    # consumption.append(0)
-                    #
-                    # ch_start.append(charge_start)
-                    # ch_end.append(charge_start + counter_c)
-                    # if charge_start > (len(car_status) - 1):
-                    #     car_status[-1] = 2
-                    #     break
-                    # car_status[charge_start] = 2
-                    # im = charge_start + counter_c
-                    #
-                    # # distance_remaining = distance_remaining - distance_stop
-                    # #print("con", con, batcap, soc_end, soc_min)
-                    #
-                    # range_remaining = ((soc_end - soc_min) * batcap) / con
                     distance = distance_remaining
 
                 if im == len(car_status):
@@ -528,22 +425,6 @@ def availability(
                 park_start = drive_end + 1
 
                 park_end = park_start + staytime
-                # hpc
-
-                # if soc <= 0.4 and car_type == 'BEV' and rng.uniform(0, 1) < hpc_attrac and staytime < 30:
-                #     print("HPC_Special")
-                #     im = drive_end+1
-                #     range_remaining, im = hpc_methodology.hpc_event(rng, fast_charging_capacity, charge_prob_fast,
-                #                                                     distance, chargepower_fast,
-                #                                                     batcap, im, stepsize, ch_time, ch_capacity, demand,
-                #                                                     soc_list, place_list,
-                #                                                     purp_list, dr_start, dr_end, consumption, ch_start,
-                #                                                     ch_end, car_status,
-                #                                                     soc_min, "7_charging_hub")
-
-                # add current location
-                # purp_list.append(p_now)
-
 
                 # get charging capacity at destination
                 if p_now.find("home") != -1:
@@ -1113,11 +994,11 @@ def charging_flexibility(
         loc = charging_car.loc[i, "location"]
         if loc == "driving":
             continue
-        elif loc == "7_charging_hub":
+        elif loc == "7_charging_hub" or charging_car.loc[i, "nominal_charging_capacity_kW"] > 50:
             charging_car.loc[i, "use_case"] = "hpc"
-        elif loc == "0_work":
+        elif loc == "0_work" and (user_spec == 'A' or user_spec == 'C'):
             charging_car.loc[i, "use_case"] = "work"
-        elif loc == "6_home":
+        elif loc == "6_home" and (user_spec == 'A' or user_spec == 'B'):
             charging_car.loc[i, "use_case"] = "home"
         elif charging_car.loc[i, "nominal_charging_capacity_kW"] >= 150:
             charging_car.loc[i, "use_case"] = "hpc"

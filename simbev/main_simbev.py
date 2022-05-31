@@ -10,6 +10,7 @@ from pathlib import Path
 import multiprocessing as mp
 import helpers.helpers as helper
 import hpc_methodology
+import simbevMiD
 
 import time
 
@@ -25,7 +26,7 @@ import time
 # SR_Metro - Metropole
 
 
-def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
+def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob, home_work_privat,
                regions, tech_data, main_path):
     """Run simbev for single region"""
     print(f'===== Region: {region_id} ({region_ctr + 1}/{len(regions)}) =====')
@@ -106,8 +107,6 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 index=[0],
             )
 
-            user_spec = hpc_methodology.get_user_spec(rng, region_data.RegioStaR7)
-
             # print(icar)
             # indices to ensure home and work charging capacity does not alternate
             idx_home = 0
@@ -151,6 +150,33 @@ def run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
                 ),
                 tech_data_car.max_charging_capacity_slow,
             ) * eta_cp
+
+            if idx_home == 0:
+                charging_capacity = min(
+                    simbevMiD.slow_charging_capacity(
+                        charge_prob['slow'],
+                        'home',
+                        rng,
+                    ),
+                    tech_data_car.max_charging_capacity_slow,
+                )
+                home_charging_capacity = charging_capacity
+            idx_home += 1
+
+            if idx_work == 0:
+                charging_capacity = min(
+                    simbevMiD.slow_charging_capacity(
+                        charge_prob['slow'],
+                        'work',
+                        rng,
+                    ),
+                    tech_data_car.max_charging_capacity_slow,
+                )
+                work_charging_capacity = charging_capacity
+            idx_work += 1
+
+            user_spec = hpc_methodology.get_user_spec(rng, region_data.RegioStaR7, home_work_privat,
+                                                      home_charging_capacity, work_charging_capacity)
 
             # loop for days of the week
             # for key in wd:
@@ -272,6 +298,9 @@ def init_simbev(args):
     home_private = cfg.getfloat('charging_probabilities', 'private_charging_home', fallback=1.0)
     work_private = cfg.getfloat('charging_probabilities', 'private_charging_work', fallback=1.0)
 
+    home_work_private = pd.read_csv(os.path.join(scenario_path, cfg['charging_probabilities']['home_work_private']))
+    home_work_private = home_work_private.set_index('region')
+
     # get timestep (in minutes)
     stepsize = cfg.getint('basic', 'stepsize')
 
@@ -345,13 +374,13 @@ def init_simbev(args):
     print(f'Running simbev in {num_threads} thread(s)...')
     if num_threads == 1:
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob,
+            run_simbev(region_ctr, region_id, region_data, cfg_dict, charge_prob, home_work_private,
                        regions, tech_data, main_path)
     else:
         pool = mp.Pool(processes=num_threads)
 
         for region_ctr, (region_id, region_data) in enumerate(regions.iterrows()):
-            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg_dict, charge_prob,
+            pool.apply_async(run_simbev, (region_ctr, region_id, region_data, cfg_dict, charge_prob, home_work_private,
                                           regions, tech_data, main_path))
 
         pool.close()
