@@ -17,8 +17,7 @@ class CarType:
 
 class Car:
     def __init__(self, car_type: CarType, number: int, work_parking, home_parking,
-                 work_capacity, home_capacity, soc: float = 1., status: str = "home", user_spec: int = 0,
-                 hpc_attrac: float = 0):
+                 work_capacity, home_capacity, soc: float = 1., status: str = "home"):
 
         self.car_type = car_type
         self.soc = soc
@@ -28,8 +27,8 @@ class Car:
         self.home_capacity = home_capacity
         self.status = status  # replace with enum?
         self.number = number
-        self.user_spec = user_spec
-        self.hpc_pref = hpc_attrac
+        self.user_spec = 0
+        self.hpc_pref = 0
 
         # lists to track output data
         # TODO: swap to np.array for better performance?
@@ -48,6 +47,8 @@ class Car:
 
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
                                                              car_type.battery_capacity)
+        # Set user specificationn and hpc preference
+        self.set_user_spec()
 
     def _update_activity(self, timestamp, event_start, event_time,
                          nominal_charging_capacity=0, charging_power=0):
@@ -244,57 +245,22 @@ class Car:
         else:
             return "public"
 
-    def set_user_spec(self, region, rng):
-        prob_home = 0
+    def set_user_spec(self):
 
-        if region.id == 'LR_Klein':
-            prob_home_private = 0.9
-            prob_home = 0.55
-        elif region.id == 'LR_Mitte':
-            prob_home_private = 0.85
-            prob_home = 0.525
-        elif region.id == 'LR_Zentr':
-            prob_home_private = 0.725
-            prob_home = 0.49
-        elif region.id == 'SR_Gross':
-            prob_home_private = 0.6
-            prob_home = 0.485
-        elif region.id == 'SR_Klein':
-            prob_home_private = 0.875
-            prob_home = 0.53
-        elif region.id == 'SR_Metro':
-            prob_home_private = 0.4
-            prob_home = 0.475
-        elif region.id == 'SR_Mittel':
-            prob_home_private = 0.8
-            prob_home = 0.495
-
-        prob_work = 0.875
-        # random_number = rng.random()
-        user_spec = ''
-
-        if rng.random() <= prob_home:
-            if rng.random() <= prob_work:
-                self.user_spec = 'A'  # LIS at home and at work
+        if self.home_capacity != 0 and self.home_parking:
+            if self.work_capacity != 0 and self.work_parking:
+                self.user_spec = 'A'  # private LIS at home and at work
+                self.hpc_pref = 0.25
             else:
-                self.user_spec = 'B'  # LIS at home but not at work
+                self.user_spec = 'B'  # private LIS at home but not at work
+                self.hpc_pref = 0.5
         else:
-            if rng.random() <= prob_work:
-                self.user_spec = 'C'  # LIS not at home but at work
+            if self.work_capacity != 0 and self.work_parking:
+                self.user_spec = 'C'  # private LIS not at home but at work
+                self.hpc_pref = 0.5
             else:
-                self.user_spec = 'D'  # LIS not at home and not at work. Primarily HPC
-
-        # print(self.user_spec)
-
-    def set_hpc_pref(self):
-        if self.user_spec == 'A':
-            self.hpc_pref = 0.25
-        if self.user_spec == 'B':
-            self.hpc_pref = 0.5
-        if self.user_spec == 'C':
-            self.hpc_pref = 0.5
-        if self.user_spec == 'D':
-            self.hpc_pref = 0.75
+                self.user_spec = 'D'  # private LIS not at home and not at work. Primarily HPC
+                self.hpc_pref = 0.75
 
     def export(self, region_directory, simbev):
         """

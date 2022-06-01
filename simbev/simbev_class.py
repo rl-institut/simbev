@@ -14,7 +14,7 @@ import configparser as cp
 
 class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
-                 config_dict, name, num_threads=1):
+                 config_dict, name, home_work_private, num_threads=1):
         # parameters from arguments
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
@@ -30,8 +30,8 @@ class SimBEV:
         self.start_date_output = datetime.datetime.combine(self.start_date_input,
                                                            datetime.datetime.min.time())
         self.end_date = config_dict["end_date"]
-        self.home_parking = config_dict["home_private"]
-        self.work_parking = config_dict["work_private"]
+        self.home_parking = home_work_private.loc["home", :]
+        self.work_parking = home_work_private.loc["work", :]
 
         self.num_threads = num_threads
 
@@ -234,6 +234,9 @@ class SimBEV:
         charge_prob_dict = {"slow": charge_prob_slow,
                             "fast": charge_prob_fast}
 
+        home_work_private = pd.read_csv(pathlib.Path(scenario_path, cfg['charging_probabilities']['home_work_private']))
+        home_work_private = home_work_private.set_index('region')
+
         tech_df = pd.read_csv(pathlib.Path(scenario_path, "tech_data.csv"), sep=',',
                               index_col=0)
 
@@ -253,4 +256,5 @@ class SimBEV:
                     }
         num_threads = cfg.getint('sim_params', 'num_threads')
 
-        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, num_threads), cfg
+        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private,
+                      num_threads), cfg

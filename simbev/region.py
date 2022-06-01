@@ -64,17 +64,15 @@ class Region:
                 car_type = self.simbev.car_types[car_type_name]
                 # create new car objects
                 # TODO: parking parameters that change by region
-                work_parking = self.simbev.work_parking >= self.simbev.rng.random()
-                home_parking = self.simbev.home_parking >= self.simbev.rng.random()
+                work_parking = self.simbev.work_parking[self.region_type.rs7_type] >= self.simbev.rng.random()
+                home_parking = self.simbev.home_parking[self.region_type.rs7_type] >= self.simbev.rng.random()
+                # TODO: Moritz no fixed charing power if public
                 work_power = self.simbev.get_charging_capacity("work")
                 home_power = self.simbev.get_charging_capacity("home")
                 # SOC init value for the first monday
                 # formula from Kilian, TODO maybe not needed anymore
                 soc_init = self.simbev.rng.random() ** (1 / 3) * 0.8 + 0.2 if self.simbev.rng.random() < 0.12 else 1
                 new_car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, soc_init)
-                # set user type and hpc preference
-                new_car.set_user_spec(self, self.simbev.rng)
-                new_car.set_hpc_pref()
                 self.cars.append(new_car)
 
     def get_purpose(self, rng, time_step):
