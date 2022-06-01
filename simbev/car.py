@@ -87,8 +87,7 @@ class Car:
         self.status = "hpc_hub"
         soc_start = self.soc
 
-        random_soc = trip.rng.uniform(0.8, 1)
-        soc_end = random_soc
+        soc_end = trip.rng.uniform(0.8, 1)
         charging_capacity = simbev._get_hpc_charging_capacity(trip)
         fastcharge = min(
             charging_capacity,
@@ -175,7 +174,9 @@ class Car:
         # TODO: can i make the trip? => HPC
         range_remaining = self.soc*self.car_type.battery_capacity/self.car_type.consumption
         # TODO: Jakob: instead of doing this, return if trip can be completed as is (True) or needs hpc_charge (False)
-        while trip.distance > range_remaining and self.car_type.label == "BEV":     # Todo SoC_min definieren
+        if trip.distance > range_remaining and self.car_type.label == "BEV":     # Todo SoC_min definieren
+            return False
+
             # Drive until HPC Station
             #print('trip_distance', trip.distance)
             #print('timestep', trip.drive_start)

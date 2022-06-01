@@ -196,11 +196,7 @@ class SimBEV:
             if step >= trip.trip_end:
                 # find next trip
                 trip = Trip(region, car, step, self)
-                trip_completed = trip.execute(self)
-                # TODO add additional trip here if hpc charging necessary
-                while not trip_completed:
-                    trip = HPCTrip(region, car, trip.trip_end, self)
-                    trip_completed = trip.execute(self)
+                trip.execute()
 
     @classmethod
     def from_config(cls, scenario_path):
