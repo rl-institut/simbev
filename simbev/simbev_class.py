@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from simbev.region import Region, RegionType
 from simbev.car import CarType
-from simbev.trip import Trip, HPCTrip
+from simbev.trip import Trip
 import multiprocessing as mp
 import pathlib
 import datetime

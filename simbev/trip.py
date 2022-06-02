@@ -138,7 +138,7 @@ class Trip:
                                                                           distance=self.distance)
                     self.park_start = self.drive_start + hpc_drive_time
                     self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
-                    charging_time = self.car.charge(self, charging_capacity, "fast")
+                    charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size)
 
                     # set necessary parameters for next loop or the following drive
                     range_remaining = self.car.soc * self.car.car_type.battery_capacity / self.car.car_type.consumption
@@ -146,7 +146,8 @@ class Trip:
                     self.drive_start = self.park_start + charging_time
                     self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
 
-                self.car.drive(remaining_distance, self.drive_start, self.drive_timestamp, self.drive_time,
+                last_drive_time = self.trip_end - self.drive_start
+                self.car.drive(remaining_distance, self.drive_start, self.drive_timestamp, last_drive_time,
                                self.destination)
 
     def _set_timestamps(self):
