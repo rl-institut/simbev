@@ -73,6 +73,7 @@ class SimBEV:
     def _create_region_type(self, region_type):
         rs7_region = RegionType(region_type)
         rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
+        rs7_region.create_grid_timeseries()
         rs7_region.get_probabilities(self.data_directory)
         self.created_region_types[region_type] = rs7_region
 
@@ -111,7 +112,6 @@ class SimBEV:
         print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
         region_directory = pathlib.Path(self.save_directory, region.id)
         region_directory.mkdir(parents=True, exist_ok=True)
-
         for car_count, car in enumerate(region.cars):
             print("\r{}% {} {} / {}".format(
                 round((car_count + 1) * 100 / len(region.cars)),
