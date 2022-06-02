@@ -146,6 +146,12 @@ class Car:
             return False
         else:
             self.soc -= self.car_type.consumption * distance / self.car_type.battery_capacity
+            if self.soc < 0:
+                if self.car_type.label == "PHEV":
+                    self.soc = 0
+                else:
+                    raise ValueError("SoC of car {} became negative ({})".format(self.car_type.name,
+                                                                                 self.soc))
             self._update_activity(timestamp, start_time, duration)
             self.status = destination
             return True
