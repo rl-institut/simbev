@@ -102,7 +102,7 @@ class Trip:
 
         self._set_timestamps()
 
-    def execute(self, simbev):
+    def execute(self):
         """
         Executes created trip. Charging/parking and driving
         """
@@ -116,8 +116,23 @@ class Trip:
             self.car.charge(self, station_capacity, "slow")
 
         if self.drive_found:
-            # TODO return True if car can complete drive without extra charging, false otherwise
-            return self.car.drive(self, simbev)
+            trip_completed = self.car.drive(self, self.simbev)
+            # create new HPC trip if trip can't be completed
+            if not trip_completed:
+                range_remaining = self.car.soc * self.car.car_type.battery_capacity / self.car.car_type.consumption
+                hpc_distance = self.rng.uniform(0.6, 1) * range_remaining
+                remaining_distance = self.distance - hpc_distance
+                # change current trip to go until first hpc stop
+                self.distance = hpc_distance
+                self.drive_time = hpc_distance / self.speed
+                self.drive_time = self.simbev.hours_to_time_steps(self.drive_time)
+                # TODO add tests if trip is possible now
+                self.car.drive(self, self.simbev)
+
+                trip = HPCTrip(self.region, self.car, self.drive_start + self.drive_time, self.simbev, remaining_distance)
+                trip.execute()
+            # TODO add all charging times from HPC trips to the first trip
+            self.trip_end += trip.charging_time
         # return True if no drive is started (end of simulation) to skip checking for hpc events
         else:
             return True
@@ -132,4 +147,10 @@ class HPCTrip(Trip):
 
     def create(self):
         # TODO function for trips that get called when hpc is needed to complete drive
+
+        # TODO hpc charging which returns charging time and updates the car
+
+        # TODO calculate next driving part of trip
+        # if that cant be completed, start a new hpc trip
+
         pass

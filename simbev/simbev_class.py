@@ -14,7 +14,7 @@ import configparser as cp
 
 class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
-                 config_dict, name, num_threads=1):
+                 config_dict, name, home_work_private, num_threads=1):
         # parameters from arguments
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
@@ -30,8 +30,8 @@ class SimBEV:
         self.start_date_output = datetime.datetime.combine(self.start_date_input,
                                                            datetime.datetime.min.time())
         self.end_date = config_dict["end_date"]
-        self.home_parking = config_dict["home_private"]
-        self.work_parking = config_dict["work_private"]
+        self.home_parking = home_work_private.loc["home", :]
+        self.work_parking = home_work_private.loc["work", :]
 
         self.num_threads = num_threads
 
@@ -73,6 +73,7 @@ class SimBEV:
     def _create_region_type(self, region_type):
         rs7_region = RegionType(region_type)
         rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
+        rs7_region.create_grid_timeseries()
         rs7_region.get_probabilities(self.data_directory)
         self.created_region_types[region_type] = rs7_region
 
@@ -111,7 +112,6 @@ class SimBEV:
         print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
         region_directory = pathlib.Path(self.save_directory, region.id)
         region_directory.mkdir(parents=True, exist_ok=True)
-
         for car_count, car in enumerate(region.cars):
             print("\r{}% {} {} / {}".format(
                 round((car_count + 1) * 100 / len(region.cars)),
@@ -196,12 +196,7 @@ class SimBEV:
             if step >= trip.trip_end:
                 # find next trip
                 trip = Trip(region, car, step, self)
-                trip_completed = trip.execute(self)
-                # TODO add additional trip here if hpc charging necessary
-                while not trip_completed:
-                    # TODO remaining drive time to new trip or distance + speed
-                    trip = HPCTrip(region, car, trip.trip_end, self)
-                    trip_completed = trip.execute(self)
+                trip.execute()
 
     @classmethod
     def from_config(cls, scenario_path):
@@ -235,6 +230,9 @@ class SimBEV:
         charge_prob_dict = {"slow": charge_prob_slow,
                             "fast": charge_prob_fast}
 
+        home_work_private = pd.read_csv(pathlib.Path(scenario_path, cfg['charging_probabilities']['home_work_private']))
+        home_work_private = home_work_private.set_index('region')
+
         tech_df = pd.read_csv(pathlib.Path(scenario_path, "tech_data.csv"), sep=',',
                               index_col=0)
 
@@ -254,4 +252,5 @@ class SimBEV:
                     }
         num_threads = cfg.getint('sim_params', 'num_threads')
 
-        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, num_threads), cfg
+        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private,
+                      num_threads), cfg
