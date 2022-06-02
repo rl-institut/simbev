@@ -127,7 +127,7 @@ class SimBEV:
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         # TODO: check if this destination is used for fast charging
-        if location == "hub" and distance:
+        if distance and "hpc" in location:
             if distance > distance_limit:
                 location = "ex-urban"
             else:
@@ -146,44 +146,6 @@ class SimBEV:
         else:
             raise ValueError("Missing arguments in get_charging_capacity.")
 
-    def _get_hpc_charging_capacity(self, trip, distance_limit=50):
-        """
-
-        Parameters
-        ----------
-        fast_charging_probability : :obj:`df`
-            Scenario dataframe for fast charging probabilities
-        distance : :obj:`int`
-            Driven distance to destination
-        distance_limit : :obj:`int`
-            Limit after it assumed that a charging takes place in an ex-urban area
-            and therefore has a higher likeliness of a higher charging capacity,
-            unit km: e.g. 50
-
-        Returns
-        -------
-        fastcharge : :obj:`int`
-            Fast Charging Capacity (150 kW or 350 kW)
-
-        """
-
-        if trip.distance > distance_limit:
-            area = r"ex-urban"
-        else:
-            area = "urban"
-
-        prob_50 = self.charging_probabilities['fast'].loc[area].iloc[0]
-        prob_150 = self.charging_probabilities['fast'].loc[area].iloc[1] + prob_50
-
-        random_number = self.rng.random()  # random number between 0 and 1
-
-        if random_number <= prob_150:
-            charging_capacity = 150
-        else:
-            charging_capacity = 350
-
-        return charging_capacity
-
     def hours_to_time_steps(self, t):
         return math.ceil(t * 60 / self.step_size)
 
@@ -197,7 +159,7 @@ class SimBEV:
                 # find next trip
                 trip = Trip(region, car, step, self)
                 trip.execute()
-            region.update_grid_timeseries(car.)
+
     @classmethod
     def from_config(cls, scenario_path):
         """
