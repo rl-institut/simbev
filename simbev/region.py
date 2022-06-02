@@ -88,24 +88,24 @@ class Region:
                 new_car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, soc_init)
                 self.cars.append(new_car)
 
-    def update_grid_timeseries(self, demand, use_case, chargepower, timestep):
+    def update_grid_timeseries(self, use_case, chargepower, timestep_start, timestep_end):
         # Aufteilung auf die UC nach Leistung
         code = '{}_{}'.format(use_case, chargepower)
         if code in self.region_type.header_grid_ts:
             column = self.region_type.header_grid_ts.index(code)
-            self.region_type.grid_time_series[timestep, column] += demand
-            self.region_type.grid_time_series[timestep, 1] += demand
+            self.region_type.grid_time_series[timestep_start:timestep_end, column] += chargepower
+            self.region_type.grid_time_series[timestep_start:timestep_end, 1] += chargepower
         else:
             print('Error in grid_time_series')
         # Aufteilung auf die UC
         code_uc_ges = 'ges_{}'.format(use_case)
         if code_uc_ges in self.region_type.header_grid_ts:
             column = self.region_type.header_grid_ts.index(code_uc_ges)
-            self.region_type.grid_time_series[timestep, column] += demand
+            self.region_type.grid_time_series[timestep_start:timestep_end, column] += chargepower
         else:
             print('Error in grid_time_series')
         # Aufaddieren auf Gesamtleistung
-        self.region_type.grid_time_series[timestep, 1] += demand
+        self.region_type.grid_time_series[timestep_start:timestep_end, 1] += chargepower
 
     def get_purpose(self, rng, time_step):
         random_number = rng.random()

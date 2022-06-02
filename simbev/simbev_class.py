@@ -197,7 +197,7 @@ class SimBEV:
                 # find next trip
                 trip = Trip(region, car, step, self)
                 trip.execute()
-
+            region.update_grid_timeseries(car.)
     @classmethod
     def from_config(cls, scenario_path):
         """
