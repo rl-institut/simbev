@@ -114,8 +114,14 @@ class Trip:
         elif self.location == "work":
             self.car.charge_work(self)
         else:
-            station_capacity = self.simbev.get_charging_capacity(self.location, self.distance)
-            self.car.charge(self, station_capacity, "slow")
+            if self.car.soc <= 0.5 and self.car.hpc_pref <= self.rng.random() and self.park_time <= 3:
+                # get parameters for charging at hpc station
+                charging_capacity = self.simbev.get_charging_capacity(location="hpc",
+                                                                      distance=self.distance)
+                charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size)
+            else:
+                station_capacity = self.simbev.get_charging_capacity(self.location, self.distance)
+                self.car.charge(self, station_capacity, "slow")
 
         if self.drive_found:
             trip_completed = self.car.drive(self.distance, self.drive_start, self.drive_timestamp, self.drive_time,
