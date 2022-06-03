@@ -18,7 +18,7 @@ class CarType:
 
 class Car:
     def __init__(self, car_type: CarType, number: int, work_parking, home_parking,
-                 work_capacity, home_capacity, soc: float = 1., status: str = "home"):
+                 work_capacity, home_capacity, region, soc: float = 1., status: str = "home"):
 
         self.car_type = car_type
         self.soc = soc
@@ -28,6 +28,7 @@ class Car:
         self.home_capacity = home_capacity
         self.status = status  # replace with enum?
         self.number = number
+        self.region = region
         self.user_spec = 0
         self.hpc_pref = 0
 
@@ -79,6 +80,7 @@ class Car:
             return self.charging_curve(trip, power, step_size)
         else:
             raise ValueError("Charging type {} is not accepted in charge function!".format(charging_type))
+        self.region.update_grid_timeseries('public', power, trip.park_start, trip.park_start+trip.park_time)
 
     def charge_home(self, trip):
         self.charge(trip, self.home_capacity, "slow")

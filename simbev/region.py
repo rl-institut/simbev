@@ -21,15 +21,36 @@ class RegionType:
             self.trip_starts = self.time_series.sum(axis=1)
             self.trip_starts = self.trip_starts / self.trip_starts.max()
 
-    def create_grid_timeseries(self):
+    def create_grid_timeseries(self, header_slow, header_fast):
+        header_slow.remove('0')
+        header_fast.remove('50')
         time_series = self.time_series
         time_stamps = np.array(time_series.index.to_pydatetime())
-        self.header_grid_ts = ['timestamp', 'ges', 'ges_home', 'ges_work', 'ges_public', 'ges_hpc',
-                               'home_3.7', 'home_11', 'home_22', 'home_50',
-                               'work_3.7', 'work_11', 'work_22', 'work_50',
-                               'public_3.7', 'public_11', 'public_22', 'public_50', 'public_150', 'public_350',
-                               'hpc_150', 'hpc_350']
-        self.grid_time_series = np.zeros((len(time_stamps), len(self.header_grid_ts)+1))
+        self.header_grid_ts = ['timestep', 'timestamp', 'total']
+        use_cases = ['home', 'work', 'public', 'hpc']
+        for uc in use_cases:
+            self.header_grid_ts.append('{}_total'.format(uc))
+            if uc == 'home':
+                for power in header_slow:
+                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+            if uc == 'work':
+                for power in header_slow:
+                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+            if uc == 'public':
+                for power in header_slow:
+                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+                for power in header_fast:
+                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+            if uc == 'hpc':
+                for power in header_fast:
+                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+        # self.header_grid_ts = ['timestamp', 'ges', 'ges_home', 'ges_work', 'ges_public', 'ges_hpc',
+        #                        'home_3.7', 'home_11', 'home_22', 'home_50',
+        #                        'work_3.7', 'work_11', 'work_22', 'work_50',
+        #                        'public_3.7', 'public_11', 'public_22', 'public_50', 'public_150', 'public_350',
+        #                        'hpc_150', 'hpc_350']
+        self.grid_time_series = np.zeros((len(time_stamps), len(self.header_grid_ts)))
+        #self.grid_time_series[:,0] = time_stamps
 
     def get_probabilities(self, data_directory):
 
@@ -70,6 +91,8 @@ class Region:
         self.car_dict = {}
         self.cars = []
 
+        self.file_name = "{}_grid_time_series_{}.csv".format(self.number, self.id)
+
     def add_cars_from_config(self, car_dict):
         self.car_dict = car_dict
         for car_type_name, car_count in car_dict.items():
@@ -85,27 +108,26 @@ class Region:
                 # SOC init value for the first monday
                 # formula from Kilian, TODO maybe not needed anymore
                 soc_init = self.simbev.rng.random() ** (1 / 3) * 0.8 + 0.2 if self.simbev.rng.random() < 0.12 else 1
-                new_car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, soc_init)
+                new_car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, self, soc_init)
                 self.cars.append(new_car)
 
     def update_grid_timeseries(self, use_case, chargepower, timestep_start, timestep_end):
-        # Aufteilung auf die UC nach Leistung
+        # distribute power to use cases dependent on power
+        chargepower = int(chargepower)
         code = '{}_{}'.format(use_case, chargepower)
         if code in self.region_type.header_grid_ts:
             column = self.region_type.header_grid_ts.index(code)
             self.region_type.grid_time_series[timestep_start:timestep_end, column] += chargepower
-            self.region_type.grid_time_series[timestep_start:timestep_end, 1] += chargepower
-        else:
-            print('Error in grid_time_series')
-        # Aufteilung auf die UC
-        code_uc_ges = 'ges_{}'.format(use_case)
+
+        # distribute to use cases total
+        code_uc_ges = '{}_total'.format(use_case)
         if code_uc_ges in self.region_type.header_grid_ts:
             column = self.region_type.header_grid_ts.index(code_uc_ges)
             self.region_type.grid_time_series[timestep_start:timestep_end, column] += chargepower
-        else:
-            print('Error in grid_time_series')
-        # Aufaddieren auf Gesamtleistung
-        self.region_type.grid_time_series[timestep_start:timestep_end, 1] += chargepower
+
+        # add to total amount
+        column = self.region_type.header_grid_ts.index('total')
+        self.region_type.grid_time_series[timestep_start:timestep_end, column] += chargepower
 
     def get_purpose(self, rng, time_step):
         random_number = rng.random()
@@ -116,3 +138,30 @@ class Region:
         probabilities = self.region_type.probabilities[key][destination]
         prob = probabilities.sample(n=1, weights="distribution", random_state=rng)
         return prob.iat[0, -1]
+
+    def export_grid_timeseries(self, region_directory, simbev):
+        """
+        Exports the grid time series to a csv file.
+
+        Parameters
+        ----------
+        region_directory : :obj:`pathlib.Path`
+            save directory for the region
+        simbev : :obj:`SimBEV`
+            SimBEV object with scenario information
+
+        """
+
+        data = pd.DataFrame(self.region_type.grid_time_series)
+        data.columns = self.region_type.header_grid_ts
+        data['timestamp'] = self.region_type.time_series.index
+
+        # remove first week from dataframe
+        week_time_steps = int(24 * 7 * 60 / simbev.step_size)
+        data['timestep'] = data.index
+        data['timestep'] -= week_time_steps
+        data = data.loc[(data['timestep']) >= 0]
+
+        # TODO: decide format
+        data.to_csv(pathlib.Path(region_directory, self.file_name))
+

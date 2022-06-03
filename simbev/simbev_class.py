@@ -73,7 +73,9 @@ class SimBEV:
     def _create_region_type(self, region_type):
         rs7_region = RegionType(region_type)
         rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
-        rs7_region.create_grid_timeseries()
+        rs7_region.create_grid_timeseries(list(self.charging_probabilities['slow'].columns),
+                                          list(self.charging_probabilities['fast'].columns),
+                                          )
         rs7_region.get_probabilities(self.data_directory)
         self.created_region_types[region_type] = rs7_region
 
@@ -122,6 +124,8 @@ class SimBEV:
 
             # export vehicle csv
             car.export(region_directory, self)
+
+        region.export_grid_timeseries(region_directory, self)
 
         print(" - done")
 
