@@ -11,6 +11,7 @@ class CarType:
     battery_capacity: float
     charging_capacity: dict
     charging_curve: dict
+    # TODO consumption based on speed instead of constant
     consumption: float
     label: str = None
 
@@ -141,8 +142,7 @@ class Car:
     def drive(self, distance, start_time, timestamp, duration, destination):
         self.status = "driving"
         # TODO check for min soc
-        range_remaining = self.soc * self.car_type.battery_capacity / self.car_type.consumption
-        if distance > range_remaining and self.car_type.label == "BEV":
+        if distance > self.get_remaining_range() and self.car_type.label == "BEV":
             return False
         else:
             self.soc -= self.car_type.consumption * distance / self.car_type.battery_capacity
@@ -155,6 +155,13 @@ class Car:
             self._update_activity(timestamp, start_time, duration)
             self.status = destination
             return True
+
+    def get_remaining_range(self):
+        return self.get_usable_soc() * self.car_type.battery_capacity / self.car_type.consumption
+
+    def get_usable_soc(self):
+        # TODO calculate with min_soc
+        return self.soc
 
     def _get_last_charging_demand(self):
         if len(self.output["soc"]) > 1:

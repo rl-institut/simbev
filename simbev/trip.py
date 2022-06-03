@@ -122,7 +122,7 @@ class Trip:
                                             self.destination)
             # call hpc events if trip cant be completed
             if not trip_completed:
-                range_remaining = self.car.soc * self.car.car_type.battery_capacity / self.car.car_type.consumption
+                range_remaining = self.car.get_remaining_range()
 
                 remaining_distance = self.distance
 
@@ -141,7 +141,7 @@ class Trip:
                     charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size)
 
                     # set necessary parameters for next loop or the following drive
-                    range_remaining = self.car.soc * self.car.car_type.battery_capacity / self.car.car_type.consumption
+                    range_remaining = self.car.get_remaining_range()
                     remaining_distance -= hpc_distance
                     self.drive_start = self.park_start + charging_time
                     self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
