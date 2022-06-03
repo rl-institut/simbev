@@ -76,12 +76,19 @@ class Car:
             self.soc = min(self.soc + trip.park_time * usable_power / self.car_type.battery_capacity, 1)
             self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
                                   nominal_charging_capacity=power, charging_power=usable_power)
+            use_case = self._get_usecase()
+            self.region.update_grid_timeseries(use_case, usable_power, power, trip.park_start,
+                                               trip.park_start + trip.park_time)
+
         elif charging_type == "fast":
-            return self.charging_curve(trip, power, step_size)
+            use_case = self._get_usecase()
+            charging_time, avg_power, power = self.charging_curve(trip, power, step_size)
+            use_case = self._get_usecase()
+            self.region.update_grid_timeseries(use_case, avg_power, power, trip.park_start,
+                                               trip.park_start + charging_time)
+            return charging_time
         else:
             raise ValueError("Charging type {} is not accepted in charge function!".format(charging_type))
-        use_case = self._get_usecase()
-        self.region.update_grid_timeseries(use_case, power, trip.park_start, trip.park_start+trip.park_time)
 
     def charge_home(self, trip):
         self.charge(trip, self.home_capacity, "slow")
@@ -133,14 +140,16 @@ class Car:
             t_load[0] = t_diff
 
             p_soc = p_soc[k - 1:]
+            #chargepower_avg = sum(e_load)*60/15
 
+        chargepower_avg = sum(charged_energy_list) / len(charged_energy_list)*60/15
         self.soc = soc_end
         self._update_activity(trip.park_timestamp, trip.park_start, time_steps,
                               nominal_charging_capacity=power, charging_power=usable_power)
 
         # TODO add region grid series, also in charge
 
-        return time_steps
+        return time_steps, chargepower_avg, power
 
     def drive(self, distance, start_time, timestamp, duration, destination):
         self.status = "driving"

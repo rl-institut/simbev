@@ -144,7 +144,7 @@ class Trip:
                     remaining_distance -= hpc_distance
                     self.drive_start = self.park_start + charging_time
                     self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
-
+                    # TODO Fix out of bounds Error
                 last_drive_time = self.trip_end - self.drive_start
                 self.car.drive(remaining_distance, self.drive_start, self.drive_timestamp, last_drive_time,
                                self.destination)

@@ -22,8 +22,10 @@ class RegionType:
             self.trip_starts = self.trip_starts / self.trip_starts.max()
 
     def create_grid_timeseries(self, header_slow, header_fast):
-        header_slow.remove('0')
-        header_fast.remove('50')
+        if '0' in header_slow:
+            header_slow.remove('0')
+        if '0' in header_fast:
+            header_fast.remove('0')
         time_series = self.time_series
         time_stamps = np.array(time_series.index.to_pydatetime())
         self.header_grid_ts = ['timestep', 'timestamp', 'total']
@@ -32,18 +34,18 @@ class RegionType:
             self.header_grid_ts.append('{}_total'.format(uc))
             if uc == 'home':
                 for power in header_slow:
-                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
             if uc == 'work':
                 for power in header_slow:
-                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
             if uc == 'public':
                 for power in header_slow:
-                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
                 for power in header_fast:
-                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
             if uc == 'hpc':
                 for power in header_fast:
-                    self.header_grid_ts.append('{}_{}'.format(uc, power))
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
         # self.header_grid_ts = ['timestamp', 'ges', 'ges_home', 'ges_work', 'ges_public', 'ges_hpc',
         #                        'home_3.7', 'home_11', 'home_22', 'home_50',
         #                        'work_3.7', 'work_11', 'work_22', 'work_50',
@@ -111,13 +113,12 @@ class Region:
                 new_car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, self, soc_init)
                 self.cars.append(new_car)
 
-    def update_grid_timeseries(self, use_case, chargepower, timestep_start, timestep_end):
+    def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end):
         # distribute power to use cases dependent on power
-        chargepower = int(chargepower)
-        code = '{}_{}'.format(use_case, chargepower)
+        code = 'cars_{}_{}'.format(use_case, power_lis)
         if code in self.region_type.header_grid_ts:
             column = self.region_type.header_grid_ts.index(code)
-            self.region_type.grid_time_series[timestep_start:timestep_end, column] += chargepower
+            self.region_type.grid_time_series[timestep_start:timestep_end, column] += 1
 
         # distribute to use cases total
         code_uc_ges = '{}_total'.format(use_case)
@@ -162,6 +163,11 @@ class Region:
         data['timestep'] -= week_time_steps
         data = data.loc[(data['timestep']) >= 0]
 
-        # TODO: decide format
+        data = data[['timestamp', 'total', 'home_total', 'work_total', 'public_total', 'hpc_total',
+                     'cars_home_3.7', 'cars_home_11.0', 'cars_home_22.0', 'cars_home_50.0',
+                     'cars_work_3.7', 'cars_work_11.0', 'cars_work_22.0', 'cars_work_50.0',
+                     'cars_public_3.7', 'cars_public_11.0', 'cars_public_22.0', 'cars_public_50.0', 'cars_public_150.0',
+                     'cars_public_350.0', 'cars_hpc_150.0', 'cars_hpc_350.0']]
+
         data.to_csv(pathlib.Path(region_directory, self.file_name))
 
