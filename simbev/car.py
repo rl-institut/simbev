@@ -80,7 +80,8 @@ class Car:
             return self.charging_curve(trip, power, step_size)
         else:
             raise ValueError("Charging type {} is not accepted in charge function!".format(charging_type))
-        self.region.update_grid_timeseries('public', power, trip.park_start, trip.park_start+trip.park_time)
+        use_case = self._get_usecase()
+        self.region.update_grid_timeseries(use_case, power, trip.park_start, trip.park_start+trip.park_time)
 
     def charge_home(self, trip):
         self.charge(trip, self.home_capacity, "slow")
@@ -190,7 +191,7 @@ class Car:
         elif self.home_parking and self.status == "home":
             return "home"
         # TODO: decide on status for hpc
-        elif self.status == "hub":
+        elif self.status == "hpc_hub":
             return "hpc"
         else:
             return "public"

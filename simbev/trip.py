@@ -123,7 +123,6 @@ class Trip:
             # call hpc events if trip cant be completed
             if not trip_completed:
                 range_remaining = self.car.get_remaining_range()
-
                 remaining_distance = self.distance
 
                 # check if next drive needs charging to be completed
