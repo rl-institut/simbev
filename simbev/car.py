@@ -60,7 +60,7 @@ class Car:
         self.output["event_start"].append(event_start)
         self.output["event_time"].append(event_time)
         self.output["location"].append(self.status)
-        self.output["use_case"].append(self._get_usecase())
+        self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
         self.output["soc"].append(self.soc)
         self.output["charging_demand"].append(self._get_last_charging_demand())
         self.output["nominal_charging_capacity"].append(nominal_charging_capacity)
@@ -76,12 +76,12 @@ class Car:
             self.soc = min(self.soc + trip.park_time * usable_power / self.car_type.battery_capacity, 1)
             self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
                                   nominal_charging_capacity=power, charging_power=usable_power)
-            use_case = self._get_usecase()
+            use_case = self._get_usecase(power)
             self.region.update_grid_timeseries(use_case, usable_power, power, trip.park_start,
                                                trip.park_start + trip.park_time)
 
         elif charging_type == "fast":
-            self.status = "hpc"
+            #self.status = "hpc"
             charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size)
             self.soc = soc
             if long_distance is True:
@@ -93,7 +93,7 @@ class Car:
                 self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
                                       nominal_charging_capacity=power, charging_power=avg_power)
             long_distance = None
-            use_case = self._get_usecase()
+            use_case = self._get_usecase(power)
             self.region.update_grid_timeseries(use_case, avg_power, power, trip.park_start,
                                                trip.park_start + charging_time)
             return charging_time
@@ -201,7 +201,7 @@ class Car:
             return 0
 
     # TODO maybe solve this in charging (Jakob)
-    def _get_usecase(self):
+    def _get_usecase(self, power):
         if self.status == "driving":
             return ""
         elif self.work_parking and self.status == "work":
@@ -209,7 +209,7 @@ class Car:
         elif self.home_parking and self.status == "home":
             return "home"
         # TODO: decide on status for hpc
-        elif self.status == "hpc_hub":
+        elif power >= 150:
             return "hpc"
         else:
             return "public"
