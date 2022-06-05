@@ -70,7 +70,7 @@ class Car:
     def park(self, trip):
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
 
-    def charge(self, trip, power, charging_type, step_size=None):
+    def charge(self, trip, power, charging_type, step_size=None, long_distance=None):
         if charging_type == "slow":
             usable_power = min(power, self.car_type.charging_capacity[charging_type])
             self.soc = min(self.soc + trip.park_time * usable_power / self.car_type.battery_capacity, 1)
@@ -81,8 +81,18 @@ class Car:
                                                trip.park_start + trip.park_time)
 
         elif charging_type == "fast":
-            use_case = self._get_usecase()
-            charging_time, avg_power, power = self.charging_curve(trip, power, step_size)
+            self.status = "hpc"
+            charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size)
+            self.soc = soc
+            if long_distance is True:
+                #print('hpc_long_distance, ts', trip.park_start-673)
+                self._update_activity(trip.park_timestamp, trip.park_start, charging_time,
+                                      nominal_charging_capacity=power, charging_power=avg_power)
+            else:
+                #print('hpc, ts', trip.park_start-673)
+                self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
+                                      nominal_charging_capacity=power, charging_power=avg_power)
+            long_distance = None
             use_case = self._get_usecase()
             self.region.update_grid_timeseries(use_case, avg_power, power, trip.park_start,
                                                trip.park_start + charging_time)
@@ -141,15 +151,14 @@ class Car:
 
             p_soc = p_soc[k - 1:]
             #chargepower_avg = sum(e_load)*60/15
-
         chargepower_avg = sum(charged_energy_list) / len(charged_energy_list)*60/15
-        self.soc = soc_end
-        self._update_activity(trip.park_timestamp, trip.park_start, time_steps,
-                              nominal_charging_capacity=power, charging_power=usable_power)
+        #self.soc = soc_end
+        #self._update_activity(trip.park_timestamp, trip.park_start, time_steps,
+                              #nominal_charging_capacity=power, charging_power=usable_power)
 
         # TODO add region grid series, also in charge
 
-        return time_steps, chargepower_avg, power
+        return time_steps, chargepower_avg, power, soc_end
 
     def drive(self, distance, start_time, timestamp, duration, destination):
         self.status = "driving"

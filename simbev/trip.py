@@ -126,16 +126,19 @@ class Trip:
         if self.drive_found:
             trip_completed = self.car.drive(self.distance, self.drive_start, self.drive_timestamp, self.drive_time,
                                             self.destination)
+
             # call hpc events if trip cant be completed
             if not trip_completed:
                 range_remaining = self.car.get_remaining_range()
                 remaining_distance = self.distance
+                sum_hpc_drivetime = 0
 
                 # check if next drive needs charging to be completed
                 while remaining_distance > range_remaining:
                     # get time and distance until next hpc station
                     hpc_distance = self.rng.uniform(0.6, 1) * range_remaining
                     hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
+                    sum_hpc_drivetime += hpc_drive_time
                     self.car.drive(hpc_distance, self.drive_start, self.drive_timestamp, hpc_drive_time, "hpc_hub")
 
                     # get parameters for charging at hpc station
@@ -143,7 +146,7 @@ class Trip:
                                                                           distance=self.distance)
                     self.park_start = self.drive_start + hpc_drive_time
                     self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
-                    charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size)
+                    charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size, True)
 
                     # set necessary parameters for next loop or the following drive
                     range_remaining = self.car.get_remaining_range()
@@ -151,7 +154,9 @@ class Trip:
                     self.drive_start = self.park_start + charging_time
                     self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
                     # TODO Fix out of bounds Error
-                last_drive_time = self.trip_end - self.drive_start
+                    #last_drive_time = math.ceil(remaining_distance / self.distance * self.drive_time)
+                    last_drive_time = self.drive_time - sum_hpc_drivetime
+                #last_drive_time = self.trip_end - self.drive_start
                 self.car.drive(remaining_distance, self.drive_start, self.drive_timestamp, last_drive_time,
                                self.destination)
 
