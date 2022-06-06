@@ -131,7 +131,7 @@ class SimBEV:
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         # TODO: check if this destination is used for fast charging
-        if distance and "hpc" in location:
+        if "hpc" in location:
             if distance > distance_limit:
                 location = "ex-urban"
             else:

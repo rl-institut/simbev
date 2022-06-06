@@ -134,7 +134,7 @@ class Trip:
                 sum_hpc_drivetime = 0
 
                 # check if next drive needs charging to be completed
-                while remaining_distance > range_remaining:
+                while remaining_distance > range_remaining and self.car.car_type.label == 'BEV':
                     # get time and distance until next hpc station
                     hpc_distance = self.rng.uniform(0.6, 1) * range_remaining
                     hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)

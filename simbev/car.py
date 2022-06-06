@@ -81,21 +81,24 @@ class Car:
                                                trip.park_start + trip.park_time)
 
         elif charging_type == "fast":
-            #self.status = "hpc"
             charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size)
             self.soc = soc
             if long_distance is True:
-                #print('hpc_long_distance, ts', trip.park_start-673)
+                print('hpc_long_distance, ts', trip.park_start-673)
                 self._update_activity(trip.park_timestamp, trip.park_start, charging_time,
                                       nominal_charging_capacity=power, charging_power=avg_power)
             else:
-                #print('hpc, ts', trip.park_start-673)
+                print('hpc, ts', trip.park_start-673)
+                # if charging_time > trip.park_time:
+                    # trip.park_time = charging_time
+                    # trip.drive_start = trip.park_start + trip.park_time
+                    # trip.trip_end = trip.drive_start + trip.drive_time
                 self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
                                       nominal_charging_capacity=power, charging_power=avg_power)
             long_distance = None
-            use_case = self._get_usecase(power)
-            self.region.update_grid_timeseries(use_case, avg_power, power, trip.park_start,
-                                               trip.park_start + charging_time)
+            # use_case = self._get_usecase(power)
+            # self.region.update_grid_timeseries(use_case, avg_power, power, trip.park_start,
+            #                                   trip.park_start + charging_time)
             return charging_time
         else:
             raise ValueError("Charging type {} is not accepted in charge function!".format(charging_type))
@@ -109,7 +112,7 @@ class Car:
     def charging_curve(self, trip, power, step_size):
         soc_start = self.soc
 
-        soc_end = trip.rng.uniform(0.8, 1)
+        soc_end = trip.rng.uniform(0.8, 0.95)
 
         usable_power = min(
             power,
@@ -150,7 +153,12 @@ class Car:
             t_load[0] = t_diff
 
             p_soc = p_soc[k - 1:]
-            #chargepower_avg = sum(e_load)*60/15
+            chargepower_timestep = sum(e_load)*60/15
+
+            use_case = self._get_usecase(power)
+            self.region.update_grid_timeseries(use_case, chargepower_timestep, power, trip.park_start + i,
+                                               trip.park_start + i + 1)
+
         chargepower_avg = sum(charged_energy_list) / len(charged_energy_list)*60/15
         #self.soc = soc_end
         #self._update_activity(trip.park_timestamp, trip.park_start, time_steps,
