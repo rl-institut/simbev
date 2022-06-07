@@ -154,11 +154,11 @@ class Trip:
                     self.drive_start = self.park_start + charging_time
                     self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
                     # TODO Fix out of bounds Error
-                    #last_drive_time = math.ceil(remaining_distance / self.distance * self.drive_time)
-                    last_drive_time = self.drive_time - sum_hpc_drivetime
-                #last_drive_time = self.trip_end - self.drive_start
+                last_drive_time = self.drive_time - sum_hpc_drivetime
                 self.car.drive(remaining_distance, self.drive_start, self.drive_timestamp, last_drive_time,
                                self.destination)
+                # update trip end to start next parking at
+                self.trip_end = self.drive_start + last_drive_time
 
     def _set_timestamps(self):
         self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]

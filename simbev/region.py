@@ -46,13 +46,8 @@ class RegionType:
             if uc == 'hpc':
                 for power in header_fast:
                     self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
-        # self.header_grid_ts = ['timestamp', 'ges', 'ges_home', 'ges_work', 'ges_public', 'ges_hpc',
-        #                        'home_3.7', 'home_11', 'home_22', 'home_50',
-        #                        'work_3.7', 'work_11', 'work_22', 'work_50',
-        #                        'public_3.7', 'public_11', 'public_22', 'public_50', 'public_150', 'public_350',
-        #                        'hpc_150', 'hpc_350']
+
         self.grid_time_series = np.zeros((len(time_stamps), len(self.header_grid_ts)))
-        #self.grid_time_series[:,0] = time_stamps
 
     def get_probabilities(self, data_directory):
 
@@ -170,4 +165,3 @@ class Region:
                      'cars_public_350.0', 'cars_hpc_150.0', 'cars_hpc_350.0']]
 
         data.to_csv(pathlib.Path(region_directory, self.file_name))
-
