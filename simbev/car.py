@@ -87,7 +87,10 @@ class Car:
                 self._update_activity(trip.park_timestamp, trip.park_start, charging_time,
                                       nominal_charging_capacity=power, charging_power=avg_power)
             else:
-                # TODO set parktime to charging time
+                # update trip properties
+                trip.park_time = charging_time
+                trip.drive_start = trip.park_start + trip.park_time
+                trip.trip_end = trip.drive_start + trip.drive_time
                 self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
                                       nominal_charging_capacity=power, charging_power=avg_power)
             return charging_time
