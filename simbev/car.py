@@ -64,13 +64,13 @@ class Car:
         self.output["soc"].append(self.soc)
         self.output["charging_demand"].append(self._get_last_charging_demand())
         self.output["nominal_charging_capacity"].append(nominal_charging_capacity)
-        self.output["charging_power"].append(charging_power)
+        self.output["charging_power"].append(round(charging_power, 4))
         self.output["consumption"].append(self._get_last_consumption())
 
     def park(self, trip):
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
 
-    def charge(self, trip, power, charging_type, step_size=None, long_distance=None):
+    def charge(self, trip, power, charging_type, step_size=None, long_distance=None, max_charging_time=None):
         if charging_type == "slow":
             usable_power = min(power, self.car_type.charging_capacity[charging_type])
             self.soc = min(self.soc + trip.park_time * usable_power / self.car_type.battery_capacity, 1)
@@ -85,9 +85,9 @@ class Car:
                 raise ValueError("Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
                     self.car_type.name
                 ))
-            charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size)
+            charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size, max_charging_time)
             self.soc = soc
-            if long_distance is True:
+            if long_distance:
                 self._update_activity(trip.park_timestamp, trip.park_start, charging_time,
                                       nominal_charging_capacity=power, charging_power=avg_power)
             else:
@@ -107,7 +107,7 @@ class Car:
     def charge_work(self, trip):
         self.charge(trip, self.work_capacity, "slow")
 
-    def charging_curve(self, trip, power, step_size):
+    def charging_curve(self, trip, power, step_size, max_charging_time):
         soc_start = self.soc
 
         soc_end = trip.rng.uniform(0.8, 0.95)
