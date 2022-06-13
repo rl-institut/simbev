@@ -143,8 +143,9 @@ class Trip:
 
             if self.drive_start + hpc_drive_time > self.region.last_time_step:
                 new_drive_time = self.region.last_time_step - self.drive_start
-                new_distance = hpc_distance * new_drive_time / hpc_drive_time
-                self.car.drive(new_distance, self.drive_start, self.drive_timestamp, new_drive_time, "hpc")
+                if new_drive_time > 0:
+                    new_distance = hpc_distance * new_drive_time / hpc_drive_time
+                    self.car.drive(new_distance, self.drive_start, self.drive_timestamp, new_drive_time, "hpc")
                 return
 
             self.car.drive(hpc_distance, self.drive_start, self.drive_timestamp, hpc_drive_time, "hpc")
