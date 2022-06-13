@@ -80,7 +80,11 @@ class Car:
             self.region.update_grid_timeseries(use_case, usable_power, power, trip.park_start,
                                                trip.park_start + trip.park_time)
 
-        elif charging_type == "fast" and self.car_type.charging_capacity['fast'] != 0:
+        elif charging_type == "fast":
+            if self.car_type.charging_capacity['fast'] == 0:
+                raise ValueError("Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
+                    self.car_type.name
+                ))
             charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size)
             self.soc = soc
             if long_distance is True:
@@ -214,8 +218,10 @@ class Car:
             return "public"
 
     def set_user_spec(self):
-
-        if self.home_capacity != 0 and self.home_parking:
+        if self.car_type.charging_capacity["fast"] == 0:
+            self.user_spec = '0'  # Todo set better term?
+            self.hpc_pref = -1
+        elif self.home_capacity != 0 and self.home_parking:
             if self.work_capacity != 0 and self.work_parking:
                 self.user_spec = 'A'  # private LIS at home and at work
                 self.hpc_pref = 0.25
