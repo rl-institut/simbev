@@ -109,7 +109,9 @@ class Trip:
                 # get parameters for charging at hpc station
                 charging_capacity = self.simbev.get_charging_capacity(location="hpc",
                                                                       distance=self.distance)
-                charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size)
+                max_charging_time = self.region.last_time_step - self.park_start
+                charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size,
+                                                max_charging_time=max_charging_time)
             else:
                 station_capacity = self.simbev.get_charging_capacity(self.location, self.distance)
                 self.car.charge(self, station_capacity, "slow")
@@ -160,6 +162,9 @@ class Trip:
             range_remaining = self.car.get_remaining_range()
             remaining_distance -= hpc_distance
             self.drive_start = self.park_start + charging_time
+            if self.drive_start >= self.region.last_time_step:
+                self.drive_found = False
+                return
             self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
             # TODO Fix out of bounds Error
 

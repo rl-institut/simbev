@@ -132,6 +132,12 @@ class Car:
         time_steps = math.ceil(charging_time / step_size)
 
         for i in range(time_steps):
+
+            if max_charging_time is not None and i > max_charging_time - 1:
+                soc_end = soc_start + sum(charged_energy_list) / self.car_type.battery_capacity
+                time_steps = max_charging_time
+                break
+
             t_sum = 0
             k = 0
             # fill array for loading in timestep
