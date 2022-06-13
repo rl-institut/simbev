@@ -152,7 +152,9 @@ class Trip:
                                                                   distance=self.distance)
             self.park_start = self.drive_start + hpc_drive_time
             self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
-            charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size, True)
+            max_charging_time = self.region.last_time_step - self.park_start
+            charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size, long_distance=True,
+                                            max_charging_time=max_charging_time)
 
             # set necessary parameters for next loop or the following drive
             range_remaining = self.car.get_remaining_range()
