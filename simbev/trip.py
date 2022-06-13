@@ -50,7 +50,7 @@ class Trip:
         self.park_time = 0
         self.drive_start = 0
         self.drive_time = 0
-        self.trip_end = 0
+        self.trip_end = region.last_time_step
         self.park_timestamp = None
         self.drive_timestamp = None
         self.drive_found = False
@@ -88,20 +88,12 @@ class Trip:
                     self.drive_time = self.distance / self.speed
                 self.drive_time = self.simbev.hours_to_time_steps(self.drive_time)
                 self.trip_end = self.drive_start + self.drive_time
-                if self.trip_end > self.region.last_time_step:
-                    self.trip_end = self.region.last_time_step
-                    self.drive_time = self.trip_end - self.drive_start
                 self.drive_found = True
                 # update park_time
                 self.park_time = self.drive_start - self.park_start
             else:
                 self.drive_start += 1
-
-        # check if drive happens after simulation end
-        if self.drive_start > self.region.last_time_step:
-            self.park_time = self.region.last_time_step - self.park_start
-            self.trip_end = self.region.last_time_step
-
+        self.fit_trip_to_timerange()
         self._set_timestamps()
 
     def execute(self):
@@ -139,6 +131,7 @@ class Trip:
                     hpc_distance = self.rng.uniform(0.6, 1) * range_remaining
                     hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
                     sum_hpc_drivetime += hpc_drive_time
+
                     self.car.drive(hpc_distance, self.drive_start, self.drive_timestamp, hpc_drive_time, "hpc_hub")
 
                     # get parameters for charging at hpc station
@@ -164,3 +157,13 @@ class Trip:
         self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
         if self.drive_found:
             self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
+
+    def fit_trip_to_timerange(self):
+        # check if trip ends after simulation end
+        if self.trip_end > self.region.last_time_step:
+            self.trip_end = self.region.last_time_step
+            self.drive_time = self.trip_end - self.drive_start
+
+        # check if drive happens after simulation end
+        if self.drive_start > self.region.last_time_step:
+            self.park_time = self.region.last_time_step - self.park_start

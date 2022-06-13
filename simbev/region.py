@@ -158,10 +158,10 @@ class Region:
         data['timestep'] -= week_time_steps
         data = data.loc[(data['timestep']) >= 0]
 
-        data = data[['timestamp', 'total', 'home_total', 'work_total', 'public_total', 'hpc_total',
-                     'cars_home_3.7', 'cars_home_11.0', 'cars_home_22.0', 'cars_home_50.0',
-                     'cars_work_3.7', 'cars_work_11.0', 'cars_work_22.0', 'cars_work_50.0',
-                     'cars_public_3.7', 'cars_public_11.0', 'cars_public_22.0', 'cars_public_50.0', 'cars_public_150.0',
-                     'cars_public_350.0', 'cars_hpc_150.0', 'cars_hpc_350.0']]
+        # data = data[['timestamp', 'total', 'home_total', 'work_total', 'public_total', 'hpc_total',
+        #              'cars_home_3.7', 'cars_home_11.0', 'cars_home_22.0', 'cars_home_50.0',
+        #              'cars_work_3.7', 'cars_work_11.0', 'cars_work_22.0', 'cars_work_50.0',
+        #              'cars_public_3.7', 'cars_public_11.0', 'cars_public_22.0', 'cars_public_50.0', 'cars_public_150.0',
+        #              'cars_public_350.0', 'cars_hpc_150.0', 'cars_hpc_350.0']]
 
         data.to_csv(pathlib.Path(region_directory, self.file_name))
