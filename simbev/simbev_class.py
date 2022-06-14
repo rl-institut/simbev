@@ -46,6 +46,7 @@ class SimBEV:
             self.name, self.timestamp)
         self.save_directory = pathlib.Path("simbev", "res", save_directory_name)
         self.data_directory = pathlib.Path("simbev", "data")
+        self.file_name_all = "grid_time_series_all_regions.csv"
 
         self.step_size_str = str(self.step_size) + "min"
 
@@ -101,12 +102,12 @@ class SimBEV:
         if self.num_threads == 1:
             for region in self.regions:
                 self.run(region)
+            self.export_grid_timeseries_all_regions()
         else:
             pool = mp.Pool(processes=self.num_threads)
 
             for region_ctr, region in enumerate(self.regions):
                 pool.apply_async(self.run, (region,))
-
             pool.close()
             pool.join()
 
@@ -126,7 +127,6 @@ class SimBEV:
             car.export(region_directory, self)
 
         region.export_grid_timeseries(region_directory, self)
-
         print(" - done")
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
@@ -164,6 +164,18 @@ class SimBEV:
                 trip = Trip(region, car, step, self)
                 trip.execute()
 
+    def export_grid_timeseries_all_regions(self):
+        grid_ts_collection = []
+        for region in self.regions:
+            if region.number == 0:
+                grid_ts_collection = region.region_type.grid_data_frame
+            else:
+                grid_ts_collection.loc[:, grid_ts_collection.columns != 'timestamp'] \
+                    += (region.region_type.grid_data_frame.loc[:,
+                        region.region_type.grid_data_frame.columns != 'timestamp'])
+
+        grid_ts_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_all))
+
     @classmethod
     def from_config(cls, scenario_path):
         """
@@ -198,8 +210,7 @@ class SimBEV:
 
         home_work_private = pd.read_csv(pathlib.Path(scenario_path, cfg['charging_probabilities']['home_work_private']))
         home_work_private = home_work_private.set_index('region')
-
-        tech_df = pd.read_csv(pathlib.Path(scenario_path, "tech_data.csv"), sep=',',
+        tech_df = pd.read_csv(pathlib.Path(scenario_path, cfg["tech_data"]["tech_data"]), sep=',',
                               index_col=0)
 
         start_date = cfg.get("basic", "start_date")
