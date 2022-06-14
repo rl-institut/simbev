@@ -74,9 +74,6 @@ class SimBEV:
     def _create_region_type(self, region_type):
         rs7_region = RegionType(region_type)
         rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
-        rs7_region.create_grid_timeseries(list(self.charging_probabilities['slow'].columns),
-                                          list(self.charging_probabilities['fast'].columns),
-                                          )
         rs7_region.get_probabilities(self.data_directory)
         self.created_region_types[region_type] = rs7_region
 
@@ -110,6 +107,7 @@ class SimBEV:
                 pool.apply_async(self.run, (region,))
             pool.close()
             pool.join()
+        # TODO implement export for grid timeseries of all regions for multiprocessing
 
     def run(self, region):
         print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
@@ -166,14 +164,14 @@ class SimBEV:
 
     def export_grid_timeseries_all_regions(self):
         grid_ts_collection = []
-        for region in self.regions:
-            if region.number == 0:
-                grid_ts_collection = region.region_type.grid_data_frame
+        for idx, region in enumerate(self.regions):
+            if idx == 0:
+                grid_ts_collection = region.grid_data_frame
             else:
                 grid_ts_collection.loc[:, grid_ts_collection.columns != 'timestamp'] \
-                    += (region.region_type.grid_data_frame.loc[:,
-                        region.region_type.grid_data_frame.columns != 'timestamp'])
-
+                    += (region.grid_data_frame.loc[:,
+                        region.grid_data_frame.columns != 'timestamp'])
+        grid_ts_collection = grid_ts_collection.round(4)
         grid_ts_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_all))
 
     @classmethod

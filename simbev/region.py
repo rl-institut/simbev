@@ -12,43 +12,12 @@ class RegionType:
         self.time_series = None
         self.trip_starts = None
         self.probabilities = {}
-        self.header_grid_ts = []
-        self.grid_time_series = []
-        self.grid_data_frame = []
 
     def create_timeseries(self, start_date, end_date, step_size):
         if not self.time_series:
             self.time_series = get_timeseries(start_date, end_date, self.rs7_type, step_size)
             self.trip_starts = self.time_series.sum(axis=1)
             self.trip_starts = self.trip_starts / self.trip_starts.max()
-
-    def create_grid_timeseries(self, header_slow, header_fast):
-        if '0' in header_slow:
-            header_slow.remove('0')
-        if '0' in header_fast:
-            header_fast.remove('0')
-        time_series = self.time_series
-        time_stamps = np.array(time_series.index.to_pydatetime())
-        self.header_grid_ts = ['timestep', 'timestamp', 'total']
-        use_cases = ['home', 'work', 'public', 'hpc']
-        for uc in use_cases:
-            self.header_grid_ts.append('{}_total'.format(uc))
-            if uc == 'home':
-                for power in header_slow:
-                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
-            if uc == 'work':
-                for power in header_slow:
-                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
-            if uc == 'public':
-                for power in header_slow:
-                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
-                for power in header_fast:
-                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
-            if uc == 'hpc':
-                for power in header_fast:
-                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
-
-        self.grid_time_series = np.zeros((len(time_stamps), len(self.header_grid_ts)))
 
     def get_probabilities(self, data_directory):
 
@@ -89,7 +58,13 @@ class Region:
         self.car_dict = {}
         self.cars = []
 
+        self.header_grid_ts = []
+        self.grid_time_series = []
+        self.grid_data_frame = []
+
         self.file_name = "{}_grid_time_series_{}.csv".format(self.number, self.id)
+
+        self.create_grid_timeseries()
 
     def add_cars_from_config(self, car_dict):
         self.car_dict = car_dict
@@ -112,19 +87,19 @@ class Region:
     def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end):
         # distribute power to use cases dependent on power
         code = 'cars_{}_{}'.format(use_case, power_lis)
-        if code in self.region_type.header_grid_ts:
-            column = self.region_type.header_grid_ts.index(code)
-            self.region_type.grid_time_series[timestep_start:timestep_end, column] += 1
+        if code in self.header_grid_ts:
+            column = self.header_grid_ts.index(code)
+            self.grid_time_series[timestep_start:timestep_end, column] += 1
 
         # distribute to use cases total
         code_uc_ges = '{}_total'.format(use_case)
-        if code_uc_ges in self.region_type.header_grid_ts:
-            column = self.region_type.header_grid_ts.index(code_uc_ges)
-            self.region_type.grid_time_series[timestep_start:timestep_end, column] += chargepower
+        if code_uc_ges in self.header_grid_ts:
+            column = self.header_grid_ts.index(code_uc_ges)
+            self.grid_time_series[timestep_start:timestep_end, column] += chargepower
 
         # add to total amount
-        column = self.region_type.header_grid_ts.index('total')
-        self.region_type.grid_time_series[timestep_start:timestep_end, column] += chargepower
+        column = self.header_grid_ts.index('total')
+        self.grid_time_series[timestep_start:timestep_end, column] += chargepower
 
     def get_purpose(self, rng, time_step):
         random_number = rng.random()
@@ -135,6 +110,36 @@ class Region:
         probabilities = self.region_type.probabilities[key][destination]
         prob = probabilities.sample(n=1, weights="distribution", random_state=rng)
         return prob.iat[0, -1]
+
+    def create_grid_timeseries(self):
+        header_slow = list(self.simbev.charging_probabilities['slow'].columns)
+        header_fast = list(self.simbev.charging_probabilities['fast'].columns)
+        if '0' in header_slow:
+            header_slow.remove('0')
+        if '0' in header_fast:
+            header_fast.remove('0')
+        time_series = self.region_type.time_series
+        time_stamps = np.array(time_series.index.to_pydatetime())
+        self.header_grid_ts = ['timestep', 'timestamp', 'total']
+        use_cases = ['home', 'work', 'public', 'hpc']
+        for uc in use_cases:
+            self.header_grid_ts.append('{}_total'.format(uc))
+            if uc == 'home':
+                for power in header_slow:
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
+            if uc == 'work':
+                for power in header_slow:
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
+            if uc == 'public':
+                for power in header_slow:
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
+                for power in header_fast:
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
+            if uc == 'hpc':
+                for power in header_fast:
+                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
+
+        self.grid_time_series = np.zeros((len(time_stamps), len(self.header_grid_ts)))
 
     def export_grid_timeseries(self, region_directory, simbev):
         """
@@ -149,8 +154,8 @@ class Region:
 
         """
 
-        data = pd.DataFrame(self.region_type.grid_time_series)
-        data.columns = self.region_type.header_grid_ts
+        data = pd.DataFrame(self.grid_time_series)
+        data.columns = self.header_grid_ts
         data['timestamp'] = self.region_type.time_series.index
 
         # remove first week from dataframe
@@ -159,6 +164,7 @@ class Region:
         data['timestep'] -= week_time_steps
         data = data.loc[(data['timestep']) >= 0]
         data = data.drop(columns=['timestep'])
-        self.region_type.grid_data_frame = data
+        data = data.round(4)
+        self.grid_data_frame = data
 
         data.to_csv(pathlib.Path(region_directory, self.file_name))
