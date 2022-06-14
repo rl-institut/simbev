@@ -14,7 +14,7 @@ import configparser as cp
 
 class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
-                 config_dict, name, home_work_private, num_threads=1):
+                 config_dict, name, home_work_private, num_threads=1, car_output=True):
         # parameters from arguments
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
@@ -50,10 +50,10 @@ class SimBEV:
         self.step_size_str = str(self.step_size) + "min"
 
         # run setup functions
-        self._create_car_types()
+        self._create_car_types(car_output)
         self._add_regions_from_dataframe()
 
-    def _create_car_types(self):
+    def _create_car_types(self, output):
         # create new car type
         for car_type_name in self.tech_data.index:
             # TODO: add charging curve and implement in code
@@ -63,7 +63,7 @@ class SimBEV:
             charging_capacity_fast = self.tech_data.at[car_type_name, "max_charging_capacity_fast"]
             charging_capacity = {"slow": charging_capacity_slow, "fast": charging_capacity_fast}
             # TODO: add charging curve
-            car_type = CarType(car_type_name, bat_cap, charging_capacity, {}, consumption)
+            car_type = CarType(car_type_name, bat_cap, charging_capacity, {}, consumption, output)
             if "bev" in car_type.name:
                 car_type.label = "BEV"
             else:
@@ -207,6 +207,8 @@ class SimBEV:
         end_date = cfg.get("basic", "end_date")
         end_date = helpers.date_string_to_datetime(end_date)
 
+        car_output = cfg.getboolean("basic", "vehicle_csv")
+
         cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
                     "soc_min": cfg.getfloat("basic", "soc_min"),
                     "rng_seed": cfg["sim_params"].getint("seed", None),
@@ -219,4 +221,4 @@ class SimBEV:
         num_threads = cfg.getint('sim_params', 'num_threads')
 
         return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private,
-                      num_threads), cfg
+                      num_threads, car_output), cfg

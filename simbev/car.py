@@ -13,6 +13,7 @@ class CarType:
     charging_curve: dict
     # TODO consumption based on speed instead of constant
     consumption: float
+    output: bool
     label: str = None
 
 
@@ -55,17 +56,18 @@ class Car:
     def _update_activity(self, timestamp, event_start, event_time,
                          nominal_charging_capacity=0, charging_power=0):
         """Records newest energy and activity"""
-        self.soc = round(self.soc, 4)
-        self.output["timestamp"].append(timestamp)
-        self.output["event_start"].append(event_start)
-        self.output["event_time"].append(event_time)
-        self.output["location"].append(self.status)
-        self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
-        self.output["soc"].append(self.soc)
-        self.output["charging_demand"].append(self._get_last_charging_demand())
-        self.output["nominal_charging_capacity"].append(nominal_charging_capacity)
-        self.output["charging_power"].append(round(charging_power, 4))
-        self.output["consumption"].append(self._get_last_consumption())
+        if self.car_type.output:
+            self.soc = round(self.soc, 4)
+            self.output["timestamp"].append(timestamp)
+            self.output["event_start"].append(event_start)
+            self.output["event_time"].append(event_time)
+            self.output["location"].append(self.status)
+            self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
+            self.output["soc"].append(self.soc)
+            self.output["charging_demand"].append(self._get_last_charging_demand())
+            self.output["nominal_charging_capacity"].append(nominal_charging_capacity)
+            self.output["charging_power"].append(round(charging_power, 4))
+            self.output["consumption"].append(self._get_last_consumption())
 
     def park(self, trip):
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
@@ -254,29 +256,30 @@ class Car:
             SimBEV object with scenario information
 
         """
-        activity = pd.DataFrame(self.output)
-        # remove first week from dataframe
-        week_time_steps = int(24 * 7 * 60 / simbev.step_size)
-        activity["event_start"] -= week_time_steps
-        activity = activity.loc[(activity["event_start"] + activity["event_time"]) >= 0]
+        if self.car_type.output:
+            activity = pd.DataFrame(self.output)
+            # remove first week from dataframe
+            week_time_steps = int(24 * 7 * 60 / simbev.step_size)
+            activity["event_start"] -= week_time_steps
+            activity = activity.loc[(activity["event_start"] + activity["event_time"]) >= 0]
 
-        # change first row event if it has charging demand or consumption
-        event_length = activity.at[activity.index[0], "event_time"]
-        post_event_length = activity.at[activity.index[1], "event_start"]
-        pre_event_length = event_length - post_event_length
+            # change first row event if it has charging demand or consumption
+            event_length = activity.at[activity.index[0], "event_time"]
+            post_event_length = activity.at[activity.index[1], "event_start"]
+            pre_event_length = event_length - post_event_length
 
-        pre_demand = activity.at[activity.index[0], "charging_power"] * pre_event_length * simbev.step_size / 60
-        new_demand = max(activity.at[activity.index[0], "charging_demand"] - pre_demand, 0)
-        activity.at[activity.index[0], "charging_demand"] = new_demand
+            pre_demand = activity.at[activity.index[0], "charging_power"] * pre_event_length * simbev.step_size / 60
+            new_demand = max(activity.at[activity.index[0], "charging_demand"] - pre_demand, 0)
+            activity.at[activity.index[0], "charging_demand"] = new_demand
 
-        new_consumption = round(activity.at[activity.index[0], "consumption"] / (pre_event_length / event_length), 4)
-        activity.at[activity.index[0], "consumption"] = new_consumption
+            new_consumption = round(activity.at[activity.index[0], "consumption"] / (pre_event_length / event_length), 4)
+            activity.at[activity.index[0], "consumption"] = new_consumption
 
-        # fit first row event to start at time step 0
-        activity.at[activity.index[0], "event_start"] = 0
-        activity.at[activity.index[0], "event_time"] = post_event_length
-        activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
+            # fit first row event to start at time step 0
+            activity.at[activity.index[0], "event_start"] = 0
+            activity.at[activity.index[0], "event_time"] = post_event_length
+            activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
 
-        activity = activity.reset_index(drop=True)
-        # TODO: decide format
-        activity.to_csv(pathlib.Path(region_directory, self.file_name))
+            activity = activity.reset_index(drop=True)
+            # TODO: decide format
+            activity.to_csv(pathlib.Path(region_directory, self.file_name))
