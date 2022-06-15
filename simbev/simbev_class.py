@@ -99,7 +99,8 @@ class SimBEV:
         self.num_threads = min(self.num_threads, len(self.regions))
         if self.num_threads == 1:
             for region in self.regions:
-                self.run(region)
+                grid_data = self.run(region)
+                self._log_grid_data(grid_data)
         else:
             pool = mp.Pool(processes=self.num_threads)
 
