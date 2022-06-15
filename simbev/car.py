@@ -104,10 +104,16 @@ class Car:
             raise ValueError("Charging type {} is not accepted in charge function!".format(charging_type))
 
     def charge_home(self, trip):
-        self.charge(trip, self.home_capacity, "slow")
+        if self.home_capacity is not None:
+            self.charge(trip, self.home_capacity, "slow")
+        else:
+            raise ValueError("Home charging attempted but power is None!")
 
     def charge_work(self, trip):
-        self.charge(trip, self.work_capacity, "slow")
+        if self.work_capacity is not None:
+            self.charge(trip, self.work_capacity, "slow")
+        else:
+            raise ValueError("Work charging attempted but power is None!")
 
     def charging_curve(self, trip, power, step_size, max_charging_time):
         soc_start = self.soc

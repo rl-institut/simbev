@@ -75,9 +75,9 @@ class Region:
                 # TODO: parking parameters that change by region
                 work_parking = self.simbev.work_parking[self.region_type.rs7_type] >= self.simbev.rng.random()
                 home_parking = self.simbev.home_parking[self.region_type.rs7_type] >= self.simbev.rng.random()
-                # TODO: Moritz no fixed charing power if public
-                work_power = self.simbev.get_charging_capacity("work")
-                home_power = self.simbev.get_charging_capacity("home")
+
+                work_power = self.simbev.get_charging_capacity("work") if work_parking else None
+                home_power = self.simbev.get_charging_capacity("home") if home_parking else None
                 # SOC init value for the first monday
                 # formula from Kilian, TODO maybe not needed anymore
                 soc_init = self.simbev.rng.random() ** (1 / 3) * 0.8 + 0.2 if self.simbev.rng.random() < 0.12 else 1

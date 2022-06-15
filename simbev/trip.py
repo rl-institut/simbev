@@ -100,9 +100,9 @@ class Trip:
         """
         Executes created trip. Charging/parking and driving
         """
-        if self.location == "home":
+        if self.location == "home" and self.car.home_parking:
             self.car.charge_home(self)
-        elif self.location == "work":
+        elif self.location == "work" and self.car.work_parking:
             self.car.charge_work(self)
         else:
             if self.car.soc <= 0.5 and self.car.hpc_pref >= self.rng.random() and self.park_time <= 3:
