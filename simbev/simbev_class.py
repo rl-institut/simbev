@@ -39,6 +39,7 @@ class SimBEV:
         self.regions: List[Region] = []
         self.created_region_types = {}
         self.car_types = {}
+        self.grid_data_list = []
 
         self.name = name
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -99,15 +100,14 @@ class SimBEV:
         if self.num_threads == 1:
             for region in self.regions:
                 self.run(region)
-            self.export_grid_timeseries_all_regions()
         else:
             pool = mp.Pool(processes=self.num_threads)
 
             for region_ctr, region in enumerate(self.regions):
-                pool.apply_async(self.run, (region,))
+                pool.apply_async(self.run, (region,), callback=self._log_grid_data)
             pool.close()
             pool.join()
-        # TODO implement export for grid timeseries of all regions for multiprocessing
+        self.export_grid_timeseries_all_regions()
 
     def run(self, region):
         if self.num_threads == 1:
@@ -130,6 +130,7 @@ class SimBEV:
 
         region.export_grid_timeseries(region_directory)
         print(f" - done (Region {region.number + 1})")
+        return region.grid_data_frame
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         # TODO: check if this destination is used for fast charging
@@ -166,15 +167,18 @@ class SimBEV:
                 trip = Trip(region, car, step, self)
                 trip.execute()
 
+    def _log_grid_data(self, result):
+        self.grid_data_list.append(result)
+
     def export_grid_timeseries_all_regions(self):
-        grid_ts_collection = []
-        for idx, region in enumerate(self.regions):
-            if idx == 0:
-                grid_ts_collection = region.grid_data_frame
+        grid_ts_collection = None
+        for data in self.grid_data_list:
+            if grid_ts_collection is None:
+                grid_ts_collection = data
             else:
                 grid_ts_collection.loc[:, grid_ts_collection.columns != 'timestamp'] \
-                    += (region.grid_data_frame.loc[:,
-                        region.grid_data_frame.columns != 'timestamp'])
+                    += (data.loc[:,
+                        data.columns != 'timestamp'])
         grid_ts_collection = grid_ts_collection.round(4)
         grid_ts_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_all))
 
