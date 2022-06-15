@@ -1,3 +1,5 @@
+import math
+
 
 class Trip:
     """
@@ -48,7 +50,7 @@ class Trip:
         self.park_time = 0
         self.drive_start = 0
         self.drive_time = 0
-        self.trip_end = 0
+        self.trip_end = region.last_time_step
         self.park_timestamp = None
         self.drive_timestamp = None
         self.drive_found = False
@@ -86,71 +88,98 @@ class Trip:
                     self.drive_time = self.distance / self.speed
                 self.drive_time = self.simbev.hours_to_time_steps(self.drive_time)
                 self.trip_end = self.drive_start + self.drive_time
-                if self.trip_end > self.region.last_time_step:
-                    self.trip_end = self.region.last_time_step
-                    self.drive_time = self.trip_end - self.drive_start
                 self.drive_found = True
                 # update park_time
                 self.park_time = self.drive_start - self.park_start
             else:
                 self.drive_start += 1
-
-        # check if drive happens after simulation end
-        if self.drive_start > self.region.last_time_step:
-            self.park_time = self.region.last_time_step - self.park_start
-            self.trip_end = self.region.last_time_step
-
+        self.fit_trip_to_timerange()
         self._set_timestamps()
 
     def execute(self):
         """
         Executes created trip. Charging/parking and driving
         """
-        # TODO charging and driving logic here
         if self.location == "home":
             self.car.charge_home(self)
         elif self.location == "work":
             self.car.charge_work(self)
         else:
-            station_capacity = self.simbev.get_charging_capacity(self.location, self.distance)
-            self.car.charge(self, station_capacity, "slow")
+            if self.car.soc <= 0.5 and self.car.hpc_pref >= self.rng.random() and self.park_time <= 3:
+                # get parameters for charging at hpc station
+                charging_capacity = self.simbev.get_charging_capacity(location="hpc",
+                                                                      distance=self.distance)
+                max_charging_time = self.region.last_time_step - self.park_start
+                self.car.charge(self, charging_capacity, "fast", self.step_size,
+                                max_charging_time=max_charging_time)
+            else:
+                station_capacity = self.simbev.get_charging_capacity(self.location, self.distance)
+                self.car.charge(self, station_capacity, "slow")
 
         if self.drive_found:
-            trip_completed = self.car.drive(self, self.simbev)
-            # create new HPC trip if trip can't be completed
-            if not trip_completed:
-                range_remaining = self.car.soc * self.car.car_type.battery_capacity / self.car.car_type.consumption
-                hpc_distance = self.rng.uniform(0.6, 1) * range_remaining
-                remaining_distance = self.distance - hpc_distance
-                # change current trip to go until first hpc stop
-                self.distance = hpc_distance
-                self.drive_time = hpc_distance / self.speed
-                self.drive_time = self.simbev.hours_to_time_steps(self.drive_time)
-                # TODO add tests if trip is possible now
-                self.car.drive(self, self.simbev)
+            trip_completed = self.car.drive(self.distance, self.drive_start, self.drive_timestamp, self.drive_time,
+                                            self.destination)
 
-                trip = HPCTrip(self.region, self.car, self.drive_start + self.drive_time, self.simbev, remaining_distance)
-                trip.execute()
-            # TODO add all charging times from HPC trips to the first trip
-            self.trip_end += trip.charging_time
-        # return True if no drive is started (end of simulation) to skip checking for hpc events
-        else:
-            return True
+            # call hpc events if trip cant be completed
+            if not trip_completed:
+                self._create_fast_charge_events()
 
     def _set_timestamps(self):
         self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
         if self.drive_found:
             self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
 
+    def _create_fast_charge_events(self):
+        range_remaining = self.car.get_remaining_range()
+        remaining_distance = self.distance
+        sum_hpc_drivetime = 0
 
-class HPCTrip(Trip):
+        # check if next drive needs charging to be completed
+        while remaining_distance > range_remaining and self.car.car_type.label == 'BEV':
+            # get time and distance until next hpc station
+            hpc_distance = self.rng.uniform(0.6, 1) * range_remaining
+            hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
+            sum_hpc_drivetime += hpc_drive_time
 
-    def create(self):
-        # TODO function for trips that get called when hpc is needed to complete drive
+            if self.drive_start + hpc_drive_time > self.region.last_time_step:
+                new_drive_time = self.region.last_time_step - self.drive_start
+                if new_drive_time > 0:
+                    new_distance = hpc_distance * new_drive_time / hpc_drive_time
+                    self.car.drive(new_distance, self.drive_start, self.drive_timestamp, new_drive_time, "hpc")
+                return
 
-        # TODO hpc charging which returns charging time and updates the car
+            self.car.drive(hpc_distance, self.drive_start, self.drive_timestamp, hpc_drive_time, "hpc")
 
-        # TODO calculate next driving part of trip
-        # if that cant be completed, start a new hpc trip
+            # get parameters for charging at hpc station
+            charging_capacity = self.simbev.get_charging_capacity(location=self.car.status,
+                                                                  distance=self.distance)
+            self.park_start = self.drive_start + hpc_drive_time
+            self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
+            max_charging_time = self.region.last_time_step - self.park_start
+            charging_time = self.car.charge(self, charging_capacity, "fast", self.step_size, long_distance=True,
+                                            max_charging_time=max_charging_time)
 
-        pass
+            # set necessary parameters for next loop or the following drive
+            range_remaining = self.car.get_remaining_range()
+            remaining_distance -= hpc_distance
+            self.drive_start = self.park_start + charging_time
+            if self.drive_start >= self.region.last_time_step:
+                self.drive_found = False
+                return
+            self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
+
+        last_drive_time = self.drive_time - sum_hpc_drivetime
+        self.car.drive(remaining_distance, self.drive_start, self.drive_timestamp, last_drive_time,
+                       self.destination)
+        # update trip end to start next parking at
+        self.trip_end = self.drive_start + last_drive_time
+
+    def fit_trip_to_timerange(self):
+        # check if trip ends after simulation end
+        if self.trip_end > self.region.last_time_step:
+            self.trip_end = self.region.last_time_step
+            self.drive_time = self.trip_end - self.drive_start
+
+        # check if drive happens after simulation end
+        if self.drive_start > self.region.last_time_step:
+            self.park_time = self.region.last_time_step - self.park_start

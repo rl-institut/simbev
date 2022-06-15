@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from simbev.region import Region, RegionType
 from simbev.car import CarType
-from simbev.trip import Trip, HPCTrip
+from simbev.trip import Trip
 import multiprocessing as mp
 import pathlib
 import datetime
@@ -14,7 +14,7 @@ import configparser as cp
 
 class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
-                 config_dict, name, home_work_private, num_threads=1):
+                 config_dict, name, home_work_private, num_threads=1, car_output=True):
         # parameters from arguments
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
@@ -46,14 +46,15 @@ class SimBEV:
             self.name, self.timestamp)
         self.save_directory = pathlib.Path("simbev", "res", save_directory_name)
         self.data_directory = pathlib.Path("simbev", "data")
+        self.file_name_all = "grid_time_series_all_regions.csv"
 
         self.step_size_str = str(self.step_size) + "min"
 
         # run setup functions
-        self._create_car_types()
+        self._create_car_types(car_output)
         self._add_regions_from_dataframe()
 
-    def _create_car_types(self):
+    def _create_car_types(self, output):
         # create new car type
         for car_type_name in self.tech_data.index:
             # TODO: add charging curve and implement in code
@@ -63,7 +64,7 @@ class SimBEV:
             charging_capacity_fast = self.tech_data.at[car_type_name, "max_charging_capacity_fast"]
             charging_capacity = {"slow": charging_capacity_slow, "fast": charging_capacity_fast}
             # TODO: add charging curve
-            car_type = CarType(car_type_name, bat_cap, charging_capacity, {}, consumption)
+            car_type = CarType(car_type_name, bat_cap, charging_capacity, {}, consumption, output)
             if "bev" in car_type.name:
                 car_type.label = "BEV"
             else:
@@ -73,7 +74,6 @@ class SimBEV:
     def _create_region_type(self, region_type):
         rs7_region = RegionType(region_type)
         rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
-        rs7_region.create_grid_timeseries()
         rs7_region.get_probabilities(self.data_directory)
         self.created_region_types[region_type] = rs7_region
 
@@ -99,14 +99,15 @@ class SimBEV:
         if self.num_threads == 1:
             for region in self.regions:
                 self.run(region)
+            self.export_grid_timeseries_all_regions()
         else:
             pool = mp.Pool(processes=self.num_threads)
 
             for region_ctr, region in enumerate(self.regions):
                 pool.apply_async(self.run, (region,))
-
             pool.close()
             pool.join()
+        # TODO implement export for grid timeseries of all regions for multiprocessing
 
     def run(self, region):
         print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
@@ -123,11 +124,12 @@ class SimBEV:
             # export vehicle csv
             car.export(region_directory, self)
 
+        region.export_grid_timeseries(region_directory, self)
         print(" - done")
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         # TODO: check if this destination is used for fast charging
-        if location == "hub" and distance:
+        if "hpc" in location:
             if distance > distance_limit:
                 location = "ex-urban"
             else:
@@ -146,44 +148,6 @@ class SimBEV:
         else:
             raise ValueError("Missing arguments in get_charging_capacity.")
 
-    def _get_hpc_charging_capacity(self, trip, distance_limit=50):
-        """
-
-        Parameters
-        ----------
-        fast_charging_probability : :obj:`df`
-            Scenario dataframe for fast charging probabilities
-        distance : :obj:`int`
-            Driven distance to destination
-        distance_limit : :obj:`int`
-            Limit after it assumed that a charging takes place in an ex-urban area
-            and therefore has a higher likeliness of a higher charging capacity,
-            unit km: e.g. 50
-
-        Returns
-        -------
-        fastcharge : :obj:`int`
-            Fast Charging Capacity (150 kW or 350 kW)
-
-        """
-
-        if trip.distance > distance_limit:
-            area = r"ex-urban"
-        else:
-            area = "urban"
-
-        prob_50 = self.charging_probabilities['fast'].loc[area].iloc[0]
-        prob_150 = self.charging_probabilities['fast'].loc[area].iloc[1] + prob_50
-
-        random_number = self.rng.random()  # random number between 0 and 1
-
-        if random_number <= prob_150:
-            charging_capacity = 150
-        else:
-            charging_capacity = 350
-
-        return charging_capacity
-
     def hours_to_time_steps(self, t):
         return math.ceil(t * 60 / self.step_size)
 
@@ -197,6 +161,18 @@ class SimBEV:
                 # find next trip
                 trip = Trip(region, car, step, self)
                 trip.execute()
+
+    def export_grid_timeseries_all_regions(self):
+        grid_ts_collection = []
+        for idx, region in enumerate(self.regions):
+            if idx == 0:
+                grid_ts_collection = region.grid_data_frame
+            else:
+                grid_ts_collection.loc[:, grid_ts_collection.columns != 'timestamp'] \
+                    += (region.grid_data_frame.loc[:,
+                        region.grid_data_frame.columns != 'timestamp'])
+        grid_ts_collection = grid_ts_collection.round(4)
+        grid_ts_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_all))
 
     @classmethod
     def from_config(cls, scenario_path):
@@ -232,14 +208,15 @@ class SimBEV:
 
         home_work_private = pd.read_csv(pathlib.Path(scenario_path, cfg['charging_probabilities']['home_work_private']))
         home_work_private = home_work_private.set_index('region')
-
-        tech_df = pd.read_csv(pathlib.Path(scenario_path, "tech_data.csv"), sep=',',
+        tech_df = pd.read_csv(pathlib.Path(scenario_path, cfg["tech_data"]["tech_data"]), sep=',',
                               index_col=0)
 
         start_date = cfg.get("basic", "start_date")
         start_date = helpers.date_string_to_datetime(start_date)
         end_date = cfg.get("basic", "end_date")
         end_date = helpers.date_string_to_datetime(end_date)
+
+        car_output = cfg.getboolean("basic", "vehicle_csv")
 
         cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
                     "soc_min": cfg.getfloat("basic", "soc_min"),
@@ -253,4 +230,4 @@ class SimBEV:
         num_threads = cfg.getint('sim_params', 'num_threads')
 
         return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private,
-                      num_threads), cfg
+                      num_threads, car_output), cfg
