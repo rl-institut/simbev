@@ -46,8 +46,8 @@ class Car:
             "soc_start": [],
             "soc_end": [],
             "energy": [],
-            "nominal_charging_capacity": [],  # TODO rethink these?
-            "charging_power": []
+            "station_charging_capacity": [],
+            "average_charging_power": []
         }
 
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
@@ -71,8 +71,8 @@ class Car:
             charging_demand = self._get_last_charging_demand()
             consumption = self._get_last_consumption()
             self.output["energy"].append(charging_demand + consumption)
-            self.output["nominal_charging_capacity"].append(nominal_charging_capacity)
-            self.output["charging_power"].append(round(charging_power, 4))
+            self.output["station_charging_capacity"].append(nominal_charging_capacity)
+            self.output["average_charging_power"].append(round(charging_power, 4))
 
     def park(self, trip):
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
@@ -281,7 +281,7 @@ class Car:
             pre_event_len = event_len - post_event_len
 
             if activity.at[activity.index[0], "energy"] > 0:
-                pre_demand = activity.at[activity.index[0], "charging_power"] * pre_event_len * simbev.step_size / 60
+                pre_demand = activity.at[activity.index[0], "average_charging_power"] * pre_event_len * simbev.step_size / 60
                 new_demand = max(activity.at[activity.index[0], "energy"] - pre_demand, 0)
                 activity.at[activity.index[0], "energy"] = new_demand
 
@@ -295,5 +295,4 @@ class Car:
             activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
 
             activity = activity.reset_index(drop=True)
-            # TODO: decide format
             activity.to_csv(pathlib.Path(region_directory, self.file_name))
