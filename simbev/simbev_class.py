@@ -110,22 +110,26 @@ class SimBEV:
         # TODO implement export for grid timeseries of all regions for multiprocessing
 
     def run(self, region):
-        print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
+        if self.num_threads == 1:
+            print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
+        else:
+            print(f"Starting Region {region.id} ({region.number + 1}/{len(self.regions)})")
         region_directory = pathlib.Path(self.save_directory, region.id)
         region_directory.mkdir(parents=True, exist_ok=True)
         for car_count, car in enumerate(region.cars):
-            print("\r{}% {} {} / {}".format(
-                round((car_count + 1) * 100 / len(region.cars)),
-                car.car_type.name,
-                (car.number + 1), region.car_dict[car.car_type.name]
-            ), end="", flush=True)
+            if self.num_threads == 1:
+                print("\r{}% {} {} / {}".format(
+                    round((car_count + 1) * 100 / len(region.cars)),
+                    car.car_type.name,
+                    (car.number + 1), region.car_dict[car.car_type.name]
+                ), end="", flush=True)
             self.simulate_car(car, region)
 
             # export vehicle csv
             car.export(region_directory, self)
 
-        region.export_grid_timeseries(region_directory, self)
-        print(" - done")
+        region.export_grid_timeseries(region_directory)
+        print(f" - done (Region {region.number + 1})")
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         # TODO: check if this destination is used for fast charging

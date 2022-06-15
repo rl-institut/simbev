@@ -141,7 +141,7 @@ class Region:
 
         self.grid_time_series = np.zeros((len(time_stamps), len(self.header_grid_ts)))
 
-    def export_grid_timeseries(self, region_directory, simbev):
+    def export_grid_timeseries(self, region_directory):
         """
         Exports the grid time series to a csv file.
 
@@ -159,7 +159,7 @@ class Region:
         data['timestamp'] = self.region_type.time_series.index
 
         # remove first week from dataframe
-        week_time_steps = int(24 * 7 * 60 / simbev.step_size)
+        week_time_steps = int(24 * 7 * 60 / self.simbev.step_size)
         data['timestep'] = data.index
         data['timestep'] -= week_time_steps
         data = data.loc[(data['timestep']) >= 0]
