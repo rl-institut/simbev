@@ -130,14 +130,13 @@ class Trip:
             self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
 
     def _create_fast_charge_events(self):
-        range_remaining = self.car.get_remaining_range()
         remaining_distance = self.distance
         sum_hpc_drivetime = 0
 
         # check if next drive needs charging to be completed
-        while remaining_distance > range_remaining and self.car.car_type.label == 'BEV':
+        while remaining_distance > self.car.remaining_range and self.car.car_type.label == 'BEV':
             # get time and distance until next hpc station
-            hpc_distance = self.rng.uniform(0.6, 1) * range_remaining
+            hpc_distance = self.rng.uniform(0.6, 1) * self.car.remaining_range
             hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
             sum_hpc_drivetime += hpc_drive_time
 
@@ -160,7 +159,6 @@ class Trip:
                                             max_charging_time=max_charging_time)
 
             # set necessary parameters for next loop or the following drive
-            range_remaining = self.car.get_remaining_range()
             remaining_distance -= hpc_distance
             self.drive_start = self.park_start + charging_time
             if self.drive_start >= self.region.last_time_step:

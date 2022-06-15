@@ -10,6 +10,7 @@ class CarType:
     name: str
     battery_capacity: float
     charging_capacity: dict
+    soc_min: float
     charging_curve: dict
     # TODO consumption based on speed instead of constant
     consumption: float
@@ -22,6 +23,7 @@ class Car:
                  work_capacity, home_capacity, region, soc: float = 1., status: str = "home"):
 
         self.car_type = car_type
+        self.soc_start = soc
         self.soc = soc
         self.work_parking = work_parking
         self.home_parking = home_parking
@@ -41,11 +43,11 @@ class Car:
             "event_time": [],
             "location": [],
             "use_case": [],
-            "soc": [],
-            "charging_demand": [],
-            "nominal_charging_capacity": [],  # TODO rethink these?
-            "charging_power": [],
-            "consumption": []
+            "soc_start": [],
+            "soc_end": [],
+            "energy": [],
+            "station_charging_capacity": [],
+            "average_charging_power": []
         }
 
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
@@ -63,11 +65,14 @@ class Car:
             self.output["event_time"].append(event_time)
             self.output["location"].append(self.status)
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
-            self.output["soc"].append(self.soc)
-            self.output["charging_demand"].append(self._get_last_charging_demand())
-            self.output["nominal_charging_capacity"].append(nominal_charging_capacity)
-            self.output["charging_power"].append(round(charging_power, 4))
-            self.output["consumption"].append(self._get_last_consumption())
+            self.output["soc_start"].append(self.output["soc_end"][-1] if len(self.output["soc_end"]) > 0 else
+                                            self.soc_start)
+            self.output["soc_end"].append(self.soc)
+            charging_demand = self._get_last_charging_demand()
+            consumption = self._get_last_consumption()
+            self.output["energy"].append(charging_demand + consumption)
+            self.output["station_charging_capacity"].append(nominal_charging_capacity)
+            self.output["average_charging_power"].append(round(charging_power, 4))
 
     def park(self, trip):
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
@@ -180,7 +185,7 @@ class Car:
     def drive(self, distance, start_time, timestamp, duration, destination):
         self.status = "driving"
         # TODO check for min soc
-        if distance > self.get_remaining_range() and self.car_type.label == "BEV":
+        if distance > self.remaining_range and self.car_type.label == "BEV":
             return False
         else:
             self.soc -= self.car_type.consumption * distance / self.car_type.battery_capacity
@@ -194,26 +199,27 @@ class Car:
             self.status = destination
             return True
 
-    def get_remaining_range(self):
-        return self.get_usable_soc() * self.car_type.battery_capacity / self.car_type.consumption
+    @property
+    def remaining_range(self):
+        return self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption
 
-    def get_usable_soc(self):
-        # TODO calculate with min_soc
-        return self.soc
+    @property
+    def usable_soc(self):
+        return self.soc - self.car_type.soc_min
 
     def _get_last_charging_demand(self):
-        if len(self.output["soc"]) > 1:
-            charging_demand = (self.output["soc"][-1] - self.output["soc"][-2])
+        if len(self.output["soc_start"]):
+            charging_demand = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             charging_demand *= self.car_type.battery_capacity
             return max(round(charging_demand, 4), 0)
         else:
             return 0
 
     def _get_last_consumption(self):
-        if len(self.output["soc"]) > 1:
-            last_consumption = self.output["soc"][-1] - self.output["soc"][-2]
+        if len(self.output["soc_start"]):
+            last_consumption = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             last_consumption *= self.car_type.battery_capacity
-            return abs(min(round(last_consumption, 4), 0))
+            return min(round(last_consumption, 4), 0)
         else:
             return 0
 
@@ -225,7 +231,7 @@ class Car:
             return "work"
         elif self.home_parking and self.status == "home":
             return "home"
-        # TODO: decide on status for hpc
+        # TODO: decide on status an requirement for hpc
         elif power >= 150:
             return "hpc"
         else:
@@ -270,22 +276,23 @@ class Car:
             activity = activity.loc[(activity["event_start"] + activity["event_time"]) >= 0]
 
             # change first row event if it has charging demand or consumption
-            event_length = activity.at[activity.index[0], "event_time"]
-            post_event_length = activity.at[activity.index[1], "event_start"]
-            pre_event_length = event_length - post_event_length
+            event_len = activity.at[activity.index[0], "event_time"]
+            post_event_len = activity.at[activity.index[1], "event_start"]
+            pre_event_len = event_len - post_event_len
 
-            pre_demand = activity.at[activity.index[0], "charging_power"] * pre_event_length * simbev.step_size / 60
-            new_demand = max(activity.at[activity.index[0], "charging_demand"] - pre_demand, 0)
-            activity.at[activity.index[0], "charging_demand"] = new_demand
+            if activity.at[activity.index[0], "energy"] > 0:
+                pre_demand = activity.at[activity.index[0], "average_charging_power"] * pre_event_len * simbev.step_size / 60
+                new_demand = max(activity.at[activity.index[0], "energy"] - pre_demand, 0)
+                activity.at[activity.index[0], "energy"] = new_demand
 
-            new_consumption = round(activity.at[activity.index[0], "consumption"] / (pre_event_length / event_length), 4)
-            activity.at[activity.index[0], "consumption"] = new_consumption
+            elif activity.at[activity.index[0], "energy"] < 0:
+                new_consumption = round(activity.at[activity.index[0], "energy"] / (pre_event_len / event_len), 4)
+                activity.at[activity.index[0], "energy"] = new_consumption
 
             # fit first row event to start at time step 0
             activity.at[activity.index[0], "event_start"] = 0
-            activity.at[activity.index[0], "event_time"] = post_event_length
+            activity.at[activity.index[0], "event_time"] = post_event_len
             activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
 
             activity = activity.reset_index(drop=True)
-            # TODO: decide format
             activity.to_csv(pathlib.Path(region_directory, self.file_name))
