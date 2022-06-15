@@ -225,7 +225,7 @@ class Car:
             return "work"
         elif self.home_parking and self.status == "home":
             return "home"
-        # TODO: decide on status for hpc
+        # TODO: decide on status an requirement for hpc
         elif power >= 150:
             return "hpc"
         else:
