@@ -14,7 +14,7 @@ import configparser as cp
 
 class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
-                 config_dict, name, home_work_private, num_threads=1, car_output=True):
+                 config_dict, name, home_work_private, num_threads=1, car_output=True, grid_output=True):
         # parameters from arguments
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
@@ -40,6 +40,7 @@ class SimBEV:
         self.created_region_types = {}
         self.car_types = {}
         self.grid_data_list = []
+        self.grid_output = grid_output
 
         self.name = name
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -73,7 +74,7 @@ class SimBEV:
             self.car_types[car_type_name] = car_type
 
     def _create_region_type(self, region_type):
-        rs7_region = RegionType(region_type)
+        rs7_region = RegionType(region_type, self.grid_output)
         rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
         rs7_region.get_probabilities(self.data_directory)
         self.created_region_types[region_type] = rs7_region
@@ -172,16 +173,17 @@ class SimBEV:
         self.grid_data_list.append(result)
 
     def export_grid_timeseries_all_regions(self):
-        grid_ts_collection = None
-        for data in self.grid_data_list:
-            if grid_ts_collection is None:
-                grid_ts_collection = data
-            else:
-                grid_ts_collection.loc[:, grid_ts_collection.columns != 'timestamp'] \
-                    += (data.loc[:,
-                        data.columns != 'timestamp'])
-        grid_ts_collection = grid_ts_collection.round(4)
-        grid_ts_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_all))
+        if self.grid_output:
+            grid_ts_collection = None
+            for data in self.grid_data_list:
+                if grid_ts_collection is None:
+                    grid_ts_collection = data
+                else:
+                    grid_ts_collection.loc[:, grid_ts_collection.columns != 'timestamp'] \
+                        += (data.loc[:,
+                            data.columns != 'timestamp'])
+            grid_ts_collection = grid_ts_collection.round(4)
+            grid_ts_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_all))
 
     @classmethod
     def from_config(cls, scenario_path):
@@ -226,6 +228,7 @@ class SimBEV:
         end_date = helpers.date_string_to_datetime(end_date)
 
         car_output = cfg.getboolean("basic", "vehicle_csv")
+        grid_output = cfg.getboolean("basic", "grid_time_series_csv")
 
         cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
                     "soc_min": cfg.getfloat("basic", "soc_min"),
@@ -239,4 +242,4 @@ class SimBEV:
         num_threads = cfg.getint('sim_params', 'num_threads')
 
         return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private,
-                      num_threads, car_output), cfg
+                      num_threads, car_output, grid_output), cfg

@@ -7,11 +7,12 @@ import simbev.helpers.helpers as helpers
 
 
 class RegionType:
-    def __init__(self, rs7_type):
+    def __init__(self, rs7_type, grid_output):
         self.rs7_type = rs7_type
         self.time_series = None
         self.trip_starts = None
         self.probabilities = {}
+        self.output = grid_output
 
     def create_timeseries(self, start_date, end_date, step_size):
         if not self.time_series:
@@ -86,20 +87,21 @@ class Region:
 
     def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end):
         # distribute power to use cases dependent on power
-        code = 'cars_{}_{}'.format(use_case, power_lis)
-        if code in self.header_grid_ts:
-            column = self.header_grid_ts.index(code)
-            self.grid_time_series[timestep_start:timestep_end, column] += 1
+        if self.region_type.output:
+            code = 'cars_{}_{}'.format(use_case, power_lis)
+            if code in self.header_grid_ts:
+                column = self.header_grid_ts.index(code)
+                self.grid_time_series[timestep_start:timestep_end, column] += 1
 
-        # distribute to use cases total
-        code_uc_ges = '{}_total'.format(use_case)
-        if code_uc_ges in self.header_grid_ts:
-            column = self.header_grid_ts.index(code_uc_ges)
+            # distribute to use cases total
+            code_uc_ges = '{}_total'.format(use_case)
+            if code_uc_ges in self.header_grid_ts:
+                column = self.header_grid_ts.index(code_uc_ges)
+                self.grid_time_series[timestep_start:timestep_end, column] += chargepower
+
+            # add to total amount
+            column = self.header_grid_ts.index('total')
             self.grid_time_series[timestep_start:timestep_end, column] += chargepower
-
-        # add to total amount
-        column = self.header_grid_ts.index('total')
-        self.grid_time_series[timestep_start:timestep_end, column] += chargepower
 
     def get_purpose(self, rng, time_step):
         random_number = rng.random()
@@ -151,18 +153,21 @@ class Region:
             SimBEV object with scenario information
 
         """
+        if self.region_type.output:
+            data = pd.DataFrame(self.grid_time_series)
+            data.columns = self.header_grid_ts
+            data['timestamp'] = self.region_type.time_series.index
 
-        data = pd.DataFrame(self.grid_time_series)
-        data.columns = self.header_grid_ts
-        data['timestamp'] = self.region_type.time_series.index
+            # remove first week from dataframe
+            week_time_steps = int(24 * 7 * 60 / self.simbev.step_size)
+            data['timestep'] = data.index
+            data['timestep'] -= week_time_steps
+            data = data.loc[(data['timestep']) >= 0]
+            data = data.drop(columns=['timestep'])
+            data = data.round(4)
+            timestamp = data['timestamp']
+            cars_per_uc = data.filter(regex='cars').astype(int)
+            totals = data.filter(regex='total')
+            self.grid_data_frame = pd.concat([timestamp, totals, cars_per_uc], axis=1)
 
-        # remove first week from dataframe
-        week_time_steps = int(24 * 7 * 60 / self.simbev.step_size)
-        data['timestep'] = data.index
-        data['timestep'] -= week_time_steps
-        data = data.loc[(data['timestep']) >= 0]
-        data = data.drop(columns=['timestep'])
-        data = data.round(4)
-        self.grid_data_frame = data
-
-        data.to_csv(pathlib.Path(region_directory, self.file_name))
+            data.to_csv(pathlib.Path(region_directory, self.file_name))
