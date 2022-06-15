@@ -133,8 +133,6 @@ class Region:
             if uc == 'public':
                 for power in header_slow:
                     self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
-                for power in header_fast:
-                    self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
             if uc == 'hpc':
                 for power in header_fast:
                     self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
