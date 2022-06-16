@@ -46,7 +46,7 @@ class SimBEV:
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
         save_directory_name = "{}_{}_simbev_run".format(
             self.name, self.timestamp)
-        self.save_directory = pathlib.Path("simbev", "res", save_directory_name)
+        self.save_directory = pathlib.Path("simbev", "results", save_directory_name)
         self.data_directory = pathlib.Path("simbev", "data")
         self.file_name_all = "grid_time_series_all_regions.csv"
 

@@ -1,4 +1,4 @@
-simbev/res/*/
+simbev/results/*/
 *.pyc
 .pytest_cache
 .vscode

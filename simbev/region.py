@@ -94,13 +94,13 @@ class Region:
                 self.grid_time_series[timestep_start:timestep_end, column] += 1
 
             # distribute to use cases total
-            code_uc_ges = '{}_total'.format(use_case)
+            code_uc_ges = '{}_total_power'.format(use_case)
             if code_uc_ges in self.header_grid_ts:
                 column = self.header_grid_ts.index(code_uc_ges)
                 self.grid_time_series[timestep_start:timestep_end, column] += chargepower
 
             # add to total amount
-            column = self.header_grid_ts.index('total')
+            column = self.header_grid_ts.index('total_power')
             self.grid_time_series[timestep_start:timestep_end, column] += chargepower
 
     def get_purpose(self, rng, time_step):
@@ -122,10 +122,10 @@ class Region:
             header_fast.remove('0')
         time_series = self.region_type.time_series
         time_stamps = np.array(time_series.index.to_pydatetime())
-        self.header_grid_ts = ['timestep', 'timestamp', 'total']
+        self.header_grid_ts = ['timestep', 'timestamp', 'total_power']
         use_cases = ['home', 'work', 'public', 'hpc']
         for uc in use_cases:
-            self.header_grid_ts.append('{}_total'.format(uc))
+            self.header_grid_ts.append('{}_total_power'.format(uc))
             if uc == 'home':
                 for power in header_slow:
                     self.header_grid_ts.append('cars_{}_{}'.format(uc, power))
