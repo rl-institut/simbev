@@ -8,8 +8,8 @@
 | event_time                | time steps | duration of event                                                           |
 | location                  | -          | event location                                                              |
 | use_case                  | -          | Use Case used to determine charging types                                   |
-| soc_start                 | -, 0 to 1  | share of total SoC that's available at event start                          |
-| soc_end                   | -, 0 to 1  | share of total SoC that's available at event end                            |
+| soc_start                 | 0 to 1     | share of total SoC that's available at event start                          |
+| soc_end                   | 0 to 1     | share of total SoC that's available at event end                            |
 | energy                    | kWh        | energy change in the battery. positive is charging, negative is consumption |
 | station_charging_capacity | kW         | nominal charging capacity of the charging point                             |
 | average_charging_power    | kW         | average charging power being used during the event                          |
