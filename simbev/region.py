@@ -170,4 +170,4 @@ class Region:
             totals = data.filter(regex='total')
             self.grid_data_frame = pd.concat([timestamp, totals, cars_per_uc], axis=1)
 
-            data.to_csv(pathlib.Path(region_directory, self.file_name))
+            self.grid_data_frame.to_csv(pathlib.Path(region_directory, self.file_name))
