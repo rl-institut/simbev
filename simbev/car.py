@@ -54,7 +54,6 @@ class Car:
                                                              car_type.battery_capacity)
         # Set user specificationn and hpc preference
         self.set_user_spec()
-        a=1
 
     def _update_activity(self, timestamp, event_start, event_time,
                          nominal_charging_capacity=0, charging_power=0):
