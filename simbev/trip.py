@@ -105,7 +105,7 @@ class Trip:
         elif self.location == "work" and self.car.work_parking:
             self.car.charge_work(self)
         else:
-            if self.car.soc <= 0.5 and self.car.hpc_pref >= self.rng.random() and self.park_time <= 3:
+            if self.car.soc <= 0.5 and self.car.hpc_pref >= self.rng.random() and self.park_time <= 6:
                 # get parameters for charging at hpc station
                 charging_capacity = self.simbev.get_charging_capacity(location="hpc",
                                                                       distance=self.distance)
