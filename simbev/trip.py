@@ -140,7 +140,7 @@ class Trip:
             hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
             sum_hpc_drivetime += hpc_drive_time
 
-            if self.drive_start + hpc_drive_time > self.region.last_time_step:
+            if self.drive_start + hpc_drive_time >= self.region.last_time_step:
                 new_drive_time = self.region.last_time_step - self.drive_start
                 if new_drive_time > 0:
                     new_distance = hpc_distance * new_drive_time / hpc_drive_time
