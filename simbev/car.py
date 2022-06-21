@@ -78,6 +78,9 @@ class Car:
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
 
     def charge(self, trip, power, charging_type, step_size=None, long_distance=None, max_charging_time=None):
+        if self.soc >= 0.8:     # wert aus config
+            power = 0
+        # todo min erngysum check
         if charging_type == "slow":
             usable_power = min(power, self.car_type.charging_capacity[charging_type])
             self.soc = min(self.soc + trip.park_time * usable_power / self.car_type.battery_capacity, 1)
