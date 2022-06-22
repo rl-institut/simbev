@@ -48,7 +48,7 @@ class RegionType:
 
 
 class Region:
-    def __init__(self, region_id, region_type: RegionType, region_counter, simbev_obj):
+    def __init__(self, region_id, region_type: RegionType, region_counter, simbev_obj, car_dict):
         self.id = region_id
         self.region_type = region_type
         self.number = region_counter
@@ -62,14 +62,14 @@ class Region:
         self.header_grid_ts = []
         self.grid_time_series = []
         self.grid_data_frame = []
+        self.car_dict = car_dict
 
         self.file_name = "{}_grid_time_series_{}.csv".format(self.number, self.id)
 
         self.create_grid_timeseries()
 
-    def add_cars_from_config(self, car_dict):
-        self.car_dict = car_dict
-        for car_type_name, car_count in car_dict.items():
+    def add_cars_from_config(self):
+        for car_type_name, car_count in self.car_dict.items():
             for car_number in range(car_count):
                 car_type = self.simbev.car_types[car_type_name]
                 # create new car objects
@@ -151,9 +151,6 @@ class Region:
         ----------
         region_directory : :obj:`pathlib.Path`
             save directory for the region
-        simbev : :obj:`SimBEV`
-            SimBEV object with scenario information
-
         """
         if self.region_type.output:
             data = pd.DataFrame(self.grid_time_series)

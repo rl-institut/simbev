@@ -93,6 +93,7 @@ class SimBEV:
             # get data from inputs
             region_id = self.region_data.index[region_counter]
             region_type = self.region_data.iat[region_counter, 0]
+
             car_dict = self.region_data.iloc[region_counter, 1:].to_dict()
 
             # create region_type
@@ -100,8 +101,7 @@ class SimBEV:
                 self._create_region_type(region_type)
 
             # create region objects
-            new_region = Region(region_id, self.created_region_types[region_type], region_counter, self)
-            new_region.add_cars_from_config(car_dict)
+            new_region = Region(region_id, self.created_region_types[region_type], region_counter, self, car_dict)
             self.regions.append(new_region)
 
     def run_multi(self):
@@ -124,7 +124,8 @@ class SimBEV:
             print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
         else:
             print(f"Starting Region {region.id} ({region.number + 1}/{len(self.regions)})")
-        region_directory = pathlib.Path(self.save_directory, region.id)
+        region.add_cars_from_config()
+        region_directory = pathlib.Path(self.save_directory, str(region.id))
         region_directory.mkdir(parents=True, exist_ok=True)
         for car_count, car in enumerate(region.cars):
             if self.num_threads == 1:
@@ -137,6 +138,7 @@ class SimBEV:
 
             # export vehicle csv
             car.export(region_directory, self)
+        region.cars = []
 
         region.export_grid_timeseries(region_directory)
         print(f" - done (Region {region.number + 1})")
@@ -215,7 +217,7 @@ class SimBEV:
         except Exception:
             raise FileNotFoundError(f"Cannot read config file {cfg_file} - malformed?")
 
-        region_df = pd.read_csv(pathlib.Path(scenario_path, "regions.csv"), sep=',', index_col=0)
+        region_df = pd.read_csv(pathlib.Path(scenario_path, cfg["rampup_ev"]["rampup"]), sep=',', index_col=0)
 
         # read chargepoint probabilities
         charge_prob_slow = pd.read_csv(pathlib.Path(scenario_path, cfg["charging_probabilities"]["slow"]))
