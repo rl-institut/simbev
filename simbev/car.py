@@ -11,6 +11,7 @@ class CarType:
     battery_capacity: float
     charging_capacity: dict
     soc_min: float
+    charging_threshold: float
     charging_curve: dict
     # TODO consumption based on speed instead of constant
     consumption: float
@@ -78,7 +79,7 @@ class Car:
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
 
     def charge(self, trip, power, charging_type, step_size=None, long_distance=None, max_charging_time=None):
-        if self.soc >= 0.8:     # wert aus config
+        if self.soc >= self.car_type.charging_threshold:     # wert aus config
             power = 0
         # todo min erngysum check
         if charging_type == "slow":

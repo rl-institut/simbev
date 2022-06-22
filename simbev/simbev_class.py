@@ -14,7 +14,7 @@ import configparser as cp
 
 class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
-                 config_dict, name, home_work_private, num_threads=1, car_output=True, grid_output=True):
+                 config_dict, name, home_work_private, energy_min, num_threads=1, car_output=True, grid_output=True):
         # parameters from arguments
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
@@ -23,6 +23,7 @@ class SimBEV:
         # parameters from config_dict
         self.step_size = config_dict["step_size"]
         self.soc_min = config_dict["soc_min"]
+        self.charging_threshold = config_dict["charging_threshold"]
         self.rng = np.random.default_rng(config_dict["rng_seed"])
         self.eta_cp = config_dict["eta_cp"]
         self.start_date_input = config_dict["start_date"]
@@ -32,6 +33,7 @@ class SimBEV:
         self.end_date = config_dict["end_date"]
         self.home_parking = home_work_private.loc["home", :]
         self.work_parking = home_work_private.loc["work", :]
+        self.energy_min = energy_min
 
         self.num_threads = num_threads
 
@@ -66,7 +68,8 @@ class SimBEV:
             charging_capacity_fast = self.tech_data.at[car_type_name, "max_charging_capacity_fast"]
             charging_capacity = {"slow": charging_capacity_slow, "fast": charging_capacity_fast}
             # TODO: add charging curve
-            car_type = CarType(car_type_name, bat_cap, charging_capacity, self.soc_min, {}, consumption, output)
+            car_type = CarType(car_type_name, bat_cap, charging_capacity, self.soc_min, self.charging_threshold,
+                               {}, consumption, output)
             if "bev" in car_type.name:
                 car_type.label = "BEV"
             else:
@@ -222,6 +225,9 @@ class SimBEV:
         tech_df = pd.read_csv(pathlib.Path(scenario_path, cfg["tech_data"]["tech_data"]), sep=',',
                               index_col=0)
 
+        energy_min = pd.read_csv(pathlib.Path(scenario_path, cfg['charging_probabilities']['energy_min']))
+        energy_min = energy_min.set_index('uc')
+
         start_date = cfg.get("basic", "start_date")
         start_date = helpers.date_string_to_datetime(start_date)
         end_date = cfg.get("basic", "end_date")
@@ -232,6 +238,7 @@ class SimBEV:
 
         cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
                     "soc_min": cfg.getfloat("basic", "soc_min"),
+                    "charging_threshold": cfg.getfloat("basic", "charging_threshold"),
                     "rng_seed": cfg["sim_params"].getint("seed", None),
                     "eta_cp": cfg.getfloat("basic", "eta_cp"),
                     "start_date": start_date,
@@ -241,5 +248,5 @@ class SimBEV:
                     }
         num_threads = cfg.getint('sim_params', 'num_threads')
 
-        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private,
+        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private, energy_min,
                       num_threads, car_output, grid_output), cfg
