@@ -12,6 +12,7 @@ class CarType:
     charging_capacity: dict
     soc_min: float
     charging_threshold: float
+    energy_min: dict
     charging_curve: dict
     # TODO consumption based on speed instead of constant
     consumption: float
@@ -79,24 +80,31 @@ class Car:
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
 
     def charge(self, trip, power, charging_type, step_size=None, long_distance=None, max_charging_time=None):
-        if self.soc >= self.car_type.charging_threshold:     # wert aus config
+        if self.soc >= self.car_type.charging_threshold:
             power = 0
-        # todo min erngysum check
+
         if charging_type == "slow":
-            usable_power = min(power, self.car_type.charging_capacity[charging_type])
-            self.soc = min(self.soc + trip.park_time * usable_power / self.car_type.battery_capacity, 1)
+            avg_power = 0
+
+            if power != 0:
+                charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size, max_charging_time,
+                                                                           charging_type, soc_end=1)
+                self.soc = soc
+
+                trip.park_time = charging_time
+                trip.drive_start = trip.park_start + trip.park_time
+                trip.trip_end = trip.drive_start + trip.drive_time
             self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
-                                  nominal_charging_capacity=power, charging_power=usable_power)
-            use_case = self._get_usecase(power)
-            self.region.update_grid_timeseries(use_case, usable_power, power, trip.park_start,
-                                               trip.park_start + trip.park_time)
+                                  nominal_charging_capacity=power, charging_power=avg_power)
 
         elif charging_type == "fast":
             if self.car_type.charging_capacity['fast'] == 0:
                 raise ValueError("Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
                     self.car_type.name
                 ))
-            charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size, max_charging_time)
+            soc_end = trip.rng.uniform(0.8, 0.95)
+            charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size, max_charging_time,
+                                                                       charging_type, soc_end)
             self.soc = soc
             if long_distance:
                 self._update_activity(trip.park_timestamp, trip.park_start, charging_time,
@@ -114,25 +122,25 @@ class Car:
 
     def charge_home(self, trip):
         if self.home_capacity is not None:
-            self.charge(trip, self.home_capacity, "slow")
+            self.charge(trip, self.home_capacity, "slow", step_size=self.region.simbev.step_size,
+                        max_charging_time=trip.park_time)
         else:
             raise ValueError("Home charging attempted but power is None!")
 
     def charge_work(self, trip):
         if self.work_capacity is not None:
-            self.charge(trip, self.work_capacity, "slow")
+            self.charge(trip, self.work_capacity, "slow", step_size=self.region.simbev.step_size,
+                        max_charging_time=trip.park_time)
         else:
             raise ValueError("Work charging attempted but power is None!")
 
-    def charging_curve(self, trip, power, step_size, max_charging_time):
+    def charging_curve(self, trip, power, step_size, max_charging_time, charging_type, soc_end):
         soc_start = self.soc
 
-        soc_end = trip.rng.uniform(0.8, 0.95)
-
-        usable_power = min(
-            power,
-            self.car_type.charging_capacity["fast"]
-        )
+        # check if min charging energy is loaded
+        if ((soc_end - soc_start) * self.car_type.battery_capacity) <= \
+                self.car_type.energy_min[self._get_usecase(power)]:
+            return trip.park_time, 0, 0, soc_start
 
         delta = (soc_end - soc_start) / 10
         soc_load_list = np.arange(soc_start + delta / 2, soc_end + delta / 2, delta)
@@ -140,8 +148,8 @@ class Car:
         t_load = np.zeros(len(soc_load_list))
 
         for i, soc in enumerate(soc_load_list):
-            p_soc[i] = (-0.01339 * (soc * 100) ** 2 + 0.7143 * (
-                    soc * 100) + 84.48) * usable_power / 100  # polynomial iteration of the loadcurve
+            p_soc[i] = min(((-0.01339 * (soc * 100) ** 2 + 0.7143 * (
+                    soc * 100) + 84.48) * self.car_type.charging_capacity[charging_type] / 100), power)
             t_load[i] = delta * self.car_type.battery_capacity / p_soc[i] * 60
 
         charging_time = sum(t_load)
@@ -152,6 +160,10 @@ class Car:
 
             if max_charging_time is not None and i >= max_charging_time:
                 soc_end = soc_start + sum(charged_energy_list) / self.car_type.battery_capacity
+                # check if min charging energy is loaded
+                if ((soc_end - soc_start) * self.car_type.battery_capacity) <= \
+                        self.car_type.energy_min[self._get_usecase(power)]:
+                    return trip.park_time, 0, 0, soc_start
                 time_steps = max_charging_time
                 break
 
@@ -285,7 +297,8 @@ class Car:
             pre_event_len = event_len - post_event_len
 
             if activity.at[activity.index[0], "energy"] > 0:
-                pre_demand = activity.at[activity.index[0], "average_charging_power"] * pre_event_len * simbev.step_size / 60
+                pre_demand = activity.at[activity.index[0], "average_charging_power"] * pre_event_len * \
+                             simbev.step_size / 60
                 new_demand = max(activity.at[activity.index[0], "energy"] - pre_demand, 0)
                 activity.at[activity.index[0], "energy"] = new_demand
 

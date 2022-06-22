@@ -68,8 +68,13 @@ class SimBEV:
             charging_capacity_fast = self.tech_data.at[car_type_name, "max_charging_capacity_fast"]
             charging_capacity = {"slow": charging_capacity_slow, "fast": charging_capacity_fast}
             # TODO: add charging curve
+            if "bev" in car_type_name:
+                energy_min = self.energy_min["bev"].to_dict()
+            else:
+                energy_min = self.energy_min["phev"].to_dict()
+
             car_type = CarType(car_type_name, bat_cap, charging_capacity, self.soc_min, self.charging_threshold,
-                               {}, consumption, output)
+                               energy_min, {}, consumption, output)
             if "bev" in car_type.name:
                 car_type.label = "BEV"
             else:

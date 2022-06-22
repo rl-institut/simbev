@@ -109,6 +109,8 @@ class Region:
         return helpers.get_column_by_random_number(purpose_probabilities, random_number)
 
     def get_probability(self, rng, destination, key):
+        if destination == 'hpc':
+            raise ValueError("Destination {} is not accepted in get probability!".format(destination))
         probabilities = self.region_type.probabilities[key][destination]
         prob = probabilities.sample(n=1, weights="distribution", random_state=rng)
         return prob.iat[0, -1]
