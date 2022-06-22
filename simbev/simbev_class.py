@@ -120,7 +120,7 @@ class SimBEV:
         else:
             print(f"Starting Region {region.id} ({region.number + 1}/{len(self.regions)})")
         region.add_cars_from_config()
-        region_directory = pathlib.Path(self.save_directory, region.id)
+        region_directory = pathlib.Path(self.save_directory, str(region.id))
         region_directory.mkdir(parents=True, exist_ok=True)
         for car_count, car in enumerate(region.cars):
             if self.num_threads == 1:
