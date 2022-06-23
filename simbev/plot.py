@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 
 def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
-    # TODO develope plot function
+    # TODO fix plot first region outputs all regions data (log_region_data)
     if simbev.plot_options["by_region"]:
         for idx, data in enumerate(simbev.grid_data_list):
             df_results = data.set_index('timestamp')
@@ -12,7 +12,7 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
             plt.plot(df_results['public_total_power'], color='#0082D1', linestyle='-', linewidth=1, label='public')
             plt.plot(df_results['hpc_total_power'], color='#76B900', linestyle='-', linewidth=1, label='hpc')
 
-            plt.title('Region_{}'.format(idx))
+            plt.title('Region_{}'.format(idx+1))
             plt.ylabel("P in kW", fontsize=14)
             plt.tick_params(direction='in', grid_alpha=0.5, labelsize=14, pad=10)
             plt.grid(True)
@@ -20,7 +20,9 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
             plt.gcf().autofmt_xdate()
             plt.tight_layout()
             plt.gca().set_xbound(simbev.start_date_input, simbev.end_date)
-
+            plt.gcf().set_size_inches(15, 9)
+            figname = "region_{}".format(idx+1)
+            plt.savefig('{}/{}.png'.format(simbev.save_directory, figname))
             plt.show()
 
     if simbev.plot_options["all_in_one"]:
@@ -39,5 +41,7 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
         plt.gcf().autofmt_xdate()
         plt.tight_layout()
         plt.gca().set_xbound(simbev.start_date_input, simbev.end_date)
-
+        plt.gcf().set_size_inches(15, 9)
+        figname = "region_all"
+        plt.savefig('{}/{}.png'.format(simbev.save_directory, figname))
         plt.show()
