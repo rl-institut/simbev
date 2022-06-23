@@ -2,3 +2,4 @@ configparser
 pandas >= 1.4.0
 numpy
 pytest
+matplotlib
