@@ -23,7 +23,6 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
             plt.gcf().set_size_inches(15, 9)
             figname = "region_{}".format(idx+1)
             plt.savefig('{}/{}.png'.format(simbev.save_directory, figname))
-            plt.show()
 
     if simbev.plot_options["all_in_one"]:
         df_results = grid_timeseries_all.set_index('timestamp')
@@ -44,4 +43,3 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
         plt.gcf().set_size_inches(15, 9)
         figname = "region_all"
         plt.savefig('{}/{}.png'.format(simbev.save_directory, figname))
-        plt.show()
