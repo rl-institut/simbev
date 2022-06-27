@@ -204,7 +204,7 @@ class SimBEV:
             grid_ts_collection = None
             for data in self.grid_data_list:
                 if grid_ts_collection is None:
-                    grid_ts_collection = data
+                    grid_ts_collection = data.copy()
                 else:
                     grid_ts_collection.loc[:, grid_ts_collection.columns != 'timestamp'] \
                         += (data.loc[:,
