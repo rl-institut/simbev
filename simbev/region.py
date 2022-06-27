@@ -63,6 +63,7 @@ class Region:
         self.grid_time_series = []
         self.grid_data_frame = []
         self.car_dict = car_dict
+        self.analyze_array = None
 
         self.file_name = "{}_grid_time_series_{}.csv".format(self.number, self.id)
 

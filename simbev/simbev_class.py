@@ -47,6 +47,9 @@ class SimBEV:
         self.grid_output = grid_output
         self.plot_options = plot_options
 
+        # analysis of cars
+        self.analyze = True
+
         self.name = name
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
         save_directory_name = "{}_{}_simbev_run".format(
@@ -141,10 +144,20 @@ class SimBEV:
             self.simulate_car(car, region)
 
             # export vehicle csv
-            car.export(region_directory, self)
+            if self.analyze:
+                car_array = car.export(region_directory, self)
+                if region.analyze_array is None:
+                    region.analyze_array = car_array
+                else:
+                    region.analyze_array = np.hstack(region.analyze_array, car_array)
+            else:
+                car.export(region_directory, self)
+
         region.cars = []
 
         region.export_grid_timeseries(region_directory)
+        if self.analyze:
+            helpers.export_analysis(region.analyze_array, region_directory)
         print(f" - done (Region {region.number + 1})")
         return region.grid_data_frame
 
