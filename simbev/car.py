@@ -27,12 +27,12 @@ def analyze_charge_events(output_df: pd.DataFrame):
     min_time = charge_events["event_time"].min()
     avg_time = round(charge_events["event_time"].mean(), 4)
     max_charge = charge_events["energy"].max()
-    min_charge = charge_events["energy"].min()
+    min_charge = round(charge_events["energy"].min(), 4)
     avg_charge = round(charge_events["energy"].mean(), 4)
     return np.array([event_count, max_time, min_time, avg_time, max_charge, min_charge, avg_charge])
 
 
-def analyze_drive_events(output_df: pd.DataFrame):
+def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
     charge_events = output_df.loc[output_df["energy"] < 0]
     event_count = len(charge_events.index)
     max_time = charge_events["event_time"].max()
@@ -41,7 +41,7 @@ def analyze_drive_events(output_df: pd.DataFrame):
     max_consumption = abs(charge_events["energy"].min())
     min_consumption = abs(charge_events["energy"].max())
     avg_consumption = round(abs(charge_events["energy"].mean()), 4)
-    return np.array([event_count, max_time, min_time, avg_time, max_consumption, min_consumption, avg_consumption])
+    return np.array([car_type, event_count, max_time, min_time, avg_time, max_consumption, min_consumption, avg_consumption])
 
 
 class Car:
@@ -335,6 +335,6 @@ class Car:
             activity = activity.reset_index(drop=True)
             activity.to_csv(pathlib.Path(region_directory, self.file_name))
 
-            drive_array = analyze_drive_events(activity)
+            drive_array = analyze_drive_events(activity, self.car_type.name)
             charge_array = analyze_charge_events(activity)
-            return np.vstack(drive_array, charge_array)
+            return np.hstack((drive_array, charge_array))

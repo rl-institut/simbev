@@ -57,11 +57,11 @@ def export_metadata(
 
 
 def export_analysis(analysis_array, directory):
-    df = pd.DataFrame(analysis_array, columns=["drive_count", "drive_max_length", "drive_min_length",
+    df = pd.DataFrame(analysis_array, columns=["car_type", "drive_count", "drive_max_length", "drive_min_length",
                                                "drive_mean_length", "drive_max_consumption",
                                                "drive_min_consumption", "drive_mean_consumption",
                                                "charge_count", "charge_max_length", "charge_min_length",
                                                "charge_mean_length", "charge_max_energy",
                                                "charge_min_energy", "charge_mean_energy"
                                                ])
-    df.to_csv(directory, "analysis.csv")
+    df.to_csv(Path(directory, "analysis.csv"))

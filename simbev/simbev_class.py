@@ -149,7 +149,7 @@ class SimBEV:
                 if region.analyze_array is None:
                     region.analyze_array = car_array
                 else:
-                    region.analyze_array = np.hstack(region.analyze_array, car_array)
+                    region.analyze_array = np.vstack((region.analyze_array, car_array))
             else:
                 car.export(region_directory, self)
 
