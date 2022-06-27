@@ -7,6 +7,8 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
         for idx, data in enumerate(simbev.grid_data_list):
             df_results = data.set_index('timestamp')
 
+            plt.figure(figsize=(15, 9))
+
             plt.plot(df_results['home_total_power'], color='#FF5F00', linestyle='-', linewidth=1, label='home')
             plt.plot(df_results['work_total_power'], color='#AFAFAF', linestyle='-', linewidth=1, label='work')
             plt.plot(df_results['public_total_power'], color='#0082D1', linestyle='-', linewidth=1, label='public')
@@ -20,12 +22,13 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
             plt.gcf().autofmt_xdate()
             plt.tight_layout()
             plt.gca().set_xbound(simbev.start_date_input, simbev.end_date)
-            plt.gcf().set_size_inches(15, 9)
             figname = "region_{}".format(idx+1)
             plt.savefig('{}/{}.png'.format(simbev.save_directory, figname))
 
     if simbev.plot_options["all_in_one"]:
         df_results = grid_timeseries_all.set_index('timestamp')
+
+        plt.figure(figsize=(15, 9))
 
         plt.plot(df_results['home_total_power'], color='#FF5F00', linestyle='-', linewidth=1, label='home')
         plt.plot(df_results['work_total_power'], color='#AFAFAF', linestyle='-', linewidth=1, label='work')
@@ -40,6 +43,5 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
         plt.gcf().autofmt_xdate()
         plt.tight_layout()
         plt.gca().set_xbound(simbev.start_date_input, simbev.end_date)
-        plt.gcf().set_size_inches(15, 9)
         figname = "region_all"
         plt.savefig('{}/{}.png'.format(simbev.save_directory, figname))
