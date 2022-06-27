@@ -245,10 +245,10 @@ class SimBEV:
         end_date = cfg.get("basic", "end_date")
         end_date = helpers.date_string_to_datetime(end_date)
 
-        car_output = cfg.getboolean("basic", "vehicle_csv")
-        grid_output = cfg.getboolean("basic", "grid_time_series_csv")
-        plot_options = {"by_region": cfg.getboolean("basic", "plot_grid_time_series"),
-                        "all_in_one": cfg.getboolean("basic", "plot_grid_time_series_all_in_one")
+        car_output = cfg.getboolean("output", "vehicle_csv")
+        grid_output = cfg.getboolean("output", "grid_time_series_csv")
+        plot_options = {"by_region": cfg.getboolean("output", "plot_grid_time_series_split"),
+                        "all_in_one": cfg.getboolean("output", "plot_grid_time_series_collective")
                         }
 
         cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
