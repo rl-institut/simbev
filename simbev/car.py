@@ -194,13 +194,10 @@ class Car:
 
         chargepower_avg = sum(charged_energy_list) / len(charged_energy_list)*60/15
 
-        # TODO add region grid series, also in charge
-
         return time_steps, chargepower_avg, power, soc_end
 
     def drive(self, distance, start_time, timestamp, duration, destination):
         self.status = "driving"
-        # TODO check for min soc
         if distance > self.remaining_range and self.car_type.label == "BEV":
             return False
         else:
