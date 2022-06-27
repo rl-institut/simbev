@@ -258,11 +258,25 @@ class SimBEV:
         end_date = cfg.get("basic", "end_date")
         end_date = helpers.date_string_to_datetime(end_date)
 
-        car_output = cfg.getboolean("output", "vehicle_csv")
-        grid_output = cfg.getboolean("output", "grid_time_series_csv")
-        plot_options = {"by_region": cfg.getboolean("output", "plot_grid_time_series_split"),
-                        "all_in_one": cfg.getboolean("output", "plot_grid_time_series_collective")
-                        }
+        # get output options from config
+        if cfg.has_option("output", "vehicle_csv"):
+            car_output = cfg.getboolean("output", "vehicle_csv")
+        else:
+            car_output = True
+        if cfg.has_option("output", "grid_time_series_csv"):
+            grid_output = cfg.getboolean("output", "grid_time_series_csv")
+        else:
+            grid_output = True
+        plot_options = {}
+        if cfg.has_option("output", "plot_grid_time_series_split"):
+            plot_options["by_region"] = cfg.getboolean("output", "plot_grid_time_series_split")
+        else:
+            plot_options["by_region"] = False
+
+        if cfg.has_option("output", "plot_grid_time_series_split"):
+            plot_options["all_in_one"] = cfg.getboolean("output", "plot_grid_time_series_collective")
+        else:
+            plot_options["all_in_one"] = False
 
         cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
                     "soc_min": cfg.getfloat("basic", "soc_min"),
