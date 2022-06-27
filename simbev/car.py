@@ -22,9 +22,9 @@ class CarType:
 
 def analyze_charge_events(output_df: pd.DataFrame):
     charge_events = output_df.loc[output_df["energy"] > 0]
-    event_count = len(charge_events.index)
-    max_time = charge_events["event_time"].max()
-    min_time = charge_events["event_time"].min()
+    event_count = str(len(charge_events.index))
+    max_time = int(charge_events["event_time"].max())
+    min_time = int(charge_events["event_time"].min())
     avg_time = round(charge_events["event_time"].mean(), 4)
     max_charge = charge_events["energy"].max()
     min_charge = round(charge_events["energy"].min(), 4)
