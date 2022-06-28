@@ -167,7 +167,7 @@ class Trip:
                 self.drive_found = False
                 self.trip_end = self.region.last_time_step
                 return
-            self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
+            self._set_timestamps()
 
         last_drive_time = self.drive_time - sum_hpc_drivetime
         self.car.drive(remaining_distance, self.drive_start, self.drive_timestamp, last_drive_time,
