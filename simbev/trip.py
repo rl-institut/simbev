@@ -182,5 +182,5 @@ class Trip:
             self.drive_time = self.trip_end - self.drive_start
 
         # check if drive happens after simulation end
-        if self.drive_start > self.region.last_time_step:
+        if self.drive_start > self.region.last_time_step or not self.drive_found:
             self.park_time = self.region.last_time_step - self.park_start
