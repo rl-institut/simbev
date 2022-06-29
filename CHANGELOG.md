@@ -15,10 +15,18 @@ Here is a template for new release sections
 
 ### Changed
 
+-
+
 ### Removed
 
 -
 ```
+
+## [_._._] - 2022-MM-DD
+
+### Changed
+
+- Fix implausible driving times #70
 
 ## [0.1.3] - 2022-05-12
 
