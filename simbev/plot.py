@@ -10,8 +10,8 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
             plt.figure(figsize=(15, 9))
 
             plt.plot(df_results['home_total_power'], color='#FF5F00', linestyle='-', linewidth=1, label='home')
-            plt.plot(df_results['work_total_power'], color='#AFAFAF', linestyle='-', linewidth=1, label='work')
-            plt.plot(df_results['public_total_power'], color='#0082D1', linestyle='-', linewidth=1, label='public')
+            plt.plot(df_results['work_total_power'], color='#0082D1', linestyle='-', linewidth=1, label='work')
+            plt.plot(df_results['public_total_power'], color='#AFAFAF', linestyle='-', linewidth=1, label='public')
             plt.plot(df_results['hpc_total_power'], color='#76B900', linestyle='-', linewidth=1, label='hpc')
 
             plt.title('Region_{}'.format(idx+1))
