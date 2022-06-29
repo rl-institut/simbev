@@ -1,7 +1,7 @@
 dist: xenial   # required for Python >= 3.7
 language: python
 python:
-  - '3.6'
+  - '3.8'
 
 # To install packages which are not on pip
 #before_install:
