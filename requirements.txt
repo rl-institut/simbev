@@ -1,5 +1,5 @@
-configparser
 pandas >= 1.4.0
+configparser
 numpy
 pytest
 matplotlib
