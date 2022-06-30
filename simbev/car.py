@@ -30,7 +30,13 @@ def analyze_charge_events(output_df: pd.DataFrame):
     max_charge = charge_events["energy"].max()
     min_charge = round(charge_events["energy"].min(), 4)
     avg_charge = round(charge_events["energy"].mean(), 4)
-    return np.array([event_count, hpc_count, max_time, min_time, avg_time, max_charge, min_charge, avg_charge])
+    hpc_avg_charge = charge_events["energy"].loc[charge_events["use_case"] == "hpc"].mean()
+    home_avg_charge = charge_events["energy"].loc[charge_events["use_case"] == "home"].mean()
+    work_avg_charge = charge_events["energy"].loc[charge_events["use_case"] == "work"].mean()
+    public_avg_charge = charge_events["energy"].loc[charge_events["use_case"] == "public"].mean()
+
+    return np.array([event_count, hpc_count, max_time, min_time, avg_time, max_charge, min_charge, avg_charge,
+                     hpc_avg_charge, home_avg_charge, work_avg_charge, public_avg_charge])
 
 
 def analyze_drive_events(output_df: pd.DataFrame, car_type: str):

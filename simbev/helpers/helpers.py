@@ -62,6 +62,7 @@ def export_analysis(analysis_array, directory):
                                                "drive_min_consumption", "drive_mean_consumption",
                                                "charge_count", "hpc_count", "charge_max_length", "charge_min_length",
                                                "charge_mean_length", "charge_max_energy",
-                                               "charge_min_energy", "charge_mean_energy"
+                                               "charge_min_energy", "charge_mean_energy", "hpc_mean_energy",
+                                               "home_mean_energy", "work_mean_energy", "public_mean_energy"
                                                ])
     df.to_csv(Path(directory, "analysis.csv"))
