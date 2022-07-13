@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from simbev.car import Car
 import pathlib
 from simbev.mid_timeseries import get_timeseries
 import simbev.helpers.helpers as helpers
@@ -57,7 +56,6 @@ class Region:
         self.last_time_step = len(self.region_type.trip_starts.index)
 
         self.car_dict = {}
-        self.cars = []
 
         self.header_grid_ts = []
         self.grid_time_series = []
@@ -69,22 +67,9 @@ class Region:
 
         self.create_grid_timeseries()
 
-    def add_cars_from_config(self):
-        for car_type_name, car_count in self.car_dict.items():
-            for car_number in range(car_count):
-                car_type = self.simbev.car_types[car_type_name]
-                # create new car objects
-                # TODO: parking parameters that change by region
-                work_parking = self.simbev.work_parking[self.region_type.rs7_type] >= self.simbev.rng.random()
-                home_parking = self.simbev.home_parking[self.region_type.rs7_type] >= self.simbev.rng.random()
-
-                work_power = self.simbev.get_charging_capacity("work") if work_parking else None
-                home_power = self.simbev.get_charging_capacity("home") if home_parking else None
-                # SOC init value for the first monday
-                # formula from Kilian, TODO maybe not needed anymore
-                soc_init = self.simbev.rng.random() ** (1 / 3) * 0.8 + 0.2 if self.simbev.rng.random() < 0.12 else 1
-                new_car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, self, soc_init)
-                self.cars.append(new_car)
+    @property
+    def car_amount(self):
+        return sum(self.car_dict.values())
 
     def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end):
         # distribute power to use cases dependent on power

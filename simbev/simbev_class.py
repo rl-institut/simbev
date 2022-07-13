@@ -3,7 +3,7 @@ import simbev.helpers.helpers as helpers
 import pandas as pd
 import numpy as np
 from simbev.region import Region, RegionType
-from simbev.car import CarType
+from simbev.car import CarType, Car
 from simbev.trip import Trip
 import simbev.plot as plot
 import multiprocessing as mp
@@ -131,29 +131,43 @@ class SimBEV:
             print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
         else:
             print(f"Starting Region {region.id} ({region.number + 1}/{len(self.regions)})")
-        region.add_cars_from_config()
         region_directory = pathlib.Path(self.save_directory, str(region.id))
         region_directory.mkdir(parents=True, exist_ok=True)
-        for car_count, car in enumerate(region.cars):
-            if self.num_threads == 1:
-                print("\r{}% {} {} / {}".format(
-                    round((car_count + 1) * 100 / len(region.cars)),
-                    car.car_type.name,
-                    (car.number + 1), region.car_dict[car.car_type.name]
-                ), end="", flush=True)
-            self.simulate_car(car, region)
 
-            # export vehicle csv
-            if self.analyze:
-                car_array = car.export(region_directory, self)
-                if region.analyze_array is None:
-                    region.analyze_array = car_array
+        for car_type_name, car_count in region.car_dict.items():
+            for car_number in range(car_count):
+                # Create new car
+                car_type = self.car_types[car_type_name]
+                # create new car objects
+                # TODO: parking parameters that change by region
+                work_parking = self.work_parking[region.region_type.rs7_type] >= self.rng.random()
+                home_parking = self.home_parking[region.region_type.rs7_type] >= self.rng.random()
+
+                work_power = self.get_charging_capacity("work") if work_parking else None
+                home_power = self.get_charging_capacity("home") if home_parking else None
+                # SOC init value for the first monday
+                # formula from Kilian, TODO maybe not needed anymore
+                soc_init = self.rng.random() ** (1 / 3) * 0.8 + 0.2 if self.rng.random() < 0.12 else 1
+                car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, region, soc_init)
+
+                if self.num_threads == 1:
+                    print("\r{}% {} {} / {}".format(
+                        round((car_count + 1) * 100 / region.car_amount),
+                        car.car_type.name,
+                        (car.number + 1), region.car_dict[car.car_type.name]
+                    ), end="", flush=True)
+
+                self.simulate_car(car, region)
+
+                # export vehicle csv
+                if self.analyze:
+                    car_array = car.export(region_directory, self)
+                    if region.analyze_array is None:
+                        region.analyze_array = car_array
+                    else:
+                        region.analyze_array = np.vstack((region.analyze_array, car_array))
                 else:
-                    region.analyze_array = np.vstack((region.analyze_array, car_array))
-            else:
-                car.export(region_directory, self)
-
-        region.cars = []
+                    car.export(region_directory, self)
 
         region.export_grid_timeseries(region_directory)
         if self.analyze:
