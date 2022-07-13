@@ -134,6 +134,7 @@ class SimBEV:
         region_directory = pathlib.Path(self.save_directory, str(region.id))
         region_directory.mkdir(parents=True, exist_ok=True)
 
+        cars_simulated = 0
         for car_type_name, car_count in region.car_dict.items():
             for car_number in range(car_count):
                 # Create new car
@@ -152,7 +153,7 @@ class SimBEV:
 
                 if self.num_threads == 1:
                     print("\r{}% {} {} / {}".format(
-                        round((car_count + 1) * 100 / region.car_amount),
+                        round((cars_simulated + car_number + 1) * 100 / region.car_amount),
                         car.car_type.name,
                         (car.number + 1), region.car_dict[car.car_type.name]
                     ), end="", flush=True)
@@ -168,6 +169,7 @@ class SimBEV:
                         region.analyze_array = np.vstack((region.analyze_array, car_array))
                 else:
                     car.export(region_directory, self)
+            cars_simulated += car_count
 
         region.export_grid_timeseries(region_directory)
         if self.analyze:
