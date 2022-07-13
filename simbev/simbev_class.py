@@ -88,7 +88,7 @@ class SimBEV:
             self.car_types[car_type_name] = car_type
 
     def _create_region_type(self, region_type):
-        rs7_region = RegionType(region_type, self.grid_output)
+        rs7_region = RegionType(region_type, self.grid_output, self.step_size, self.charging_probabilities)
         rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
         rs7_region.get_probabilities(self.data_directory)
         self.created_region_types[region_type] = rs7_region
@@ -107,7 +107,7 @@ class SimBEV:
                 self._create_region_type(region_type)
 
             # create region objects
-            new_region = Region(region_id, self.created_region_types[region_type], region_counter, self, car_dict)
+            new_region = Region(region_id, self.created_region_types[region_type], region_counter, car_dict)
             self.regions.append(new_region)
 
     def run_multi(self):

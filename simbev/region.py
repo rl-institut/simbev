@@ -6,8 +6,10 @@ import simbev.helpers.helpers as helpers
 
 
 class RegionType:
-    def __init__(self, rs7_type, grid_output):
+    def __init__(self, rs7_type, grid_output, step_size, charging_probabilities):
         self.rs7_type = rs7_type
+        self.step_size = step_size
+        self.charging_probabilities = charging_probabilities
         self.time_series = None
         self.trip_starts = None
         self.probabilities = {}
@@ -47,11 +49,10 @@ class RegionType:
 
 
 class Region:
-    def __init__(self, region_id, region_type: RegionType, region_counter, simbev_obj, car_dict):
+    def __init__(self, region_id, region_type: RegionType, region_counter, car_dict):
         self.id = region_id
         self.region_type = region_type
         self.number = region_counter
-        self.simbev = simbev_obj
 
         self.last_time_step = len(self.region_type.trip_starts.index)
 
@@ -102,8 +103,8 @@ class Region:
         return prob.iat[0, -1]
 
     def create_grid_timeseries(self):
-        header_slow = list(self.simbev.charging_probabilities['slow'].columns)
-        header_fast = list(self.simbev.charging_probabilities['fast'].columns)
+        header_slow = list(self.region_type.charging_probabilities['slow'].columns)
+        header_fast = list(self.region_type.charging_probabilities['fast'].columns)
         if '0' in header_slow:
             header_slow.remove('0')
         if '0' in header_fast:
@@ -144,7 +145,7 @@ class Region:
             data['timestamp'] = self.region_type.time_series.index
 
             # remove first week from dataframe
-            week_time_steps = int(24 * 7 * 60 / self.simbev.step_size)
+            week_time_steps = int(24 * 7 * 60 / self.region_type.step_size)
             data['timestep'] = data.index
             data['timestep'] -= week_time_steps
             data = data.loc[(data['timestep']) >= 0]

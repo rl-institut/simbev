@@ -150,14 +150,14 @@ class Car:
 
     def charge_home(self, trip):
         if self.home_capacity is not None:
-            self.charge(trip, self.home_capacity, "slow", step_size=self.region.simbev.step_size,
+            self.charge(trip, self.home_capacity, "slow", step_size=self.region.region_type.step_size,
                         max_charging_time=trip.park_time)
         else:
             raise ValueError("Home charging attempted but power is None!")
 
     def charge_work(self, trip):
         if self.work_capacity is not None:
-            self.charge(trip, self.work_capacity, "slow", step_size=self.region.simbev.step_size,
+            self.charge(trip, self.work_capacity, "slow", step_size=self.region.region_type.step_size,
                         max_charging_time=trip.park_time)
         else:
             raise ValueError("Work charging attempted but power is None!")
