@@ -36,9 +36,9 @@ Make sure you have conda installed, e.g. miniconda. Then create the env:
 
 - You can use a default scenario or define a custom one in the directory `scenarios`, see
   [scenario readme](./simbev/scenarios/README.md) for further instructions
-- Run main_simbev.py with the desired scenario: `python main_simbev.py <SCENARIO_NAME>`
-  (defaults to `python main_simbev.py default_single`)
-- Results are created in directory `res`
+- Run simbev with the desired scenario: `python -m simbev <SCENARIO_NAME>`
+  (defaults to `python -m simbev default`)
+- Results are created in directory `results`
 
 ## Set parameters for your scenario
 
