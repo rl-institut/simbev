@@ -4,28 +4,12 @@
 
 Available default scenarios:
 
-- [default_single](./default_single/SCENARIO.md)
-- [default_multi](./default_multi/SCENARIO.md)
-- [default_RS7](./default_RS7/SCENARIO.md)
+* [default](default/SCENARIO.md), a small scenario for testing purposes
+* [default_RS7](default_RS7/SCENARIO.md), scenario with realistic example numbers per region type
 
 ## Create new scenario
 
-This is the scenario directory. You can create new scenarios in two different
-ways:
-
-### (I) Single region
-
-Create a new scenario by adding a new directory `<SCENARIO_NAME>` with the
-following files:
-    
-    charging_point_probability.csv
-    fast_charging_probability.csv
-    simbev_config.cfg (simbev config file with ramp up and tech data)
-    SCENARIO.md (optional)
-
-See example `default_single`.
-
-### (II) Multiple regions
+This is the scenario directory. You can create new scenarios here:
 
 Create a new scenario by adding a new directory `<SCENARIO_NAME>` with the
 following files:
@@ -37,4 +21,4 @@ following files:
     tech_data.csv
     SCENARIO.md (optional)
 
-See example `default_multi`.
+See example `default`.
