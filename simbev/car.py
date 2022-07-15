@@ -328,7 +328,7 @@ class Car:
                 activity.at[activity.index[0], "energy"] = new_demand
 
             elif activity.at[activity.index[0], "energy"] < 0:
-                new_consumption = round(activity.at[activity.index[0], "energy"] / (pre_event_len / event_len), 4)
+                new_consumption = round(activity.at[activity.index[0], "energy"] * (post_event_len / event_len), 4)
                 activity.at[activity.index[0], "energy"] = new_consumption
 
             # fit first row event to start at time step 0
