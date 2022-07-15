@@ -4,8 +4,8 @@
 
 Available default scenarios:
 
-- [default](default/SCENARIO.md)
-- [default_RS7](./default_RS7/SCENARIO.md)
+* [default](default/SCENARIO.md), a small scenario for testing purposes
+* [default_RS7](default_RS7/SCENARIO.md), scenario with realistic example numbers per region type
 
 ## Create new scenario
 
