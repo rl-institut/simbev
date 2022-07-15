@@ -4,29 +4,28 @@ All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and the versioning aim to respect [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-Here is a template for new release sections
-
-```
-## [_._._] - 20XX-MM-DD
+## [1.0.0] - 2022-07-15
 
 ### Added
 
--
-
-### Changed
-
--
-
-### Removed
-
--
-```
-
-## [_._._] - 2022-MM-DD
+- Complete revamp of the code base #71
+- New HPC methodology
+- Optional plots
+- Minimum charging energy and SoC threshold
+- Charging curve calculation
 
 ### Changed
 
 - Fix implausible driving times #70
+- Optional time series outputs have more data
+- Vehicle csv outputs are now optional
+- All instances of DataFrame.append() have been changed to pandas.concat() #71
+- Performance for time series outputs has been improved drastically #71
+
+### Removed
+
+- Old code
+- Single regions
 
 ## [0.1.3] - 2022-05-12
 
