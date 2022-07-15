@@ -124,7 +124,8 @@ class SimBEV:
             pool.close()
             pool.join()
         grid_time_series_all_regions = self.export_grid_timeseries_all_regions()
-        plot.plot_gridtimeseries_by_usecase(self, grid_time_series_all_regions)
+        if True in self.plot_options.values():
+            plot.plot_gridtimeseries_by_usecase(self, grid_time_series_all_regions)
 
     def run(self, region):
         if self.num_threads == 1:

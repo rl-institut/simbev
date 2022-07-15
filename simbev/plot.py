@@ -1,7 +1,5 @@
-import matplotlib.pyplot as plt
-
-
 def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
+    import matplotlib.pyplot as plt
     # TODO fix plot first region outputs all regions data (log_region_data)
     if simbev.plot_options["by_region"]:
         for idx, data in enumerate(simbev.grid_data_list):
