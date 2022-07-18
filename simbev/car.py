@@ -187,7 +187,7 @@ class Car:
         for i in range(time_steps):
 
             if max_charging_time is not None and i >= max_charging_time:
-                soc_end = soc_start + sum(charged_energy_list) / self.car_type.battery_capacity
+                soc_end = min(1, soc_start + sum(charged_energy_list) / self.car_type.battery_capacity)
                 # check if min charging energy is loaded
                 if ((soc_end - soc_start) * self.car_type.battery_capacity) <= \
                         self.car_type.energy_min[self._get_usecase(power)]:
