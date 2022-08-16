@@ -225,6 +225,8 @@ class Car:
         return time_steps, chargepower_avg, power, soc_end
 
     def drive(self, distance, start_time, timestamp, duration, destination):
+        if duration <= 0:
+            raise ValueError(f"Drive duration of vehicle {self.file_name} is 0 at {timestamp}")
         self.status = "driving"
         if distance > self.remaining_range and self.car_type.label == "BEV":
             return False
