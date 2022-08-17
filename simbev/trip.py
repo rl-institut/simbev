@@ -169,10 +169,10 @@ class Trip:
                 return
             self._set_timestamps()
 
-        last_drive_time = self.drive_time - sum_hpc_drivetime
+        last_drive_time = max(self.drive_time - sum_hpc_drivetime, 1)
         self.car.drive(remaining_distance, self.drive_start, self.drive_timestamp, last_drive_time,
                        self.destination)
-        # update trip end to start next parking at
+        # update trip end to start next parking at correct time stamp
         self.trip_end = self.drive_start + last_drive_time
 
     def fit_trip_to_timerange(self):
