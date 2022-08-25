@@ -318,33 +318,37 @@ class Car:
             activity["event_start"] -= week_time_steps
             activity = activity.loc[(activity["event_start"] + activity["event_time"]) > 0]
 
-            # change first row event if it has charging demand or consumption
-            event_len = activity.at[activity.index[0], "event_time"]
-            post_event_len = activity.at[activity.index[1], "event_start"]
-            pre_event_len = event_len - post_event_len
+            # change first row event if it has charging demand or consumption if it doesn't start at time step 0
+            if activity.at[activity.index[0], "event_start"] < 0:
+                event_len = activity.at[activity.index[0], "event_time"]
+                post_event_len = activity.at[activity.index[1], "event_start"]
+                pre_event_len = event_len - post_event_len
 
-            # TODO adjust start_soc
-            if activity.at[activity.index[0], "energy"] > 0:
-                pre_demand = activity.at[activity.index[0], "average_charging_power"] * pre_event_len * \
-                             simbev.step_size / 60
-                new_demand = round(max(activity.at[activity.index[0], "energy"] - pre_demand, 0), 4)
-                activity.at[activity.index[0], "energy"] = new_demand
+                # change charging events
+                if activity.at[activity.index[0], "energy"] > 0:
+                    pre_demand = activity.at[activity.index[0], "average_charging_power"] * pre_event_len * \
+                                 simbev.step_size / 60
+                    new_demand = round(max(activity.at[activity.index[0], "energy"] - pre_demand, 0), 4)
+                    activity.at[activity.index[0], "energy"] = new_demand
 
-            elif activity.at[activity.index[0], "energy"] < 0:
-                new_consumption = round(activity.at[activity.index[0], "energy"] * (post_event_len / event_len), 4)
-                activity.at[activity.index[0], "energy"] = new_consumption
+                # change driving events
+                elif activity.at[activity.index[0], "energy"] < 0:
+                    new_consumption = round(activity.at[activity.index[0], "energy"] * (post_event_len / event_len), 4)
+                    activity.at[activity.index[0], "energy"] = new_consumption
 
-            activity.at[activity.index[0], "soc_start"] = activity.at[activity.index[0], "soc_end"] - \
-                activity.at[activity.index[0], "energy"] / self.car_type.battery_capacity
+                # adjust value for starting soc in first row
+                activity.at[activity.index[0], "soc_start"] = round(activity.at[activity.index[0], "soc_end"] -
+                                                                    activity.at[activity.index[0], "energy"] /
+                                                                    self.car_type.battery_capacity, 4)
 
-            activity.at[activity.index[0], "average_charging_power"] = \
-                activity.at[activity.index[0], "energy"] / (post_event_len * simbev.step_size / 60) \
-                if post_event_len else 0
+                # adjust value for average charging power in first row
+                activity.at[activity.index[0], "average_charging_power"] = \
+                    activity.at[activity.index[0], "energy"] / (post_event_len * simbev.step_size / 60)
 
-            # fit first row event to start at time step 0
-            activity.at[activity.index[0], "event_start"] = 0
-            activity.at[activity.index[0], "event_time"] = post_event_len
-            activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
+                # fit first row event to start at time step 0
+                activity.at[activity.index[0], "event_start"] = 0
+                activity.at[activity.index[0], "event_time"] = post_event_len
+                activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
 
             activity = activity.reset_index(drop=True)
             activity.to_csv(pathlib.Path(region_directory, self.file_name))
