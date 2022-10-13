@@ -214,13 +214,13 @@ class Car:
             t_load[0] = t_diff
 
             p_soc = p_soc[k - 1:]
-            chargepower_timestep = sum(e_load)*60/15
+            chargepower_timestep = sum(e_load) * 60 / step_size
 
             use_case = self._get_usecase(power)
             self.region.update_grid_timeseries(use_case, chargepower_timestep, power, trip.park_start + i,
                                                trip.park_start + i + 1)
 
-        chargepower_avg = sum(charged_energy_list) / len(charged_energy_list)*60/15
+        chargepower_avg = sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
 
         return time_steps, chargepower_avg, power, soc_end
 

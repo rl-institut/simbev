@@ -1,4 +1,5 @@
 simbev/results/*/
+simbev/scenarios/
 *.pyc
 .pytest_cache
 .vscode
@@ -10,3 +11,4 @@ _build
 .tox
 .coverage
 .idea
+venv/
