@@ -138,7 +138,7 @@ class Trip:
         while remaining_distance > self.car.remaining_range and self.car.car_type.label == 'BEV':
             # get time and distance until next hpc station
             hpc_distance = self.rng.uniform(0.6, 1) * self.car.remaining_range
-            hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
+            hpc_drive_time = max(math.ceil(hpc_distance / self.distance * self.drive_time), 1)
             sum_hpc_drivetime += hpc_drive_time
 
             if self.drive_start + hpc_drive_time >= self.region.last_time_step:
