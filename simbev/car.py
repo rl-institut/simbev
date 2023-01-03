@@ -52,7 +52,7 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
 
 
 class Car:
-    def __init__(self, car_type: CarType, number: int, work_parking, home_parking,
+    def __init__(self, car_type: CarType, number: int, work_parking, home_parking, hpc_data,
                  work_capacity, home_capacity, region, soc: float = 1., status: str = "home"):
 
         self.car_type = car_type
@@ -67,6 +67,7 @@ class Car:
         self.region = region
         self.user_spec = 0
         self.hpc_pref = 0
+        self.hpc_data = hpc_data
 
         # lists to track output data
         # TODO: swap to np.array for better performance?
@@ -130,7 +131,7 @@ class Car:
                 raise ValueError("Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
                     self.car_type.name
                 ))
-            soc_end = trip.rng.uniform(0.8, 0.95)
+            soc_end = trip.rng.uniform(trip.simbev.hpc_data['soc_end_min'], trip.simbev.hpc_data['soc_end_max'])
             charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size, max_charging_time,
                                                                        charging_type, soc_end)
             self.soc = soc
@@ -287,17 +288,17 @@ class Car:
         elif self.home_capacity != 0 and self.home_parking:
             if self.work_capacity != 0 and self.work_parking:
                 self.user_spec = 'A'  # private LIS at home and at work
-                self.hpc_pref = 0.25
+                self.hpc_pref = self.hpc_data['hpc_pref_A']
             else:
                 self.user_spec = 'B'  # private LIS at home but not at work
-                self.hpc_pref = 0.5
+                self.hpc_pref = self.hpc_data['hpc_pref_B']
         else:
             if self.work_capacity != 0 and self.work_parking:
                 self.user_spec = 'C'  # private LIS not at home but at work
-                self.hpc_pref = 0.5
+                self.hpc_pref = self.hpc_data['hpc_pref_C']
             else:
                 self.user_spec = 'D'  # private LIS not at home and not at work. Primarily HPC
-                self.hpc_pref = 0.75
+                self.hpc_pref = self.hpc_data['hpc_pref_D']
 
     def export(self, region_directory, simbev):
         """

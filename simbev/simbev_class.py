@@ -14,13 +14,14 @@ import configparser as cp
 
 
 class SimBEV:
-    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
+    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, hpc_data: pd.DataFrame,
                  config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, car_output=True,
                  grid_output=True):
         # parameters from arguments
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
         self.tech_data = tech_data
+        self.hpc_data = hpc_data.to_dict()['values']
 
         # parameters from config_dict
         self.step_size = config_dict["step_size"]
@@ -150,11 +151,11 @@ class SimBEV:
                 # SOC init value for the first monday
                 # formula from Kilian, TODO maybe not needed anymore
                 soc_init = self.rng.random() ** (1 / 3) * 0.8 + 0.2 if self.rng.random() < 0.12 else 1
-                car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, region, soc_init)
+                car = Car(car_type, car_number, work_parking, home_parking, self.hpc_data, work_power, home_power, region, soc_init)
 
                 if self.num_threads == 1:
                     print("\r{}% {} {} / {}".format(
-                        round((cars_simulated + car_number + 1) * 100 / region.car_amount),
+                        round((cars_simulated + car_number + 1) *100 / region.car_amount),
                         car.car_type.name,
                         (car.number + 1), region.car_dict[car.car_type.name]
                     ), end="", flush=True)
@@ -291,7 +292,10 @@ class SimBEV:
                     "home_private": cfg.getfloat("charging_probabilities", "private_parking_home", fallback=0.5),
                     "work_private": cfg.getfloat("charging_probabilities", "private_parking_work", fallback=0.5),
                     }
+
+        hpc_df = pd.read_csv(pathlib.Path(scenario_path, cfg["hpc_params"]["hpc_data"]), sep=',', index_col=0)
+
         num_threads = cfg.getint('sim_params', 'num_threads')
 
-        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private, energy_min,
+        return SimBEV(region_df, charge_prob_dict, tech_df, hpc_df, cfg_dict, scenario_path.stem, home_work_private, energy_min,
                       plot_options, num_threads, car_output, grid_output), cfg

@@ -105,7 +105,8 @@ class Trip:
         elif self.location == "work" and self.car.work_parking:
             self.car.charge_work(self)
         else:
-            if self.car.soc <= 0.6 and self.car.hpc_pref >= self.rng.random() and self.park_time <= 6:
+            if self.car.soc <= self.simbev.hpc_data['soc_start_threshold'] and self.car.hpc_pref >= self.rng.random() \
+                    and self.park_time <= (self.simbev.hpc_data['park_time_max'] / self.step_size):
                 # get parameters for charging at hpc station
                 charging_capacity = self.simbev.get_charging_capacity(location="hpc",
                                                                       distance=self.distance)
@@ -137,7 +138,7 @@ class Trip:
         # check if next drive needs charging to be completed
         while remaining_distance > self.car.remaining_range and self.car.car_type.label == 'BEV':
             # get time and distance until next hpc station
-            hpc_distance = self.rng.uniform(0.6, 1) * self.car.remaining_range
+            hpc_distance = self.rng.uniform(self.simbev.hpc_data['distance_min'], self.simbev.hpc_data['distance_max']) * self.car.remaining_range
             hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
             sum_hpc_drivetime += hpc_drive_time
 
