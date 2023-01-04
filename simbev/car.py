@@ -7,6 +7,31 @@ import math
 
 @dataclass
 class CarType:
+    """SimBEV constructor.
+
+    Parameters
+    ----------
+    name : str
+        Type and class of vehicle.
+    battery_capacity : float
+        Capacity of battery.
+    charging_capacity : dict
+        maximum charging-power of vehicle.
+    soc_min : soc_min
+        Minimum soc that is allowed.
+    charging_threshold : float
+        Soc threshold for tripping a charging event.
+    energy_min : dict
+        Minimum energy for charging events by use case.
+    charging_curve : dict
+        curve that describes charging-power dependent of soc.
+    consumption : float
+        consumption of car.
+    output : bool
+        Setting for output.
+    label : str
+        Drive type of vehicle.
+    """
     name: str
     battery_capacity: float
     charging_capacity: dict
@@ -22,6 +47,19 @@ class CarType:
 
 
 def analyze_charge_events(output_df: pd.DataFrame):
+    """Analyzes charging events in the timeseries of one vehicle.
+
+    Parameters
+    ----------
+    output_df : Dataframe
+        Specific time series for given vehicle.
+
+    Returns
+    -------
+    ndarray
+        Returns information about charging events of vehicle in whole timeframe.
+    """
+
     charge_events = output_df.loc[output_df["energy"] > 0]
     event_count = str(len(charge_events.index))
     hpc_count = len(charge_events.loc[charge_events["use_case"] == "hpc"].index)
@@ -41,6 +79,22 @@ def analyze_charge_events(output_df: pd.DataFrame):
 
 
 def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
+    """Analyzes driving events in the timeseries of one vehicle.
+
+    Parameters
+    ----------
+    output_df : Dataframe
+        Specific time series for given vehicle.
+    car_type : str
+        Type of vehicle.
+
+    Returns
+    -------
+    ndarray
+        Returns information about driving events of vehicle in whole timeframe.
+    """
+
+
     drive_events = output_df.loc[output_df["energy"] < 0]
     event_count = len(drive_events.index)
     max_time = drive_events["event_time"].max()
@@ -69,7 +123,31 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
 class Car:
     def __init__(self, car_type: CarType, number: int, work_parking, home_parking, hpc_data,
                  work_capacity, home_capacity, region, soc: float = 1., status: str = "home"):
+        """Car constructor.
 
+        Parameters
+        ----------
+        car_type : CarType
+            Includes all information regarding the vehicle.
+        number : int
+            Number of the vehicle.
+        work_parking : bool
+            Identifier for private parking at work.
+        home_parking : bool
+            Identifier for private parking at work.
+        hpc_data : dict
+            Configuration-data for hpc charging.
+        work_capacity
+            Power of LIS at work
+        home_capacity
+            Power of LIS at work
+        region : Region
+            Includes data related to current region
+        soc : float
+            Soc of car.
+        status : str
+            Location of car.
+        """
         self.car_type = car_type
         self.soc_start = soc
         self.soc = soc
@@ -108,7 +186,21 @@ class Car:
 
     def _update_activity(self, timestamp, event_start, event_time, distance=0, destination='',
                          nominal_charging_capacity=0, charging_power=0):
-        """Records newest energy and activity"""
+        """Records newest energy and activity
+
+        Parameters
+        ----------
+        timestamp : Timestamp
+            Date and time of event.
+        event_start : int
+            start timestep of event
+        event_time : int
+            duration of event in timesteps.
+        nominal_charging_capacity : int
+            Nominal charging-power of event.
+        charging_power : int
+            Charging-power of event.
+        """
         if self.car_type.output:
             self.output["timestamp"].append(timestamp)
             self.output["event_start"].append(event_start)
@@ -127,9 +219,36 @@ class Car:
             self.output["destination"].append(destination)
 
     def park(self, trip):
+        #TODO: delete function because not in use
+
+        """Parking Event.
+
+        Parameters
+        ----------
+        trip : Trip
+            .
+        """
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
 
     def charge(self, trip, power, charging_type, step_size=None, long_distance=None, max_charging_time=None):
+        """Function for charging.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about trip.
+        power : float
+            Power of charging-point.
+        charging_type : str
+            Type of charging.
+        step_size : int
+            Step-size of simulation.
+        long_distance : bool
+            Indicates if trip is a long distance drive.
+        max_charging_time : int
+            Maximum possible time spend charging.
+        """
+
         if self.soc >= self.car_type.charging_threshold:
             power = 0
 
@@ -168,6 +287,14 @@ class Car:
             raise ValueError("Charging type {} is not accepted in charge function!".format(charging_type))
 
     def charge_home(self, trip):
+        """Function for initiation of charging-event in use-case home.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about current trip.
+        """
+
         if self.home_capacity is not None:
             self.charge(trip, self.home_capacity, "slow", step_size=self.region.region_type.step_size,
                         max_charging_time=trip.park_time)
@@ -175,6 +302,14 @@ class Car:
             raise ValueError("Home charging attempted but power is None!")
 
     def charge_work(self, trip):
+        """Function for initiation of charging-event in use-case work.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about current trip.
+        """
+
         if self.work_capacity is not None:
             self.charge(trip, self.work_capacity, "slow", step_size=self.region.region_type.step_size,
                         max_charging_time=trip.park_time)
@@ -182,6 +317,19 @@ class Car:
             raise ValueError("Work charging attempted but power is None!")
 
     def charging_curve(self, trip, power, step_size, max_charging_time, charging_type, soc_end):
+        """Implementation of charging curve.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about current trip.
+        power :
+        step_size
+        max_charging_time
+        charging_type
+        soc_end
+        """
+
         soc_start = self.soc
 
         # check if min charging energy is loaded
