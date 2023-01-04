@@ -18,6 +18,73 @@ class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, hpc_data: pd.DataFrame,
                  config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, car_output=True,
                  grid_output=True, timing=True, analyze=False)):
+
+        """SimBEV constructor.
+
+        Parameters
+        ----------
+        analyse : bool
+            Setting for car analysis.
+        car_types : dict
+            Contains tech-data for all car-types.
+        charging_probabilities : dict
+            Probabilities for selection of charging-power for all destinations.
+        charging_threshold : float
+            Threshold for trigger of charging events.
+        created_region_types : dict
+            Region-types that are already created.
+        data_directory : WindowsPath
+            Path for input-data.
+        end_date : date
+            End of simulation.
+        energy_min : DataFrame
+            Minimum Energy to be charged by use-case.
+        eta_cp : float
+            Efficiency.
+        file_name_all : str
+            File name for grid time series of all regions.
+        grid_data_list : list
+            Collection of grid data.
+        grid_output : bool
+            Selection for output of grid timeseries.
+        home_parking : Series
+            Share of private parking at home by region.
+        hpc_data : dict
+            Input data for hpc-calculations.
+        name : str
+            Name of Szenario.
+        num_threads : int
+            Number of cores used for simulation.
+        plot_options : dict
+            Setting for plot outputs.
+        region_data : DataFrame
+            Amount of cars per car-type for each region.
+        regions : list
+            Regions that are simulated.
+        rng : Generator
+            Random Number Generator
+        save_directory : WindowsPath
+            Directory for saving Results.
+        soc_min : float
+            Minimal SoC tolerated.
+        start_date : date
+            Start of Simulation with including lead time.
+        start_date_input : date
+            Start of Simulation after lead time.
+        start_date_output : datetime
+            Start of Simulation after lead time.
+        step_size : int
+            Size of simulations-timesteps.
+        step_size_str : str
+            Size of simulations-timesteps.
+        tech_data : DataFrame
+            Technical data for all car-types
+        timestamp : str
+            current time
+        work_parking : Series
+            Probability of having a private parking spot at work by region.
+        """
+
         self.timing = timing
         # parameters from arguments
         self.region_data = region_data
