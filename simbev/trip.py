@@ -10,7 +10,7 @@ class Trip:
     region : Region
         region object where the trip happens
     car : Car
-        car object that takes the trip
+        car object that takes the trip.
     simbev : SimBEV
         SimBEV object
     park_start : int
@@ -128,18 +128,24 @@ class Trip:
                 self._create_fast_charge_events()
 
     def _set_timestamps(self):
+        """
+        Sets timestep for drive and park.
+        """
         self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
         if self.drive_found:
             self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
 
     def _create_fast_charge_events(self):
+        """Creates hpc-event.
+        """
         remaining_distance = self.distance
         sum_hpc_drivetime = 0
 
         # check if next drive needs charging to be completed
         while remaining_distance > self.car.remaining_range and self.car.car_type.label == 'BEV':
             # get time and distance until next hpc station
-            hpc_distance = self.rng.uniform(self.simbev.hpc_data['distance_min'], self.simbev.hpc_data['distance_max']) * self.car.precise_remaining_range
+            hpc_distance = self.rng.uniform(self.simbev.hpc_data['distance_min'],
+                                            self.simbev.hpc_data['distance_max']) * self.car.precise_remaining_range
             hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
             sum_hpc_drivetime += hpc_drive_time
 
@@ -178,6 +184,9 @@ class Trip:
         self.trip_end = self.drive_start + last_drive_time
 
     def fit_trip_to_timerange(self):
+        """
+        Cuts of time-series so it is in simulation-timerange.
+        """
         # check if trip ends after simulation end
         if self.trip_end > self.region.last_time_step:
             self.trip_end = self.region.last_time_step

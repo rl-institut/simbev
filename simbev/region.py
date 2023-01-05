@@ -7,6 +7,18 @@ import simbev.helpers.helpers as helpers
 
 class RegionType:
     def __init__(self, rs7_type, grid_output, step_size, charging_probabilities):
+        """Constructor for class RegionType.
+        Parameters
+        ----------
+        rs7_type : str
+            Type of the region defined by RegioStaR7.
+        grid_output : bool
+            Identifier if grid output is activated.
+        step_size : int
+            Step-size of simulation.
+        charging_probabilities : dict
+            Probabilities for power of charging-point.
+        """
         self.rs7_type = rs7_type
         self.step_size = step_size
         self.charging_probabilities = charging_probabilities
@@ -16,12 +28,31 @@ class RegionType:
         self.output = grid_output
 
     def create_timeseries(self, start_date, end_date, step_size, data_directory):
+        """ Creating timeseries for vehicle.
+
+        Parameters
+        ----------
+        start_date : date
+            Start-date of simulation.
+        end_date : date
+            End-date of simulation.
+        step_size : int
+            Step-size of simulation
+        """
+
         if not self.time_series:
             self.time_series = get_timeseries(start_date, end_date, self.rs7_type, step_size, data_directory)
             self.trip_starts = self.time_series.sum(axis=1)
             self.trip_starts = self.trip_starts / self.trip_starts.max()
 
     def get_probabilities(self, data_directory):
+        """Unites probabilities for trip.
+
+        Parameters
+        ----------
+        data_directory : WindowsPath
+            Directory of input-data.
+        """
 
         self.probabilities = {
             "speed": {},
@@ -50,6 +81,21 @@ class RegionType:
 
 class Region:
     def __init__(self, region_id, region_type: RegionType, region_counter, car_dict):
+        """
+        Constructor of class Region.
+
+        Parameters
+        ----------
+        region_id : str
+            Identifier for region-type
+        region_type : RegionType
+            Object of class RegionType
+        region_counter : int
+            Number of region
+        car_dict : dict
+            Distribution of cars in region.
+        """
+
         self.id = region_id
         self.region_type = region_type
         self.number = region_counter
@@ -70,9 +116,31 @@ class Region:
 
     @property
     def car_amount(self):
+        """ Returns number of vehicles
+        Returns
+        -------
+        int
+            Number of vehicles
+        """
         return sum(self.car_dict.values())
 
     def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end):
+        """ Writes values in grid-time-series
+
+        Parameters
+        ----------
+        use_case : str
+            Use-case of event.
+        chargepower : float
+            Average power of charging-event.
+        power_lis : float
+            Maximum power of charging-point.
+        timestep_start : int
+            Start of event.
+        timestep_end : int
+            End of event.
+        """
+
         # distribute power to use cases dependent on power
         if self.region_type.output:
             code = 'cars_{}_{}'.format(use_case, power_lis)
@@ -91,11 +159,47 @@ class Region:
             self.grid_time_series[timestep_start:timestep_end, column] += chargepower
 
     def get_purpose(self, rng, time_step):
+        """Determinants purpose of trip.
+
+        Parameters
+        ----------
+        rng : Generator
+            Random number generator
+        time_step : int
+            Time-step of simulation.
+
+        Returns
+        -------
+        int
+            Destination of trip.
+        """
         random_number = rng.random()
         purpose_probabilities = self.region_type.time_series.iloc[time_step]
         return helpers.get_column_by_random_number(purpose_probabilities, random_number)
 
     def get_probability(self, rng, destination, key):
+        """ Gets properties for trip in use of probabilities
+
+        Parameters
+        ----------
+        rng : Generator
+            Random number generator.
+        destination : str
+            Destination of trip.
+        key : str
+            Key for probability.
+
+        Returns
+        -------
+        float
+            probability for parameter.
+
+        Raises
+        ------
+        ValueError
+            If destination is hpc.
+        """
+
         if destination == 'hpc':
             raise ValueError("Destination {} is not accepted in get probability!".format(destination))
         probabilities = self.region_type.probabilities[key][destination]
@@ -103,6 +207,8 @@ class Region:
         return prob.iat[0, -1]
 
     def create_grid_timeseries(self):
+        """Constructs grid-time-series
+        """
         header_slow = list(self.region_type.charging_probabilities['slow'].columns)
         header_fast = list(self.region_type.charging_probabilities['fast'].columns)
         if '0' in header_slow:
@@ -132,12 +238,12 @@ class Region:
 
     def export_grid_timeseries(self, region_directory):
         """
-        Exports the grid time series to a csv file.
+        Exports the grid time series to a .csv file.
 
         Parameters
         ----------
-        region_directory : :obj:`pathlib.Path`
-            save directory for the region
+        region_directory : WindowsPath
+            Save-directory for the region.
         """
         if self.region_type.output:
             data = pd.DataFrame(self.grid_time_series)
