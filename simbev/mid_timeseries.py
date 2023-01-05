@@ -5,8 +5,20 @@ import datetime
 from pathlib import Path
 
 
-# returns season as string
 def get_season(date: datetime.date):
+    """ Determines season.
+
+    Parameters
+    ----------
+    date : date
+        Date request.
+
+    Returns
+    -------
+    season : str
+        Season of the date.
+    """
+
     if date.month <= 2 or date.month == 12:
         season = "winter"
     elif date.month <= 5:
@@ -20,8 +32,19 @@ def get_season(date: datetime.date):
     return season
 
 
-# returns index of season to be used for cutoff_dates
 def get_season_idx(date: datetime.date):
+    """ Gets index of season.
+
+    Parameters
+    ----------
+    date : date
+        Date requested.
+
+    Returns
+    -------
+    season : int
+        Index of the season.
+    """
     if date.month <= 2 or date.month == 12:
         season = 0
     elif date.month <= 5:
@@ -35,8 +58,19 @@ def get_season_idx(date: datetime.date):
     return season
 
 
-# returns date where the next season starts
 def get_cutoff(date: datetime.date):
+    """Determines start date of next season.
+
+    Parameters
+    ----------
+    date : date
+        Date of request.
+
+    Returns
+    -------
+        cutoff : date
+            Start of next season.
+    """
     if date.month == 12:
         year = date.year + 1
     else:
@@ -49,11 +83,44 @@ def get_cutoff(date: datetime.date):
 
 # Args: region (as string), example: get_name_csv("SR_Metro", get_season(datetime.date.today()))
 def get_name_csv(region, season):
+    """ Produces name of path for seasonal data.
+
+    Parameters
+    ----------
+    region : str
+        Current region.
+    season : str
+        Season the data is wanted for.
+    Returns
+    -------
+    WindowsPath
+        Path for the seasonal data in region.
+
+    """
     return Path("simbev", "data", region,  season + ".csv")
 
 
 # main function, returns pandas
 def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
+    """
+
+    Parameters
+    ----------
+    start : date
+        Start of simulation timeframe.
+    end : date
+        End of simulation timeframe.
+    region : str
+        Region.
+    stepsize : int
+        Stepsize of simulation.
+
+    Returns
+    -------
+    pd_result : DataFrame
+        Timeseries of processed MiD-data, that includes amount of trips started by usecase and time.
+    """
+
     # build a matrix containing information about each season during the time span
     weekdays = 7
     min_per_day = 1440
@@ -65,7 +132,7 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
     # build a matrix containing information about each season during the time span
     while start < end:
         cutoff = get_cutoff(start)
-        if cutoff < end:    # use full season
+        if cutoff < end:    # useful season
             delta = cutoff - start
             weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start, cutoff])
         else:   # end date is during this season

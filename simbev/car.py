@@ -7,7 +7,7 @@ import math
 
 @dataclass
 class CarType:
-    """SimBEV constructor.
+    """Object that describes car-types.
 
     Parameters
     ----------
@@ -304,11 +304,21 @@ class Car:
         ----------
         trip : Trip
             Includes information about current trip.
-        power :
-        step_size
-        max_charging_time
-        charging_type
-        soc_end
+        power : float
+            Power of charging-point.
+        step_size : int
+            Step-size of simulation.
+        max_charging_time : int
+            Maximum possible time spend charging.
+        charging_type : str
+            Type of charging.
+        soc_end : int
+            Soc-target of charging-event.
+
+        Returns
+        -------
+        tuple[int,float,float,float]
+            Returns charging parameters including charging-time, average power, power of charging-point and target-soc.
         """
 
         soc_start = self.soc
@@ -373,6 +383,26 @@ class Car:
         return time_steps, chargepower_avg, power, soc_end
 
     def drive(self, distance, start_time, timestamp, duration, destination):
+        """Method for driving.
+
+        Parameters
+        ----------
+        distance : float
+            Distance of drive.
+        start_time : int
+            Start time of drive.
+        timestamp : Timestamp
+            Start time of drive.
+        duration : int
+            Duration of drive in time
+        destination : str
+            Location of destination.
+
+        Returns
+        -------
+        bool
+            Returns if drive is possible.
+        """
         if duration <= 0:
             raise ValueError(f"Drive duration of vehicle {self.file_name} is 0 at {timestamp}")
         self.status = "driving"
@@ -392,13 +422,34 @@ class Car:
 
     @property
     def remaining_range(self):
+        """Calculation of remaining range.
+
+        Returns
+        -------
+        float
+            Returns remaining range of vehicle.
+        """
         return self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption
 
     @property
     def usable_soc(self):
+        """Calculation of usable soc.
+
+        Returns
+        -------
+        float
+            Returns soc that is usable.
+        """
         return self.soc - self.car_type.soc_min
 
     def _get_last_charging_demand(self):
+        """Calculates energy used for last charging-event.
+
+        Returns
+        -------
+        float
+            Returns energy used for last charging-event.
+        """
         if len(self.output["soc_start"]):
             charging_demand = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             charging_demand *= self.car_type.battery_capacity
@@ -407,6 +458,13 @@ class Car:
             return 0
 
     def _get_last_consumption(self):
+        """Calculates energy used for last driving-event.
+
+        Returns
+        -------
+        float
+            Returns energy used for last driving-event.
+        """
         if len(self.output["soc_start"]):
             last_consumption = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             last_consumption *= self.car_type.battery_capacity
@@ -416,6 +474,19 @@ class Car:
 
     # TODO maybe solve this in charging (Jakob)
     def _get_usecase(self, power):
+        """Determines use-case of parking-event.
+
+        Parameters
+        ----------
+        power : int
+            Power of charging-point.
+
+        Returns
+        -------
+        str
+            Returns use-case of event.
+        """
+
         if self.status == "driving":
             return ""
         elif self.work_parking and self.status == "work":
@@ -429,6 +500,8 @@ class Car:
             return "public"
 
     def set_user_spec(self):
+        """Assigns specific user-group to vehicle.
+        """
         if self.car_type.charging_capacity["fast"] == 0:
             self.user_spec = '0'  # Todo set better term?
             self.hpc_pref = -1
@@ -449,7 +522,7 @@ class Car:
 
     def export(self, region_directory, simbev):
         """
-        Exports the output values collected in car object to a csv file.
+        Exports the output values collected in car object to .csv file.
 
         Parameters
         ----------
@@ -458,6 +531,10 @@ class Car:
         simbev : :obj:`SimBEV`
             SimBEV object with scenario information
 
+        Returns
+        -------
+        ndarray
+            Returns summarized information on charging- and driving-events.
         """
         if self.car_type.output:
             activity = pd.DataFrame(self.output)
