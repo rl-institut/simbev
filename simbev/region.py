@@ -6,19 +6,31 @@ import simbev.helpers.helpers as helpers
 
 
 class RegionType:
+    """Constructor for class RegionType.
+    Parameters
+    ----------
+    rs7_type : str
+        Type of the region defined by RegioStaR7.
+    grid_output : bool
+        Identifier if grid output is activated.
+    step_size : int
+        Step-size of simulation.
+    charging_probabilities : dict
+        Probabilities for power of charging-point.
+
+    Attributes
+    ----------
+    charging_probabilities : dict
+    output : bool
+    probabilities : dict
+    rs7_type : 'SR_Gross'
+    step_size : int
+    time_series : DataFrame
+    trip_starts : Series
+    """
+
     def __init__(self, rs7_type, grid_output, step_size, charging_probabilities):
-        """Constructor for class RegionType.
-        Parameters
-        ----------
-        rs7_type : str
-            Type of the region defined by RegioStaR7.
-        grid_output : bool
-            Identifier if grid output is activated.
-        step_size : int
-            Step-size of simulation.
-        charging_probabilities : dict
-            Probabilities for power of charging-point.
-        """
+
         self.rs7_type = rs7_type
         self.step_size = step_size
         self.charging_probabilities = charging_probabilities
@@ -80,21 +92,36 @@ class RegionType:
 
 
 class Region:
-    def __init__(self, region_id, region_type: RegionType, region_counter, car_dict):
-        """
-        Constructor of class Region.
+    """
+    Class that contains information and methods related to the region.
 
-        Parameters
-        ----------
-        region_id : str
-            Identifier for region-type
-        region_type : RegionType
-            Object of class RegionType
-        region_counter : int
-            Number of region
-        car_dict : dict
-            Distribution of cars in region.
-        """
+    Parameters
+    ----------
+    region_id : str
+        Identifier for region-type
+    region_type : RegionType
+        Object of class RegionType
+    region_counter : int
+        Number of region
+    car_dict : dict
+        Distribution of cars in region.
+
+    Attributes
+    ----------
+    analyze_array : ndarray
+    car_amount : int
+    car_dict : dict
+    file_name : str
+    grid_data_frame : list
+    grid_time_series : ndarray
+    header_grid_ts : list
+    id : str
+    last_time_step : int
+    number : int
+    region_type : RegionType
+    """
+
+    def __init__(self, region_id, region_type: RegionType, region_counter, car_dict):
 
         self.id = region_id
         self.region_type = region_type

@@ -13,6 +13,18 @@ import time
 
 
 def date_string_to_datetime(date_str):
+    """ Function that converts string to date-format.
+
+    Parameters
+    ----------
+    date_str : str
+        Date to be converted.
+    Returns
+    -------
+    date
+        Converted date.
+    """
+
     date_str = date_str.split("-")
     return datetime.date(int(date_str[0]), int(date_str[1]), int(date_str[2]))
 
@@ -22,6 +34,16 @@ def get_column_by_random_number(probability_series, random_number):
     Takes a random number and a pandas.DataFrame with one row
     that contains probabilities,
     returns a column name.
+
+    Parameters
+    ----------
+    probability_series : Series
+        Contains probabilities for charging power.
+    random_number : float
+        Random number.
+    Returns
+    -------
+    str
     """
     probability_series = probability_series / probability_series.sum()
     probability_series = probability_series.cumsum()
