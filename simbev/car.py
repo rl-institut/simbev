@@ -227,7 +227,6 @@ class Car:
         if duration <= 0:
             raise ValueError(f"Drive duration of vehicle {self.file_name} is {duration} at {timestamp}")
         soc_delta = self.car_type.consumption * distance / self.car_type.battery_capacity
-        print(soc_delta, self.usable_soc, self.soc)
         if soc_delta >= self.usable_soc and self.car_type.label == "BEV":
             return False
         else:
