@@ -5,41 +5,52 @@ class Trip:
     """
     Represents a trip that a vehicle can make.
 
+    Parameters
+    ----------
+    region : Region
+        Object where the trip happens.
+    car : Car
+        Object of class Car.
+    time_step : int
+        Current time-step
+    simbev : SimBEV
+        Object that contains superior data.
+
     Attributes
     ----------
     region : Region
-        region object where the trip happens
+        Object that contains information about the region.
     car : Car
-        car object that takes the trip.
+        Object contains information about the vehicle.
     simbev : SimBEV
-        SimBEV object
+        Object that contains superior data.
     park_start : int
-        time step where Trip gets initiated (start of parking event)
+        Time step where Trip gets initiated (start of parking event).
     park_time : int
-        number of time steps that the car parks
+        Number of time steps that the car parks.
     drive_start : int
-        time step where driving event starts
+        Time step where driving event starts.
     drive_time : int
-        number of time steps used to drive
+        Number of time steps used to drive.
     trip_end : int
-        time step where driving concludes and trip ends
+        Time step where driving concludes and trip ends.
     drive_found : bool
-        checks if driving event is possible
+        Checks if driving event is possible.
     destination : str
-        purpose/destination of next driving event
+        Purpose/destination of next driving event.
     distance : float
-        distance to drive
+        Distance to drive.
     speed : float
-        average driving speed
+        Average driving speed.
     location : str
-        current parking location (purpose)
+        Current parking location (purpose).
 
     Methods
     -------
     create:
-        finds next driving event and sets corresponding attributes
+        Finds next driving event and sets corresponding attributes.
     execute:
-        sets car to execute the created trip
+        Sets car to execute the created trip.
     """
     def __init__(self, region, car, time_step, simbev):
         self.destination = ""

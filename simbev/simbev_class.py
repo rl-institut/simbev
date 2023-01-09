@@ -14,36 +14,47 @@ import configparser as cp
 
 
 class SimBEV:
+    """Class that contains superior data and methods.
+
+    Parameters
+    ----------
+    charging_prob_dict : dict
+        Probabilities for charging-power by location.
+    config_dict : dict
+        Configuration parameters for simulation.
+    energy_min : DataFrame
+        Minimum Energy to be charged by use-case.
+    grid_output : bool
+        Selection for output of grid timeseries.
+    home_work_private : DataFrame
+        Share of private parking by region.
+    hpc_data : dict
+        Input data for hpc-calculations.
+    name : str
+        Name of scenario.
+    num_threads : int
+        Number of cores used for simulation.
+    plot_options : dict
+        Setting for plot outputs.
+    region_data : DataFrame
+        Amount of cars per car-type for each region.
+    tech_data : DataFrame
+        Technical data for all car-types
+
+    Attributes
+    ----------
+    analyze : bool
+        Setting for car-analysis.
+    car_types : dict
+        includes all data connected to car-types.
+    charging_probabilities : dict
+        .... Necessary?
+
+    """
+
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, hpc_data: pd.DataFrame,
                  config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, car_output=True,
                  grid_output=True):
-        """SimBEV constructor.
-
-        Parameters
-        ----------
-        charging_prob_dict : dict
-            Probabilities for charging-power by location.
-        config_dict : dict
-            Configuration parameters for simulation.
-        energy_min : DataFrame
-            Minimum Energy to be charged by use-case.
-        grid_output : bool
-            Selection for output of grid timeseries.
-        home_work_private : DataFrame
-            Share of private parking by region.
-        hpc_data : dict
-            Input data for hpc-calculations.
-        name : str
-            Name of scenario.
-        num_threads : int
-            Number of cores used for simulation.
-        plot_options : dict
-            Setting for plot outputs.
-        region_data : DataFrame
-            Amount of cars per car-type for each region.
-        tech_data : DataFrame
-            Technical data for all car-types
-        """
 
         # parameters from arguments
         self.region_data = region_data

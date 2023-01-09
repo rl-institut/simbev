@@ -9,7 +9,7 @@ import math
 class CarType:
     """Object that describes car-types.
 
-    Parameters
+    Attributes
     ----------
     name : str
         Type and class of vehicle.

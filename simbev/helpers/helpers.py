@@ -8,6 +8,18 @@ from simbev import __version__
 
 
 def date_string_to_datetime(date_str):
+    """ Function that converts string to date-format.
+
+    Parameters
+    ----------
+    date_str : str
+        Date to be converted.
+    Returns
+    -------
+    date
+        Converted date.
+    """
+
     date_str = date_str.split("-")
     return datetime.date(int(date_str[0]), int(date_str[1]), int(date_str[2]))
 
@@ -17,6 +29,16 @@ def get_column_by_random_number(probability_series, random_number):
     Takes a random number and a pandas.DataFrame with one row
     that contains probabilities,
     returns a column name.
+
+    Parameters
+    ----------
+    probability_series : Series
+        Contains probabilities for charging power.
+    random_number : float
+        Random number.
+    Returns
+    -------
+    str
     """
     probability_series = probability_series / probability_series.sum()
     probability_series = probability_series.cumsum()
@@ -57,6 +79,17 @@ def export_metadata(
 
 
 def export_analysis(analysis_array, directory):
+    """
+    Saves csv-file for analysis.
+
+    Parameters
+    ----------
+    analysis_array : ndarray
+        Contains summarized analysis-data.
+    directory : WindowsPath
+        Directory where to save file.
+
+    """
     df = pd.DataFrame(analysis_array, columns=["car_type", "drive_count", "drive_max_length", "drive_min_length",
                                                "drive_mean_length", "drive_max_consumption",
                                                "drive_min_consumption", "drive_mean_consumption",
