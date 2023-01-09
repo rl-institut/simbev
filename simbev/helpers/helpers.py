@@ -1,10 +1,14 @@
 import json
+import pathlib
 from pathlib import Path
 import datetime
 
 import pandas as pd
 
 from simbev import __version__
+
+from functools import wraps
+import time
 
 
 def date_string_to_datetime(date_str):
@@ -66,3 +70,23 @@ def export_analysis(analysis_array, directory):
                                                "home_mean_energy", "work_mean_energy", "public_mean_energy"
                                                ])
     df.to_csv(Path(directory, "analysis.csv"))
+
+
+def timeitlog(func):
+
+    os_path = Path(__file__).parent.parent
+    path_to_log_file = Path(os_path, 'results', 'log_file_simbev.txt')
+
+    @wraps(func)
+    def timeit_wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        total_time = end_time - start_time
+        # first item in the args, ie `args[0]` is `self`
+        with open(path_to_log_file, 'a') as f:
+            f.write("Function {} took {} seconds \n".format(func, total_time))
+
+        # print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+        return result
+    return timeit_wrapper
