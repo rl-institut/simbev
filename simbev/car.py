@@ -92,7 +92,6 @@ class Car:
                          nominal_charging_capacity=0, charging_power=0):
         """Records newest energy and activity"""
         if self.car_type.output:
-            self.soc = round(self.soc, 4)
             self.output["timestamp"].append(timestamp)
             self.output["event_start"].append(event_start)
             self.output["event_time"].append(event_time)
@@ -100,7 +99,7 @@ class Car:
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
             self.output["soc_start"].append(self.output["soc_end"][-1] if len(self.output["soc_end"]) > 0 else
                                             self.soc_start)
-            self.output["soc_end"].append(self.soc)
+            self.output["soc_end"].append(round(self.soc, 4))
             charging_demand = self._get_last_charging_demand()
             consumption = self._get_last_consumption()
             self.output["energy"].append(charging_demand + consumption)
@@ -227,11 +226,13 @@ class Car:
     def drive(self, distance, start_time, timestamp, duration, destination):
         if duration <= 0:
             raise ValueError(f"Drive duration of vehicle {self.file_name} is {duration} at {timestamp}")
-        self.status = "driving"
-        if distance > self.remaining_range and self.car_type.label == "BEV":
+        soc_delta = self.car_type.consumption * distance / self.car_type.battery_capacity
+        print(soc_delta, self.usable_soc, self.soc)
+        if soc_delta >= self.usable_soc and self.car_type.label == "BEV":
             return False
         else:
-            self.soc -= self.car_type.consumption * distance / self.car_type.battery_capacity
+            self.status = "driving"
+            self.soc -= soc_delta
             if self.soc < 0:
                 if self.car_type.label == "PHEV":
                     self.soc = 0
@@ -243,8 +244,16 @@ class Car:
             return True
 
     @property
-    def remaining_range(self):
+    def precise_remaining_range(self):
+        """Returns precise remaining range of vehicle."""
         return self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption
+
+    @property
+    def remaining_range(self):
+        """Returns remaining range of vehicle."""
+        # eta used to prevent rounding errors. reduces effective range by 100m
+        eta = 0.1
+        return max(self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption - eta, 0)
 
     @property
     def usable_soc(self):
