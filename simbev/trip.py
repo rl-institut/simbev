@@ -1,24 +1,5 @@
 import math
-from functools import wraps
-import time
-
-
-def timeitlog(func):
-    path_to_log_file = f'C:/Users/jakob.wegner/PycharmProjects/simbev/simbev/results/log_file_simbev.txt'
-
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        # first item in the args, ie `args[0]` is `self`
-        with open(path_to_log_file, 'a') as f:
-            f.write("Function {} took {} seconds \n".format(func, total_time))  # functionality
-
-        #print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
-        return result
-    return timeit_wrapper
+from simbev.helpers.helpers import timeitlog
 
 
 class Trip:
