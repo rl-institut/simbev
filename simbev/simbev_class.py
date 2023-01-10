@@ -47,10 +47,63 @@ class SimBEV:
     analyze : bool
         Setting for car-analysis.
     car_types : dict
-        includes all data connected to car-types.
+        Includes all data connected to car-types.
     charging_probabilities : dict
-        .... Necessary?
-
+        Probabilities that describe the availability and power of charging point dependent of destination.
+    charging_threshold : float
+        Value of soc under which charging makes is possible.
+    created_region_types : dict
+        Names of region_types that have been created.
+    data_directory : WindowsPath
+        Path of input data.
+    end_date : date
+        End-date of simulation.
+    energy_min : DataFrame
+        Minimum Energy to be charged by use-case.
+    eta_cp : float
+        Efficiency of charging.
+    file_name_all : str
+        File name of summarized grid-time-series
+    grid_data_list : list
+        Contains grid timeseries of current region.
+    grid_output : bool
+        Identifier if output of grid-time-series is wanted.
+    home_parking : Series
+        Probabilities for private parking space at home by region.
+    hpc_data : dict
+        Input data for hpc-calculations.
+    name : str
+        Name of scenario.
+    num_threads : int
+        Number of Cores to be used for multiprocessing.
+    plot_options : dict
+        Setting for plot outputs.
+    region_data : DataFrame
+        Amount of cars per car-type for each region.
+    regions : list
+        all regions.
+    rng : Generator
+        Random number generator.
+    save_directory : WindowsPath
+        Directory where results are stored.
+    soc_min : float
+        Minimal possible soc.
+    start_date : date
+        Start of simulation.
+    start_date_input : date
+        Start of documentation of results.
+    start_date_output : datetime
+        Start of documentation of results.
+    step_size : int
+        Step size of simulation.
+    step_size_str : str
+        Step size of simulation.
+    tech_data : DataFrame
+        Technical data of vehicle-types.
+    timestamp : str
+        Timestamp of current event.
+    work_parking : Series
+        Probabilities for private parking space at work by region.
     """
 
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, hpc_data: pd.DataFrame,

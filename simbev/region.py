@@ -21,12 +21,19 @@ class RegionType:
     Attributes
     ----------
     charging_probabilities : dict
+        Probabilities for power of charging-point.
     output : bool
+        Identifier if grid output is activated.
     probabilities : dict
-    rs7_type : 'SR_Gross'
+        Probabilities related to trip that are dependent on region-type.
+    rs7_type : int
+        Type of the region defined by RegioStaR7.
     step_size : int
+        Step-size of simulation.
     time_series : DataFrame
+        Timeseries of processed MiD-data, that includes amount of trips started by destination and datetime.
     trip_starts : Series
+        Probabilities for start of a trip by datetime.
     """
 
     def __init__(self, rs7_type, grid_output, step_size, charging_probabilities):
@@ -109,16 +116,27 @@ class Region:
     Attributes
     ----------
     analyze_array : ndarray
+        Array that contains values of analysis.
     car_amount : int
+        Amount of cars in region.
     car_dict : dict
+        Distribution of car-types.
     file_name : str
+        Name of csv-file for grid timeseries of specific region.
     grid_data_frame : list
+        Summarized time-series for whole region.
     grid_time_series : ndarray
+        Summarized time-series for whole region.
     header_grid_ts : list
+        Header of grid-time-series.
     id : str
+        Identifier of region.
     last_time_step : int
+        Last time-step of simulation.
     number : int
+        Counter of regions simulated
     region_type : RegionType
+        Object of class RegionType
     """
 
     def __init__(self, region_id, region_type: RegionType, region_counter, car_dict):

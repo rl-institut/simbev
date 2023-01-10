@@ -121,33 +121,72 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
 
 
 class Car:
+    """Describes a vehicle. Contains all information and methods of that vehicle.
+
+    Parameters
+    ----------
+    car_type : CarType
+        Includes all information regarding the vehicle.
+    number : int
+        Number of the vehicle.
+    work_parking : bool
+        Identifier for private parking at work.
+    home_parking : bool
+        Identifier for private parking at work.
+    hpc_data : dict
+        Configuration-data for hpc charging.
+    work_capacity
+        Power of LIS at work
+    home_capacity
+        Power of LIS at work
+    region : Region
+        Includes data related to current region
+    soc : float
+        Soc of car.
+    status : str
+        Location of car.
+
+    Attributes
+    ----------
+    car_type : CarType
+        Includes all information regarding the vehicle.
+    file_name : str
+        Name of the csv-file that contains.
+    home_capacity
+        Power of charging-point at work.
+    home_parking : bool
+        Identifier if there is private-parking at home.
+    hpc_data : dict
+        Configuration-data for hpc charging.
+    hpc_pref : float
+        Value of attraction for hpc of vehicle.
+    number : int
+        Number of the vehicle.
+    output : dict
+        timeseries of vehicle that contains output-data for every event of vehicle.
+    region : Region
+        Includes data related to current region.
+    remaining_range : float
+        Remaining range of vehicle.
+    soc : float
+        Soc of vehicle.
+    soc_start : float
+        Soc at start of event.
+    status : str
+        Location of car.
+    usable_soc : float
+        soc that is usable for the next drive.
+    user_spec : str
+        Specification of the user-group the vehicle belongs to.
+    work_parking : bool
+        Identifier for private parking at work.
+    work_capacity
+        Power of charging-point at work
+    """
+
     def __init__(self, car_type: CarType, number: int, work_parking, home_parking, hpc_data,
                  work_capacity, home_capacity, region, soc: float = 1., status: str = "home"):
-        """Car constructor.
 
-        Parameters
-        ----------
-        car_type : CarType
-            Includes all information regarding the vehicle.
-        number : int
-            Number of the vehicle.
-        work_parking : bool
-            Identifier for private parking at work.
-        home_parking : bool
-            Identifier for private parking at work.
-        hpc_data : dict
-            Configuration-data for hpc charging.
-        work_capacity
-            Power of LIS at work
-        home_capacity
-            Power of LIS at work
-        region : Region
-            Includes data related to current region
-        soc : float
-            Soc of car.
-        status : str
-            Location of car.
-        """
         self.car_type = car_type
         self.soc_start = soc
         self.soc = soc
