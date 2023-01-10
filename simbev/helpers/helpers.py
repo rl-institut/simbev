@@ -14,6 +14,7 @@ def date_string_to_datetime(date_str):
     ----------
     date_str : str
         Date to be converted.
+
     Returns
     -------
     date
@@ -36,6 +37,7 @@ def get_column_by_random_number(probability_series, random_number):
         Contains probabilities for charging power.
     random_number : float
         Random number.
+
     Returns
     -------
     str
@@ -56,9 +58,10 @@ def export_metadata(
 
     Parameters
     ----------
-    simbev : :obj:`SimBEV`
-        SimBEV object with scenario information
-    config : cp.ConfigParser
+    simbev : SimBEV
+        SimBEV object with scenario information.
+    config : ConfigParser
+        Object for parsing config.
     """
     cars = simbev.region_data[["bev_mini", "bev_medium", "bev_luxury", "phev_mini", "phev_medium", "phev_luxury"]]
     meta_dict = {
@@ -88,7 +91,6 @@ def export_analysis(analysis_array, directory):
         Contains summarized analysis-data.
     directory : WindowsPath
         Directory where to save file.
-
     """
     df = pd.DataFrame(analysis_array, columns=["car_type", "drive_count", "drive_max_length", "drive_min_length",
                                                "drive_mean_length", "drive_max_consumption",
