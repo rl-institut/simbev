@@ -16,7 +16,8 @@ def main():
 
     scenario_path = pathlib.Path("simbev", "scenarios", p_args.scenario)
     simbev_obj, cfg = SimBEV.from_config(scenario_path)
-    simbev_obj.run_multi()
+    # run simulation with optional timing
+    helpers.timeitlog(simbev_obj.timing)(simbev_obj.run_multi)()
 
     helpers.export_metadata(simbev_obj, cfg)
 

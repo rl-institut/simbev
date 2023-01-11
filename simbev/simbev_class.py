@@ -137,7 +137,7 @@ class SimBEV:
                 pool.apply_async(self.run, (region,), callback=self._log_grid_data)
             pool.close()
             pool.join()
-        grid_time_series_all_regions = self.export_grid_timeseries_all_regions()
+        grid_time_series_all_regions = helpers.timeitlog(self.timing)(self.export_grid_timeseries_all_regions)()
         if True in self.plot_options.values():
             plot.plot_gridtimeseries_by_usecase(self, grid_time_series_all_regions)
 
@@ -174,6 +174,7 @@ class SimBEV:
                         (car.number + 1), region.car_dict[car.car_type.name]
                     ), end="", flush=True)
 
+                # run simulation for car with optional timing
                 self.simulate_car(car, region)
 
                 # export vehicle csv
@@ -309,7 +310,7 @@ class SimBEV:
         grid_output = cfg.getboolean("output", "grid_time_series_csv", fallback=True)
         plot_options = {"by_region": cfg.getboolean("output", "plot_grid_time_series_split", fallback=False),
                         "all_in_one": cfg.getboolean("output", "plot_grid_time_series_collective", fallback=False)}
-
+        timing_output = cfg.getboolean("output", "timing", fallback=False)
         cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
                     "soc_min": cfg.getfloat("basic", "soc_min"),
                     "charging_threshold": cfg.getfloat("basic", "charging_threshold"),
@@ -326,4 +327,4 @@ class SimBEV:
             print(f"Creating SimBEV object from config took {toc - tic} seconds.")
 
         return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private, energy_min,
-                      plot_options, num_threads, car_output, grid_output), cfg
+                      plot_options, num_threads, car_output, grid_output, timing_output), cfg

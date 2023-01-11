@@ -1,5 +1,4 @@
 import math
-from simbev.helpers.helpers import timeitlog
 
 
 class Trip:
@@ -42,6 +41,7 @@ class Trip:
     execute:
         sets car to execute the created trip
     """
+
     def __init__(self, region, car, time_step, simbev):
         self.destination = ""
         self.distance = 0
@@ -131,7 +131,6 @@ class Trip:
         if self.drive_found:
             self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
 
-    @timeitlog
     def _create_fast_charge_events(self):
         remaining_distance = self.distance
         sum_hpc_drivetime = 0
