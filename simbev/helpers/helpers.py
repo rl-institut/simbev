@@ -72,21 +72,24 @@ def export_analysis(analysis_array, directory):
     df.to_csv(Path(directory, "analysis.csv"))
 
 
-def timeitlog(func):
+def timeitlog(timing):
+    def decorator(func):
+        os_path = Path(__file__).parent.parent
+        path_to_log_file = Path(os_path, 'results', 'log_file_simbev.txt')
+        @wraps(func)
+        def timeit_wrapper(*args, **kwargs):
+            if timing:
+                start_time = time.perf_counter()
+                result = func(*args, **kwargs)
+                end_time = time.perf_counter()
+                total_time = end_time - start_time
+                # first item in the args, ie `args[0]` is `self`
+                with open(path_to_log_file, 'a') as f:
+                    f.write("Function {} ran on {} took {} seconds \n".format(func, datetime.datetime.now(), total_time))
+            else:
+                result = func(*args, **kwargs)
+            # print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
+            return result
 
-    os_path = Path(__file__).parent.parent
-    path_to_log_file = Path(os_path, 'results', 'log_file_simbev.txt')
-
-    @wraps(func)
-    def timeit_wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        total_time = end_time - start_time
-        # first item in the args, ie `args[0]` is `self`
-        with open(path_to_log_file, 'a') as f:
-            f.write("Function {} took {} seconds \n".format(func, total_time))
-
-        # print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
-        return result
-    return timeit_wrapper
+        return timeit_wrapper
+    return decorator
