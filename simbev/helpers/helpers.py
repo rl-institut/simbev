@@ -56,13 +56,85 @@ def export_metadata(
         json.dump(meta_dict, f, indent=4)
 
 
-def export_analysis(analysis_array, directory):
+def export_analysis(analysis_array, directory, start_date, end_date):
+    analysis_mid_dict = {
+        "average_drive_time": float,
+        "average_distance": float,
+        "average_trip_count": int,
+        "by_car_type": {
+            "average_trip_count": {
+                    "mini": float,
+                    "medium": float,
+                    "luxury": float
+                },
+            "average_drive_time": {
+                    "mini": float,
+                    "medium": float,
+                    "luxury": float
+                },
+            "average_distance": {
+                    "mini": float,
+                    "medium": float,
+                    "luxury": float
+                }
+
+        }
+    }
     df = pd.DataFrame(analysis_array, columns=["car_type", "drive_count", "drive_max_length", "drive_min_length",
                                                "drive_mean_length", "drive_max_consumption",
                                                "drive_min_consumption", "drive_mean_consumption",
+                                               "average_driving_time", "average_distance",
                                                "charge_count", "hpc_count", "charge_max_length", "charge_min_length",
                                                "charge_mean_length", "charge_max_energy",
                                                "charge_min_energy", "charge_mean_energy", "hpc_mean_energy",
                                                "home_mean_energy", "work_mean_energy", "public_mean_energy"
                                                ])
+
     df.to_csv(Path(directory, "analysis.csv"))
+    df["drive_count"] = pd.to_numeric(df["drive_count"])
+    df["average_driving_time"] = pd.to_numeric(df["average_driving_time"])
+    df["average_distance"] = pd.to_numeric(df["average_distance"])
+
+    start_date = start_date.date()
+    number_of_days = end_date-start_date
+    number_of_days = number_of_days.days + 1
+
+    # general
+    analysis_mid_dict["average_trip_count"] = round(df["drive_count"].mean()/number_of_days, 4)
+    analysis_mid_dict["average_drive_time"] = round(df["average_driving_time"].mean(), 4)
+    analysis_mid_dict["average_distance"] = round(df["average_distance"].mean(), 4)
+
+    # by car-type
+    # trip count by day
+    analysis_mid_dict["by_car_type"]["average_trip_count"]["mini"] = round(df["drive_count"].loc[
+                                                                               df["car_type"] == "bev_mini"
+                                                                           ].mean()/number_of_days, 4)
+    analysis_mid_dict["by_car_type"]["average_trip_count"]["medium"] = round(df["drive_count"].loc[
+                                                                                 df["car_type"] == "bev_medium"
+                                                                             ].mean()/number_of_days, 4)
+    analysis_mid_dict["by_car_type"]["average_trip_count"]["luxury"] = round(df["drive_count"].loc[
+                                                                                 df["car_type"] == "bev_luxury"
+                                                                             ].mean()/number_of_days, 4)
+    # average drive time by trip
+    analysis_mid_dict["by_car_type"]["average_drive_time"]["mini"] = round(df["average_driving_time"].loc[
+                                                                               df["car_type"] == "bev_mini"
+                                                                           ].mean(), 4)
+    analysis_mid_dict["by_car_type"]["average_drive_time"]["medium"] = round(df["average_driving_time"].loc[
+                                                                                 df["car_type"] == "bev_medium"
+                                                                             ].mean(), 4)
+    analysis_mid_dict["by_car_type"]["average_drive_time"]["luxury"] = round(df["average_driving_time"].loc[
+                                                                                 df["car_type"] == "bev_luxury"
+                                                                             ].mean(), 4)
+    # average distance by trip
+    analysis_mid_dict["by_car_type"]["average_distance"]["mini"] = round(df["average_distance"].loc[
+                                                                               df["car_type"] == "bev_mini"
+                                                                           ].mean(), 4)
+    analysis_mid_dict["by_car_type"]["average_distance"]["medium"] = round(df["average_distance"].loc[
+                                                                                 df["car_type"] == "bev_medium"
+                                                                             ].mean(), 4)
+    analysis_mid_dict["by_car_type"]["average_distance"]["luxury"] = round(df["average_distance"].loc[
+                                                                                 df["car_type"] == "bev_luxury"
+                                                                             ].mean(), 4)
+
+    with open(Path(directory, "analysis_mid.json"), "w") as outfile:
+        json.dump(analysis_mid_dict, outfile)

@@ -80,7 +80,7 @@ class SimBEV:
                 energy_min = self.energy_min["phev"].to_dict()
 
             car_type = CarType(car_type_name, bat_cap, charging_capacity, self.soc_min, self.charging_threshold,
-                               energy_min, {}, consumption, output)
+                               energy_min, {}, consumption, output, analyze_mid=True)
             if "bev" in car_type.name:
                 car_type.label = "BEV"
             else:
@@ -174,7 +174,7 @@ class SimBEV:
 
         region.export_grid_timeseries(region_directory)
         if self.analyze:
-            helpers.export_analysis(region.analyze_array, region_directory)
+            helpers.export_analysis(region.analyze_array, region_directory, self.start_date_output, self.end_date)
         print(f" - done (Region {region.number + 1})")
         return region.grid_data_frame
 
