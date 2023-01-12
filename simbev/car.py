@@ -17,6 +17,7 @@ class CarType:
     # TODO consumption based on speed instead of constant
     consumption: float
     output: bool
+    analyze_mid: bool
     label: str = None
 
 
@@ -40,15 +41,19 @@ def analyze_charge_events(output_df: pd.DataFrame):
 
 
 def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
-    charge_events = output_df.loc[output_df["energy"] < 0]
-    event_count = len(charge_events.index)
-    max_time = charge_events["event_time"].max()
-    min_time = charge_events["event_time"].min()
-    avg_time = round(charge_events["event_time"].mean(), 4)
-    max_consumption = abs(charge_events["energy"].min())
-    min_consumption = abs(charge_events["energy"].max())
-    avg_consumption = round(abs(charge_events["energy"].mean()), 4)
-    return np.array([car_type, event_count, max_time, min_time, avg_time, max_consumption, min_consumption, avg_consumption])
+    drive_events = output_df.loc[output_df["energy"] < 0]
+    event_count = len(drive_events.index)
+    max_time = drive_events["event_time"].max()
+    min_time = drive_events["event_time"].min()
+    avg_time = round(drive_events["event_time"].mean(), 4)
+    max_consumption = abs(drive_events["energy"].min())
+    min_consumption = abs(drive_events["energy"].max())
+    avg_consumption = round(abs(drive_events["energy"].mean()), 4)
+    # mid analysis
+    avg_time = round(drive_events["event_time"].mean(), 4)
+    avg_distance = round(drive_events["distance"].mean(), 4)
+    return np.array([car_type, event_count, max_time, min_time, avg_time, max_consumption, min_consumption,
+                     avg_consumption, avg_time, avg_distance])
 
 
 class Car:
@@ -80,7 +85,9 @@ class Car:
             "soc_end": [],
             "energy": [],
             "station_charging_capacity": [],
-            "average_charging_power": []
+            "average_charging_power": [],
+            "destination": [],
+            "distance": [],
         }
 
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
@@ -88,7 +95,7 @@ class Car:
         # Set user specificationn and hpc preference
         self.set_user_spec()
 
-    def _update_activity(self, timestamp, event_start, event_time,
+    def _update_activity(self, timestamp, event_start, event_time, distance=0, destination='',
                          nominal_charging_capacity=0, charging_power=0):
         """Records newest energy and activity"""
         if self.car_type.output:
@@ -105,6 +112,8 @@ class Car:
             self.output["energy"].append(charging_demand + consumption)
             self.output["station_charging_capacity"].append(nominal_charging_capacity)
             self.output["average_charging_power"].append(round(charging_power, 4))
+            self.output["distance"].append(distance)
+            self.output["destination"].append(destination)
 
     def park(self, trip):
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
@@ -238,7 +247,7 @@ class Car:
                 else:
                     raise ValueError("SoC of car {} became negative ({})".format(self.car_type.name,
                                                                                  self.soc))
-            self._update_activity(timestamp, start_time, duration)
+            self._update_activity(timestamp, start_time, duration, distance=distance, destination=destination)
             self.status = destination
             return True
 
@@ -358,9 +367,12 @@ class Car:
                 activity.at[activity.index[0], "event_time"] = post_event_len
                 activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
 
+            drive_array = analyze_drive_events(activity, self.car_type.name)
+            charge_array = analyze_charge_events(activity)
+
+            activity = activity.drop(columns=["destination", "distance"])
             activity = activity.reset_index(drop=True)
             activity.to_csv(pathlib.Path(region_directory, self.file_name))
 
-            drive_array = analyze_drive_events(activity, self.car_type.name)
-            charge_array = analyze_charge_events(activity)
-            return np.hstack((drive_array, charge_array))
+            return np.hstack((drive_array, charge_array))    # , mid_array
+
