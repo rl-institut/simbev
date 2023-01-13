@@ -16,7 +16,7 @@ import configparser as cp
 class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
                  config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, car_output=True,
-                 grid_output=True):
+                 grid_output=True, analyze=False):
         # parameters from arguments
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
@@ -48,7 +48,7 @@ class SimBEV:
         self.plot_options = plot_options
 
         # analysis of cars
-        self.analyze = True
+        self.analyze = analyze
 
         self.name = name
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -280,6 +280,7 @@ class SimBEV:
         grid_output = cfg.getboolean("output", "grid_time_series_csv", fallback=True)
         plot_options = {"by_region": cfg.getboolean("output", "plot_grid_time_series_split", fallback=False),
                         "all_in_one": cfg.getboolean("output", "plot_grid_time_series_collective", fallback=False)}
+        analyze = cfg.getboolean("output", "analyze", fallback=False)
 
         cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
                     "soc_min": cfg.getfloat("basic", "soc_min"),
@@ -294,4 +295,4 @@ class SimBEV:
         num_threads = cfg.getint('sim_params', 'num_threads')
 
         return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private, energy_min,
-                      plot_options, num_threads, car_output, grid_output), cfg
+                      plot_options, num_threads, car_output, grid_output, analyze), cfg
