@@ -116,11 +116,8 @@ class SimBEV:
         self.num_threads = min(self.num_threads, len(self.regions))
         if self.num_threads == 1:
             for region in self.regions:
-
                 grid_data = self.run(region)
-
                 self._log_grid_data(grid_data)
-
         else:
             pool = mp.Pool(processes=self.num_threads)
 
@@ -180,8 +177,9 @@ class SimBEV:
 
         region.export_grid_timeseries(region_directory)
         if self.analyze:
-            helpers.export_analysis(region.analyze_array, region_directory, self.start_date_output, self.end_date)
-        print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
+            helpers.export_analysis(region.analyze_array, region_directory, self.start_date_output, self.end_date,
+                                    region.id)
+        print(f" - done (Region {region.number + 1})at {datetime.datetime.now()")
         return region.grid_data_frame
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):

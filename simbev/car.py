@@ -52,8 +52,18 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
     # mid analysis
     avg_time = round(drive_events["event_time"].mean(), 4)
     avg_distance = round(drive_events["distance"].mean(), 4)
+    distance_home = round(drive_events["distance"].loc[drive_events["destination"] == "home"].mean(), 4)
+    distance_work = round(drive_events["distance"].loc[drive_events["destination"] == "work"].mean(), 4)
+    distance_private = round(drive_events["distance"].loc[drive_events["destination"] == "private"].mean(), 4)
+    distance_leisure = round(drive_events["distance"].loc[drive_events["destination"] == "leisure"].mean(), 4)
+    distance_shopping = round(drive_events["distance"].loc[drive_events["destination"] == "shopping"].mean(), 4)
+    distance_hpc = round(drive_events["distance"].loc[drive_events["destination"] == "hpc"].mean(), 4)
+    distance_school = round(drive_events["distance"].loc[drive_events["destination"] == "school"].mean(), 4)
+    distance_business = round(drive_events["distance"].loc[drive_events["destination"] == "business"].mean(), 4)
+
     return np.array([car_type, event_count, max_time, min_time, avg_time, max_consumption, min_consumption,
-                     avg_consumption, avg_time, avg_distance])
+                     avg_consumption, avg_time, avg_distance, distance_home, distance_work, distance_business,
+                     distance_school, distance_shopping, distance_private, distance_leisure, distance_hpc])
 
 
 class Car:
