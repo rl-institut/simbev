@@ -174,7 +174,8 @@ class SimBEV:
 
         region.export_grid_timeseries(region_directory)
         if self.analyze:
-            helpers.export_analysis(region.analyze_array, region_directory, self.start_date_output, self.end_date)
+            helpers.export_analysis(region.analyze_array, region_directory, self.start_date_output, self.end_date,
+                                    region.id)
         print(f" - done (Region {region.number + 1})")
         return region.grid_data_frame
 
