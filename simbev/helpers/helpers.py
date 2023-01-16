@@ -62,6 +62,21 @@ def export_metadata(
 
 
 def export_analysis(analysis_array, directory, start_date, end_date, region_id):
+    """ Generates csv and json file for analysis of simulation-output.
+
+    Parameters
+    ---------
+    analysis_array: ndarray
+        Contains Data for analysis of characteristic values.
+    directory: WindowsPath
+        Directory for saving files.
+    start_date: datetime
+        Start of simulation.
+    end_date: date
+        End of simulation.
+    region_id: str
+        Identifier of region.
+    """
 
     vehicle_array = ["bev_mini", "bev_medium", "bev_luxury", "phev_mini", "phev_medium", "phev_luxury"]
     destination_array = ["distance_home", "distance_work", "distance_business", "distance_school",
