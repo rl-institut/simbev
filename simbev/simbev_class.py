@@ -18,7 +18,6 @@ class SimBEV:
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
                  config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, car_output=True,
                  grid_output=True, timing=True):
-        tic = time.perf_counter()
         self.timing = timing
         # parameters from arguments
         self.region_data = region_data
@@ -66,9 +65,6 @@ class SimBEV:
         # run setup functions
         self._create_car_types(car_output)
         self._add_regions_from_dataframe()
-        toc = time.perf_counter()
-        if self.timing:
-            print(f"Initializing SimBEV object took {toc - tic} seconds.")
 
     def _create_car_types(self, output):
         # create new car type
@@ -120,13 +116,8 @@ class SimBEV:
         self.num_threads = min(self.num_threads, len(self.regions))
         if self.num_threads == 1:
             for region in self.regions:
-                tic = time.perf_counter()
 
                 grid_data = self.run(region)
-
-                toc = time.perf_counter()
-                if self.timing:
-                    print(f"Simulating Region {region.id} took {toc - tic} seconds.")
 
                 self._log_grid_data(grid_data)
 
@@ -149,7 +140,6 @@ class SimBEV:
         region_directory = pathlib.Path(self.save_directory, str(region.id))
         region_directory.mkdir(parents=True, exist_ok=True)
 
-        tic = time.perf_counter()
         cars_simulated = 0
         for car_type_name, car_count in region.car_dict.items():
             for car_number in range(car_count):
@@ -188,21 +178,9 @@ class SimBEV:
                     car.export(region_directory, self)
             cars_simulated += car_count
 
-        toc = time.perf_counter()
-        if self.timing:
-            print(f"Simulating all cars in region {region.id} took {toc - tic} seconds.")
-
-        tic = time.perf_counter()
         region.export_grid_timeseries(region_directory)
-        toc = time.perf_counter()
-        if self.timing:
-            print(f"Exporting grid time series in region {region.id} took {toc - tic} seconds.")
         if self.analyze:
-            tic = time.perf_counter()
             helpers.export_analysis(region.analyze_array, region_directory)
-            toc = time.perf_counter()
-            if self.timing:
-                print(f"Analysis of region {region.id} took {toc - tic} seconds.")
         print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
         return region.grid_data_frame
 
@@ -267,8 +245,6 @@ class SimBEV:
             SimBEV Object
             ConfigParser Object
         """
-        timing = True
-        tic = time.perf_counter()
         if not scenario_path.is_dir():
             raise FileNotFoundError(f'Scenario "{scenario_path.stem}" not found in ./scenarios .')
 
@@ -322,9 +298,6 @@ class SimBEV:
                     "work_private": cfg.getfloat("charging_probabilities", "private_parking_work", fallback=0.5),
                     }
         num_threads = cfg.getint('sim_params', 'num_threads')
-        toc = time.perf_counter()
-        if timing:
-            print(f"Creating SimBEV object from config took {toc - tic} seconds.")
 
         return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private, energy_min,
                       plot_options, num_threads, car_output, grid_output, timing_output), cfg
