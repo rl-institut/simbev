@@ -5,41 +5,52 @@ class Trip:
     """
     Represents a trip that a vehicle can make.
 
+    Parameters
+    ----------
+    region : Region
+        Object where the trip happens.
+    car : Car
+        Object of class Car.
+    time_step : int
+        Current time-step
+    simbev : SimBEV
+        Object that contains superior data.
+
     Attributes
     ----------
     region : Region
-        region object where the trip happens
+        Object that contains information about the region.
     car : Car
-        car object that takes the trip
+        Object contains information about the vehicle.
     simbev : SimBEV
-        SimBEV object
+        Object that contains superior data.
     park_start : int
-        time step where Trip gets initiated (start of parking event)
+        Time step where Trip gets initiated (start of parking event).
     park_time : int
-        number of time steps that the car parks
+        Number of time steps that the car parks.
     drive_start : int
-        time step where driving event starts
+        Time step where driving event starts.
     drive_time : int
-        number of time steps used to drive
+        Number of time steps used to drive.
     trip_end : int
-        time step where driving concludes and trip ends
+        Time step where driving concludes and trip ends.
     drive_found : bool
-        checks if driving event is possible
+        Checks if driving event is possible.
     destination : str
-        purpose/destination of next driving event
+        Purpose/destination of next driving event.
     distance : float
-        distance to drive
+        Distance to drive.
     speed : float
-        average driving speed
+        Average driving speed.
     location : str
-        current parking location (purpose)
+        Current parking location (purpose).
 
     Methods
     -------
     create:
-        finds next driving event and sets corresponding attributes
+        Finds next driving event and sets corresponding attributes.
     execute:
-        sets car to execute the created trip
+        Sets car to execute the created trip.
     """
 
     def __init__(self, region, car, time_step, simbev):
@@ -106,7 +117,8 @@ class Trip:
         elif self.location == "work" and self.car.work_parking:
             self.car.charge_work(self)
         else:
-            if self.car.soc <= 0.6 and self.car.hpc_pref >= self.rng.random() and self.park_time <= 6:
+            if self.car.soc <= self.simbev.hpc_data['soc_start_threshold'] and self.car.hpc_pref >= self.rng.random() \
+                    and self.park_time <= (self.simbev.hpc_data['park_time_max'] / self.step_size):
                 # get parameters for charging at hpc station
                 charging_capacity = self.simbev.get_charging_capacity(location="hpc",
                                                                       distance=self.distance)
@@ -127,18 +139,24 @@ class Trip:
                 self._create_fast_charge_events()
 
     def _set_timestamps(self):
+        """
+        Sets timestep for drive and park.
+        """
         self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
         if self.drive_found:
             self.drive_timestamp = self.region.region_type.trip_starts.index[self.drive_start]
 
     def _create_fast_charge_events(self):
+        """Creates hpc-event.
+        """
         remaining_distance = self.distance
         sum_hpc_drivetime = 0
 
         # check if next drive needs charging to be completed
         while remaining_distance > self.car.remaining_range and self.car.car_type.label == 'BEV':
             # get time and distance until next hpc station
-            hpc_distance = self.rng.uniform(0.6, 1) * self.car.precise_remaining_range
+            hpc_distance = self.rng.uniform(self.simbev.hpc_data['distance_min'],
+                                            self.simbev.hpc_data['distance_max']) * self.car.precise_remaining_range
             hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
             sum_hpc_drivetime += hpc_drive_time
 
@@ -177,6 +195,9 @@ class Trip:
         self.trip_end = self.drive_start + last_drive_time
 
     def fit_trip_to_timerange(self):
+        """
+        Cuts of time-series so it is in simulation-timerange.
+        """
         # check if trip ends after simulation end
         if self.trip_end > self.region.last_time_step:
             self.trip_end = self.region.last_time_step

@@ -4,6 +4,7 @@ from pathlib import Path
 import datetime
 
 import pandas as pd
+import numpy as np
 
 from simbev import __version__
 
@@ -12,6 +13,19 @@ import time
 
 
 def date_string_to_datetime(date_str):
+    """ Function that converts string to date-format.
+
+    Parameters
+    ----------
+    date_str : str
+        Date to be converted.
+
+    Returns
+    -------
+    date
+        Converted date.
+    """
+
     date_str = date_str.split("-")
     return datetime.date(int(date_str[0]), int(date_str[1]), int(date_str[2]))
 
@@ -21,6 +35,17 @@ def get_column_by_random_number(probability_series, random_number):
     Takes a random number and a pandas.DataFrame with one row
     that contains probabilities,
     returns a column name.
+
+    Parameters
+    ----------
+    probability_series : Series
+        Contains probabilities for charging power.
+    random_number : float
+        Random number.
+
+    Returns
+    -------
+    str
     """
     probability_series = probability_series / probability_series.sum()
     probability_series = probability_series.cumsum()
@@ -38,9 +63,10 @@ def export_metadata(
 
     Parameters
     ----------
-    simbev : :obj:`SimBEV`
-        SimBEV object with scenario information
-    config : cp.ConfigParser
+    simbev : SimBEV
+        SimBEV object with scenario information.
+    config : ConfigParser
+        Object for parsing config.
     """
     cars = simbev.region_data[["bev_mini", "bev_medium", "bev_luxury", "phev_mini", "phev_medium", "phev_luxury"]]
     meta_dict = {
@@ -60,16 +86,150 @@ def export_metadata(
         json.dump(meta_dict, f, indent=4)
 
 
-def export_analysis(analysis_array, directory):
+def export_analysis(analysis_array, directory, start_date, end_date, region_id):
+    """ Generates csv and json file for analysis of simulation-output.
+
+    Parameters
+    ---------
+    analysis_array: ndarray
+        Contains Data for analysis of characteristic values.
+    directory: WindowsPath
+        Directory for saving files.
+    start_date: datetime
+        Start of simulation.
+    end_date: date
+        End of simulation.
+    region_id: str
+        Identifier of region.
+    """
+
+    vehicle_array = ["bev_mini", "bev_medium", "bev_luxury", "phev_mini", "phev_medium", "phev_luxury"]
+    destination_array = ["distance_home", "distance_work", "distance_business", "distance_school",
+                         "distance_shopping", "distance_private", "distance_leisure", "distance_hpc"]
+
+    analysis_mid_dict = {
+        "average_drive_time": float,
+        "average_distance": float,
+        "average_trip_count": int,
+        "by_car_type": {
+            "average_trip_count": {
+                    "bev_mini": float,
+                    "bev_medium": float,
+                    "bev_luxury": float,
+                    "phev_mini": float,
+                    "phev_medium": float,
+                    "phev_luxury": float
+                },
+            "average_drive_time": {
+                    "bev_mini": float,
+                    "bev_medium": float,
+                    "bev_luxury": float,
+                    "phev_mini": float,
+                    "phev_medium": float,
+                    "phev_luxury": float
+                },
+            "average_distance": {
+                    "bev_mini": float,
+                    "bev_medium": float,
+                    "bev_luxury": float,
+                    "phev_mini": float,
+                    "phev_medium": float,
+                    "phev_luxury": float
+                },
+
+
+            },
+        "by_destination": {
+            # "average_trip_count": {
+            #         "distance_home": float,
+            #         "distance_work": float,
+            #         "distance_business": float,
+            #         "distance_school": float,
+            #         "distance_shopping": float,
+            #         "distance_private": float,
+            #         "distance_leisure": float,
+            #         "distance_hpc": float
+            #     },
+            # "average_drive_time": {
+            #         "distance_home": float,
+            #         "distance_work": float,
+            #         "distance_business": float,
+            #         "distance_school": float,
+            #         "distance_shopping": float,
+            #         "distance_private": float,
+            #         "distance_leisure": float,
+            #         "distance_hpc": float
+            #     },
+            "average_distance": {
+                    "distance_home": float,
+                    "distance_work": float,
+                    "distance_business": float,
+                    "distance_school": float,
+                    "distance_shopping": float,
+                    "distance_private": float,
+                    "distance_leisure": float,
+                    "distance_hpc": float
+                }
+        }
+    }
     df = pd.DataFrame(analysis_array, columns=["car_type", "drive_count", "drive_max_length", "drive_min_length",
                                                "drive_mean_length", "drive_max_consumption",
                                                "drive_min_consumption", "drive_mean_consumption",
+                                               "average_driving_time", "average_distance", "distance_home",
+                                               "distance_work", "distance_business", "distance_school",
+                                               "distance_shopping", "distance_private", "distance_leisure",
+                                               "distance_hpc",
                                                "charge_count", "hpc_count", "charge_max_length", "charge_min_length",
                                                "charge_mean_length", "charge_max_energy",
                                                "charge_min_energy", "charge_mean_energy", "hpc_mean_energy",
                                                "home_mean_energy", "work_mean_energy", "public_mean_energy"
                                                ])
+
     df.to_csv(Path(directory, "analysis.csv"))
+    array_to_numeric = ["drive_count", "average_driving_time", "average_distance"]
+    a = array_to_numeric + destination_array
+    for item in a:
+        df[item] = df[item].replace('nan', '-1')
+        df[item] = pd.to_numeric(df[item])
+
+    start_date = start_date.date()
+    number_of_days = end_date-start_date
+    number_of_days = number_of_days.days + 1
+
+    # general
+    analysis_mid_dict["average_trip_count"] = round(df["drive_count"].mean()/number_of_days, 4)
+    analysis_mid_dict["average_drive_time"] = round(df["average_driving_time"].mean(), 4)
+    analysis_mid_dict["average_distance"] = round(df["average_distance"].mean(), 4)
+
+    # by car-type
+    # trip count by day
+    for vehicle in vehicle_array:
+        analysis_mid_dict["by_car_type"]["average_trip_count"][vehicle] = round(df["drive_count"].loc[
+                                                                                   df["car_type"] == vehicle
+                                                                               ].mean()/number_of_days, 4)
+
+    # average drive time by trip
+    for vehicle in vehicle_array:
+        analysis_mid_dict["by_car_type"]["average_drive_time"][vehicle] = round(df["average_driving_time"].loc[
+                                                                                   df["car_type"] == vehicle
+                                                                               ].mean(), 4)
+
+    # average distance by trip
+    for vehicle in vehicle_array:
+        analysis_mid_dict["by_car_type"]["average_distance"][vehicle] = round(df["average_distance"].loc[
+                                                                                   df["car_type"] == vehicle
+                                                                               ].mean(), 4)
+    # by destination
+
+    for destination in destination_array:
+        analysis_mid_dict["by_destination"]["average_distance"][destination] = round(df[destination].loc[
+                                                                                         df[destination]
+                                                                                         != (-1)].mean(), 4)
+
+    # by destination
+
+    with open(Path(directory, "analysis_mid_{}.json".format(region_id)), "w") as outfile:
+        json.dump(analysis_mid_dict, outfile, indent=4, sort_keys=False)
 
 
 def timeitlog(timing):

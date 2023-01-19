@@ -15,14 +15,106 @@ import time
 
 
 class SimBEV:
-    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame,
+    """Class that contains superior data and methods.
+
+    Parameters
+    ----------
+    charging_prob_dict : dict
+        Probabilities for charging-power by location.
+    config_dict : dict
+        Configuration parameters for simulation.
+    energy_min : DataFrame
+        Minimum Energy to be charged by use-case.
+    grid_output : bool
+        Selection for output of grid timeseries.
+    home_work_private : DataFrame
+        Share of private parking by region.
+    hpc_data : dict
+        Input data for hpc-calculations.
+    name : str
+        Name of scenario.
+    num_threads : int
+        Number of cores used for simulation.
+    plot_options : dict
+        Setting for plot outputs.
+    region_data : DataFrame
+        Amount of cars per car-type for each region.
+    tech_data : DataFrame
+        Technical data for all car-types
+
+    Attributes
+    ----------
+    analyze : bool
+        Setting for car-analysis.
+    car_types : dict
+        Includes all data connected to car-types.
+    charging_probabilities : dict
+        Probabilities that describe the availability and power of charging point dependent of destination.
+    charging_threshold : float
+        Value of soc under which charging makes is possible.
+    created_region_types : dict
+        Names of region_types that have been created.
+    data_directory : WindowsPath
+        Path of input data.
+    end_date : date
+        End-date of simulation.
+    energy_min : DataFrame
+        Minimum Energy to be charged by use-case.
+    eta_cp : float
+        Efficiency of charging.
+    file_name_all : str
+        File name of summarized grid-time-series
+    grid_data_list : list
+        Contains grid timeseries of current region.
+    grid_output : bool
+        Identifier if output of grid-time-series is wanted.
+    home_parking : Series
+        Probabilities for private parking space at home by region.
+    hpc_data : dict
+        Input data for hpc-calculations.
+    name : str
+        Name of scenario.
+    num_threads : int
+        Number of Cores to be used for multiprocessing.
+    plot_options : dict
+        Setting for plot outputs.
+    region_data : DataFrame
+        Amount of cars per car-type for each region.
+    regions : list
+        all regions.
+    rng : Generator
+        Random number generator.
+    save_directory : WindowsPath
+        Directory where results are stored.
+    soc_min : float
+        Minimal possible soc.
+    start_date : date
+        Start of simulation.
+    start_date_input : date
+        Start of documentation of results.
+    start_date_output : datetime
+        Start of documentation of results.
+    step_size : int
+        Step size of simulation.
+    step_size_str : str
+        Step size of simulation.
+    tech_data : DataFrame
+        Technical data of vehicle-types.
+    timestamp : str
+        Timestamp of current event.
+    work_parking : Series
+        Probabilities for private parking space at work by region.
+    """
+
+    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, hpc_data: pd.DataFrame,
                  config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, car_output=True,
-                 grid_output=True, timing=True):
+                 grid_output=True, timing=False, analyze=False):
         self.timing = timing
         # parameters from arguments
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
         self.tech_data = tech_data
+        self.hpc_data = hpc_data.to_dict()['values']
 
         # parameters from config_dict
         self.step_size = config_dict["step_size"]
@@ -50,7 +142,7 @@ class SimBEV:
         self.plot_options = plot_options
 
         # analysis of cars
-        self.analyze = True
+        self.analyze = analyze
 
         self.name = name
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -67,6 +159,13 @@ class SimBEV:
         self._add_regions_from_dataframe()
 
     def _create_car_types(self, output):
+        """Creates car-types with all necessary properties.
+
+        Parameters
+        ----------
+        output : bool
+            Setting for output.
+        """
         # create new car type
         for car_type_name in self.tech_data.index:
             # TODO: add charging curve and implement in code
@@ -82,7 +181,7 @@ class SimBEV:
                 energy_min = self.energy_min["phev"].to_dict()
 
             car_type = CarType(car_type_name, bat_cap, charging_capacity, self.soc_min, self.charging_threshold,
-                               energy_min, {}, consumption, output)
+                               energy_min, {}, consumption, output, analyze_mid=True)
             if "bev" in car_type.name:
                 car_type.label = "BEV"
             else:
@@ -90,12 +189,23 @@ class SimBEV:
             self.car_types[car_type_name] = car_type
 
     def _create_region_type(self, region_type):
+        """Creates region-types with all necessary properties.
+
+        Parameters
+        ----------
+        region_type : str
+            Type of Region.
+        """
+
         rs7_region = RegionType(region_type, self.grid_output, self.step_size, self.charging_probabilities)
         rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
         rs7_region.get_probabilities(self.data_directory)
         self.created_region_types[region_type] = rs7_region
 
     def _add_regions_from_dataframe(self):
+        """TODO
+        """
+
         # variable to check which region types have been created
         for region_counter in range(len(self.region_data.index)):
             # get data from inputs
@@ -113,6 +223,8 @@ class SimBEV:
             self.regions.append(new_region)
 
     def run_multi(self):
+        """Runs Simulation for multiprocessing
+        """
         self.num_threads = min(self.num_threads, len(self.regions))
         if self.num_threads == 1:
             for region in self.regions:
@@ -133,6 +245,19 @@ class SimBEV:
             plot.plot_gridtimeseries_by_usecase(self, grid_time_series_all_regions)
 
     def run(self, region):
+        """Runs Simulation for single-processing
+
+        Parameters
+        ----------
+        region : Region
+            Includes all properties of current region.
+
+        Returns
+        -------
+        DataFrame
+            Returns grid-data for current region.
+        """
+
         if self.num_threads == 1:
             print(f'===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) =====')
         else:
@@ -155,11 +280,11 @@ class SimBEV:
                 # SOC init value for the first monday
                 # formula from Kilian, TODO maybe not needed anymore
                 soc_init = self.rng.random() ** (1 / 3) * 0.8 + 0.2 if self.rng.random() < 0.12 else 1
-                car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, region, soc_init)
+                car = Car(car_type, car_number, work_parking, home_parking, self.hpc_data, work_power, home_power, region, soc_init)
 
                 if self.num_threads == 1:
                     print("\r{}% {} {} / {}".format(
-                        round((cars_simulated + car_number + 1) * 100 / region.car_amount),
+                        round((cars_simulated + car_number + 1) *100 / region.car_amount),
                         car.car_type.name,
                         (car.number + 1), region.car_dict[car.car_type.name]
                     ), end="", flush=True)
@@ -180,11 +305,29 @@ class SimBEV:
 
         region.export_grid_timeseries(region_directory)
         if self.analyze:
-            helpers.export_analysis(region.analyze_array, region_directory)
+            helpers.export_analysis(region.analyze_array, region_directory, self.start_date_output, self.end_date,
+                                    region.id)
         print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
         return region.grid_data_frame
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
+        """Determines charging capacity for specific charging event
+
+        Parameters
+        ----------
+        location : str
+            Current location of the vehicle.
+        distance : float
+            Distance of trip.
+        distance_limit : int
+            distance of trip, that determines the area of hpc charging.
+
+        Returns
+        -------
+        Float
+            Returns charging capacity.
+        """
+
         # TODO: check if this destination is used for fast charging
         if "hpc" in location:
             if distance > distance_limit:
@@ -206,9 +349,30 @@ class SimBEV:
             raise ValueError("Missing arguments in get_charging_capacity.")
 
     def hours_to_time_steps(self, t):
+        """Converts time in hours to timesteps.
+
+        Parameters
+        ----------
+        t : float
+            Time in hours.
+
+        Returns
+        -------
+        int
+            Returns timesteps.
+        """
         return math.ceil(t * 60 / self.step_size)
 
     def simulate_car(self, car, region):
+        """Simulates driving profiles for a car.
+
+        Parameters
+        ----------
+        car : Car
+            Includes all properties of current car.
+        region : Region
+            Includes all properties of current region.
+        """
         # create first trip
         trip = Trip(region, car, 0, self)
         # iterate through all time steps
@@ -220,9 +384,23 @@ class SimBEV:
                 trip.execute()
 
     def _log_grid_data(self, result):
+        """Appends grid-timeseries of current region to a list.
+
+        Parameters
+        ----------
+        result : DataFrame
+            Grid-timeseries of current region.
+        """
         self.grid_data_list.append(result)
 
     def export_grid_timeseries_all_regions(self):
+        """Export of grid-timeseries of all regions.
+
+        Returns
+        -------
+        DataFrame
+            Returns grid-timeseries for all regions.
+        """
         if self.grid_output:
             grid_ts_collection = None
             for data in self.grid_data_list:
@@ -238,12 +416,15 @@ class SimBEV:
 
     @classmethod
     def from_config(cls, scenario_path):
-        """
-        Creates a SimBEV object from a specified scenario name. The scenario needs to be located in /simbev/scenarios.
+        """Creates a SimBEV object from a specified scenario name.
+        The scenario needs to be located in /simbev/scenarios.
 
-        Returns:
-            SimBEV Object
-            ConfigParser Object
+        Returns
+        -------
+        SimBEV
+            SimBEV object, that contains all Parameters needed for simulation.
+        cfg
+            ConfigParser Object for reading config files.
         """
         if not scenario_path.is_dir():
             raise FileNotFoundError(f'Scenario "{scenario_path.stem}" not found in ./scenarios .')
@@ -286,6 +467,8 @@ class SimBEV:
         grid_output = cfg.getboolean("output", "grid_time_series_csv", fallback=True)
         plot_options = {"by_region": cfg.getboolean("output", "plot_grid_time_series_split", fallback=False),
                         "all_in_one": cfg.getboolean("output", "plot_grid_time_series_collective", fallback=False)}
+        analyze = cfg.getboolean("output", "analyze", fallback=False)
+
         timing_output = cfg.getboolean("output", "timing", fallback=False)
         cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
                     "soc_min": cfg.getfloat("basic", "soc_min"),
@@ -297,7 +480,10 @@ class SimBEV:
                     "home_private": cfg.getfloat("charging_probabilities", "private_parking_home", fallback=0.5),
                     "work_private": cfg.getfloat("charging_probabilities", "private_parking_work", fallback=0.5),
                     }
+
+        hpc_df = pd.read_csv(pathlib.Path(scenario_path, cfg["hpc_params"]["hpc_data"]), sep=',', index_col=0)
+
         num_threads = cfg.getint('sim_params', 'num_threads')
 
-        return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private, energy_min,
-                      plot_options, num_threads, car_output, grid_output, timing_output), cfg
+        return SimBEV(region_df, charge_prob_dict, tech_df, hpc_df, cfg_dict, scenario_path.stem, home_work_private,
+                      energy_min, plot_options, num_threads, car_output, grid_output, timing_output, analyze), cfg

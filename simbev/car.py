@@ -7,6 +7,31 @@ import math
 
 @dataclass
 class CarType:
+    """Object that describes car-types.
+
+    Attributes
+    ----------
+    name : str
+        Type and class of vehicle.
+    battery_capacity : float
+        Capacity of battery.
+    charging_capacity : dict
+        maximum charging-power of vehicle.
+    soc_min : soc_min
+        Minimum soc that is allowed.
+    charging_threshold : float
+        Soc threshold for tripping a charging event.
+    energy_min : dict
+        Minimum energy for charging events by use case.
+    charging_curve : dict
+        curve that describes charging-power dependent of soc.
+    consumption : float
+        consumption of car.
+    output : bool
+        Setting for output.
+    label : str
+        Drive type of vehicle.
+    """
     name: str
     battery_capacity: float
     charging_capacity: dict
@@ -17,10 +42,24 @@ class CarType:
     # TODO consumption based on speed instead of constant
     consumption: float
     output: bool
+    analyze_mid: bool
     label: str = None
 
 
 def analyze_charge_events(output_df: pd.DataFrame):
+    """Analyzes charging events in the timeseries of one vehicle.
+
+    Parameters
+    ----------
+    output_df : Dataframe
+        Specific time series for given vehicle.
+
+    Returns
+    -------
+    ndarray
+        Returns information about charging events of vehicle in whole timeframe.
+    """
+
     charge_events = output_df.loc[output_df["energy"] > 0]
     event_count = str(len(charge_events.index))
     hpc_count = len(charge_events.loc[charge_events["use_case"] == "hpc"].index)
@@ -40,19 +79,111 @@ def analyze_charge_events(output_df: pd.DataFrame):
 
 
 def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
-    charge_events = output_df.loc[output_df["energy"] < 0]
-    event_count = len(charge_events.index)
-    max_time = charge_events["event_time"].max()
-    min_time = charge_events["event_time"].min()
-    avg_time = round(charge_events["event_time"].mean(), 4)
-    max_consumption = abs(charge_events["energy"].min())
-    min_consumption = abs(charge_events["energy"].max())
-    avg_consumption = round(abs(charge_events["energy"].mean()), 4)
-    return np.array([car_type, event_count, max_time, min_time, avg_time, max_consumption, min_consumption, avg_consumption])
+    """Analyzes driving events in the timeseries of one vehicle.
+
+    Parameters
+    ----------
+    output_df : Dataframe
+        Specific time series for given vehicle.
+    car_type : str
+        Type of vehicle.
+
+    Returns
+    -------
+    ndarray
+        Returns information about driving events of vehicle in whole timeframe.
+    """
+
+    drive_events = output_df.loc[output_df["energy"] < 0]
+    event_count = len(drive_events.index)
+    max_time = drive_events["event_time"].max()
+    min_time = drive_events["event_time"].min()
+    avg_time = round(drive_events["event_time"].mean(), 4)
+    max_consumption = abs(drive_events["energy"].min())
+    min_consumption = abs(drive_events["energy"].max())
+    avg_consumption = round(abs(drive_events["energy"].mean()), 4)
+    # mid analysis
+    avg_time = round(drive_events["event_time"].mean(), 4)
+    avg_distance = round(drive_events["distance"].mean(), 4)
+    distance_home = round(drive_events["distance"].loc[drive_events["destination"] == "home"].mean(), 4)
+    distance_work = round(drive_events["distance"].loc[drive_events["destination"] == "work"].mean(), 4)
+    distance_private = round(drive_events["distance"].loc[drive_events["destination"] == "private"].mean(), 4)
+    distance_leisure = round(drive_events["distance"].loc[drive_events["destination"] == "leisure"].mean(), 4)
+    distance_shopping = round(drive_events["distance"].loc[drive_events["destination"] == "shopping"].mean(), 4)
+    distance_hpc = round(drive_events["distance"].loc[drive_events["destination"] == "hpc"].mean(), 4)
+    distance_school = round(drive_events["distance"].loc[drive_events["destination"] == "school"].mean(), 4)
+    distance_business = round(drive_events["distance"].loc[drive_events["destination"] == "business"].mean(), 4)
+
+    return np.array([car_type, event_count, max_time, min_time, avg_time, max_consumption, min_consumption,
+                     avg_consumption, avg_time, avg_distance, distance_home, distance_work, distance_business,
+                     distance_school, distance_shopping, distance_private, distance_leisure, distance_hpc])
 
 
 class Car:
-    def __init__(self, car_type: CarType, number: int, work_parking, home_parking,
+    """Describes a vehicle. Contains all information and methods of that vehicle.
+
+    Parameters
+    ----------
+    car_type : CarType
+        Includes all information regarding the vehicle.
+    number : int
+        Number of the vehicle.
+    work_parking : bool
+        Identifier for private parking at work.
+    home_parking : bool
+        Identifier for private parking at work.
+    hpc_data : dict
+        Configuration-data for hpc charging.
+    work_capacity
+        Power of LIS at work
+    home_capacity
+        Power of LIS at work
+    region : Region
+        Includes data related to current region
+    soc : float
+        Soc of car.
+    status : str
+        Location of car.
+
+    Attributes
+    ----------
+    car_type : CarType
+        Includes all information regarding the vehicle.
+    file_name : str
+        Name of the csv-file that contains.
+    home_capacity
+        Power of charging-point at work.
+    home_parking : bool
+        Identifier if there is private-parking at home.
+    hpc_data : dict
+        Configuration-data for hpc charging.
+    hpc_pref : float
+        Value of attraction for hpc of vehicle.
+    number : int
+        Number of the vehicle.
+    output : dict
+        timeseries of vehicle that contains output-data for every event of vehicle.
+    region : Region
+        Includes data related to current region.
+    remaining_range : float
+        Remaining range of vehicle.
+    soc : float
+        Soc of vehicle.
+    soc_start : float
+        Soc at start of event.
+    status : str
+        Location of car.
+    usable_soc : float
+        soc that is usable for the next drive.
+    user_spec : str
+        Specification of the user-group the vehicle belongs to.
+    work_parking : bool
+        Identifier for private parking at work.
+    work_capacity
+        Power of charging-point at work
+    """
+
+    def __init__(self, car_type: CarType, number: int, work_parking, home_parking, hpc_data,
                  work_capacity, home_capacity, region, soc: float = 1., status: str = "home"):
 
         self.car_type = car_type
@@ -67,6 +198,7 @@ class Car:
         self.region = region
         self.user_spec = 0
         self.hpc_pref = 0
+        self.hpc_data = hpc_data
 
         # lists to track output data
         # TODO: swap to np.array for better performance?
@@ -80,7 +212,9 @@ class Car:
             "soc_end": [],
             "energy": [],
             "station_charging_capacity": [],
-            "average_charging_power": []
+            "average_charging_power": [],
+            "destination": [],
+            "distance": [],
         }
 
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
@@ -88,9 +222,23 @@ class Car:
         # Set user specificationn and hpc preference
         self.set_user_spec()
 
-    def _update_activity(self, timestamp, event_start, event_time,
+    def _update_activity(self, timestamp, event_start, event_time, distance=0, destination='',
                          nominal_charging_capacity=0, charging_power=0):
-        """Records newest energy and activity"""
+        """Records newest energy and activity
+
+        Parameters
+        ----------
+        timestamp : Timestamp
+            Date and time of event.
+        event_start : int
+            start timestep of event
+        event_time : int
+            duration of event in timesteps.
+        nominal_charging_capacity : int
+            Nominal charging-power of event.
+        charging_power : int
+            Charging-power of event.
+        """
         if self.car_type.output:
             self.output["timestamp"].append(timestamp)
             self.output["event_start"].append(event_start)
@@ -99,17 +247,46 @@ class Car:
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
             self.output["soc_start"].append(self.output["soc_end"][-1] if len(self.output["soc_end"]) > 0 else
                                             self.soc_start)
-            self.output["soc_end"].append(round(self.soc, 4))
+            self.output["soc_end"].append(self.soc)
             charging_demand = self._get_last_charging_demand()
             consumption = self._get_last_consumption()
             self.output["energy"].append(charging_demand + consumption)
             self.output["station_charging_capacity"].append(nominal_charging_capacity)
             self.output["average_charging_power"].append(round(charging_power, 4))
+            self.output["distance"].append(distance)
+            self.output["destination"].append(destination)
 
     def park(self, trip):
+        #TODO: delete function because not in use
+
+        """Parking Event.
+
+        Parameters
+        ----------
+        trip : Trip
+            .
+        """
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
 
     def charge(self, trip, power, charging_type, step_size=None, long_distance=None, max_charging_time=None):
+        """Function for charging.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about trip.
+        power : float
+            Power of charging-point.
+        charging_type : str
+            Type of charging.
+        step_size : int
+            Step-size of simulation.
+        long_distance : bool
+            Indicates if trip is a long distance drive.
+        max_charging_time : int
+            Maximum possible time spend charging.
+        """
+
         if self.soc >= self.car_type.charging_threshold:
             power = 0
 
@@ -129,7 +306,7 @@ class Car:
                 raise ValueError("Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
                     self.car_type.name
                 ))
-            soc_end = trip.rng.uniform(0.8, 0.95)
+            soc_end = trip.rng.uniform(trip.simbev.hpc_data['soc_end_min'], trip.simbev.hpc_data['soc_end_max'])
             charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size, max_charging_time,
                                                                        charging_type, soc_end)
             self.soc = soc
@@ -148,6 +325,14 @@ class Car:
             raise ValueError("Charging type {} is not accepted in charge function!".format(charging_type))
 
     def charge_home(self, trip):
+        """Function for initiation of charging-event in use-case home.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about current trip.
+        """
+
         if self.home_capacity is not None:
             self.charge(trip, self.home_capacity, "slow", step_size=self.region.region_type.step_size,
                         max_charging_time=trip.park_time)
@@ -155,6 +340,14 @@ class Car:
             raise ValueError("Home charging attempted but power is None!")
 
     def charge_work(self, trip):
+        """Function for initiation of charging-event in use-case work.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about current trip.
+        """
+
         if self.work_capacity is not None:
             self.charge(trip, self.work_capacity, "slow", step_size=self.region.region_type.step_size,
                         max_charging_time=trip.park_time)
@@ -162,6 +355,29 @@ class Car:
             raise ValueError("Work charging attempted but power is None!")
 
     def charging_curve(self, trip, power, step_size, max_charging_time, charging_type, soc_end):
+        """Implementation of charging curve.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about current trip.
+        power : float
+            Power of charging-point.
+        step_size : int
+            Step-size of simulation.
+        max_charging_time : int
+            Maximum possible time spend charging.
+        charging_type : str
+            Type of charging.
+        soc_end : int
+            Soc-target of charging-event.
+
+        Returns
+        -------
+        tuple[int,float,float,float]
+            Returns charging parameters including charging-time, average power, power of charging-point and target-soc.
+        """
+
         soc_start = self.soc
 
         # check if min charging energy is loaded
@@ -224,6 +440,26 @@ class Car:
         return time_steps, chargepower_avg, power, soc_end
 
     def drive(self, distance, start_time, timestamp, duration, destination):
+        """Method for driving.
+
+        Parameters
+        ----------
+        distance : float
+            Distance of drive.
+        start_time : int
+            Start time of drive.
+        timestamp : Timestamp
+            Start time of drive.
+        duration : int
+            Duration of drive in time
+        destination : str
+            Location of destination.
+
+        Returns
+        -------
+        bool
+            Returns if drive is possible.
+        """
         if duration <= 0:
             raise ValueError(f"Drive duration of vehicle {self.file_name} is {duration} at {timestamp}")
         soc_delta = self.car_type.consumption * distance / self.car_type.battery_capacity
@@ -238,7 +474,7 @@ class Car:
                 else:
                     raise ValueError("SoC of car {} became negative ({})".format(self.car_type.name,
                                                                                  self.soc))
-            self._update_activity(timestamp, start_time, duration)
+            self._update_activity(timestamp, start_time, duration, distance=distance, destination=destination)
             self.status = destination
             return True
 
@@ -249,16 +485,36 @@ class Car:
 
     @property
     def remaining_range(self):
-        """Returns remaining range of vehicle."""
+        """Calculation of remaining range.
+
+        Returns
+        -------
+        float
+            Returns remaining range of vehicle.
+        """
         # eta used to prevent rounding errors. reduces effective range by 100m
         eta = 0.1
         return max(self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption - eta, 0)
 
     @property
     def usable_soc(self):
+        """Calculation of usable soc.
+
+        Returns
+        -------
+        float
+            Returns soc that is usable.
+        """
         return self.soc - self.car_type.soc_min
 
     def _get_last_charging_demand(self):
+        """Calculates energy used for last charging-event.
+
+        Returns
+        -------
+        float
+            Returns energy used for last charging-event.
+        """
         if len(self.output["soc_start"]):
             charging_demand = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             charging_demand *= self.car_type.battery_capacity
@@ -267,6 +523,13 @@ class Car:
             return 0
 
     def _get_last_consumption(self):
+        """Calculates energy used for last driving-event.
+
+        Returns
+        -------
+        float
+            Returns energy used for last driving-event.
+        """
         if len(self.output["soc_start"]):
             last_consumption = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             last_consumption *= self.car_type.battery_capacity
@@ -276,6 +539,19 @@ class Car:
 
     # TODO maybe solve this in charging (Jakob)
     def _get_usecase(self, power):
+        """Determines use-case of parking-event.
+
+        Parameters
+        ----------
+        power : int
+            Power of charging-point.
+
+        Returns
+        -------
+        str
+            Returns use-case of event.
+        """
+
         if self.status == "driving":
             return ""
         elif self.work_parking and self.status == "work":
@@ -289,27 +565,29 @@ class Car:
             return "public"
 
     def set_user_spec(self):
+        """Assigns specific user-group to vehicle.
+        """
         if self.car_type.charging_capacity["fast"] == 0:
             self.user_spec = '0'  # Todo set better term?
             self.hpc_pref = -1
         elif self.home_capacity != 0 and self.home_parking:
             if self.work_capacity != 0 and self.work_parking:
                 self.user_spec = 'A'  # private LIS at home and at work
-                self.hpc_pref = 0.25
+                self.hpc_pref = self.hpc_data['hpc_pref_A']
             else:
                 self.user_spec = 'B'  # private LIS at home but not at work
-                self.hpc_pref = 0.5
+                self.hpc_pref = self.hpc_data['hpc_pref_B']
         else:
             if self.work_capacity != 0 and self.work_parking:
                 self.user_spec = 'C'  # private LIS not at home but at work
-                self.hpc_pref = 0.5
+                self.hpc_pref = self.hpc_data['hpc_pref_C']
             else:
                 self.user_spec = 'D'  # private LIS not at home and not at work. Primarily HPC
-                self.hpc_pref = 0.75
+                self.hpc_pref = self.hpc_data['hpc_pref_D']
 
     def export(self, region_directory, simbev):
         """
-        Exports the output values collected in car object to a csv file.
+        Exports the output values collected in car object to .csv file.
 
         Parameters
         ----------
@@ -318,6 +596,10 @@ class Car:
         simbev : :obj:`SimBEV`
             SimBEV object with scenario information
 
+        Returns
+        -------
+        ndarray
+            Returns summarized information on charging- and driving-events.
         """
         if self.car_type.output:
             activity = pd.DataFrame(self.output)
@@ -358,9 +640,12 @@ class Car:
                 activity.at[activity.index[0], "event_time"] = post_event_len
                 activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
 
+            drive_array = analyze_drive_events(activity, self.car_type.name)
+            charge_array = analyze_charge_events(activity)
+
+            activity = activity.drop(columns=["destination", "distance"])
             activity = activity.reset_index(drop=True)
             activity.to_csv(pathlib.Path(region_directory, self.file_name))
 
-            drive_array = analyze_drive_events(activity, self.car_type.name)
-            charge_array = analyze_charge_events(activity)
-            return np.hstack((drive_array, charge_array))
+            return np.hstack((drive_array, charge_array))    # , mid_array
+
