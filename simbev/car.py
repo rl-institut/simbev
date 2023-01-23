@@ -433,8 +433,16 @@ class Car:
             chargepower_timestep = sum(e_load) * 60 / step_size
 
             use_case = self._get_usecase(power)
+
+            if use_case == 'hpc' and trip.car.status == 'hpc':
+                park_ts_end = trip.park_start + i + 1
+                hpc_long_distance = True
+            else:
+                park_ts_end = trip.park_start+max_charging_time
+                hpc_long_distance = False
+
             self.region.update_grid_timeseries(use_case, chargepower_timestep, power, trip.park_start + i,
-                                               trip.park_start + i + 1)
+                                               trip.park_start + i + 1, i, park_ts_end, hpc_long_distance)
 
         chargepower_avg = sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
 
