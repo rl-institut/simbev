@@ -124,7 +124,7 @@ class Trip:
                                                                       distance=self.distance)
                 max_charging_time = self.region.last_time_step - self.park_start
                 self.car.charge(self, charging_capacity, "fast", self.step_size,
-                                max_charging_time=max_charging_time)
+                                max_charging_time=self.park_time)
             else:
                 station_capacity = self.simbev.get_charging_capacity(self.location, self.distance)
                 self.car.charge(self, station_capacity, "slow", step_size=self.simbev.step_size,
