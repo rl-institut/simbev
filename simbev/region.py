@@ -169,8 +169,7 @@ class Region:
         """
         return sum(self.car_dict.values())
 
-    def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end, i, park_ts_end,
-                               hpc_long_distance):
+    def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end, i, park_ts_end):
         """ Writes values in grid-time-series
 
         Parameters
@@ -189,8 +188,6 @@ class Region:
             Counter for steps in charging curve.
         park_ts_end : int
             end of parking-time.
-        hpc_long_distance : Bool
-            Identifies if event is an hpc-event on long distance drive or not.
         """
 
         # distribute power to use cases dependent on power
@@ -198,11 +195,8 @@ class Region:
             code = 'cars_{}_{}'.format(use_case, power_lis)
             if code in self.header_grid_ts:
                 column = self.header_grid_ts.index(code)
-                if hpc_long_distance:
+                if i == 0:
                     self.grid_time_series[timestep_start:park_ts_end, column] += 1
-                else:
-                    if i == 0:
-                        self.grid_time_series[timestep_start:park_ts_end, column] += 1
 
             # distribute to use cases total
             code_uc_ges = '{}_total_power'.format(use_case)

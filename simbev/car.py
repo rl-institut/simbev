@@ -434,14 +434,13 @@ class Car:
             use_case = self._get_usecase(power)
 
             if use_case == 'hpc' and trip.car.status == 'hpc':
-                park_ts_end = trip.park_start + i + 1
-                hpc_long_distance = True
+                park_ts_end = trip.park_start + time_steps
+
             else:
                 park_ts_end = trip.park_start+max_charging_time
-                hpc_long_distance = False
 
             self.region.update_grid_timeseries(use_case, chargepower_timestep, power, trip.park_start + i,
-                                               trip.park_start + i + 1, i, park_ts_end, hpc_long_distance)
+                                               trip.park_start + i + 1, i, park_ts_end)
 
         chargepower_avg = sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
 
@@ -650,10 +649,10 @@ class Car:
 
             drive_array = analyze_drive_events(activity, self.car_type.name)
             charge_array = analyze_charge_events(activity)
-
-            activity = activity.drop(columns=["destination", "distance"])
-            activity = activity.reset_index(drop=True)
-            activity.to_csv(pathlib.Path(region_directory, self.file_name))
+            if simbev.car_output:
+                activity = activity.drop(columns=["destination", "distance"])
+                activity = activity.reset_index(drop=True)
+                activity.to_csv(pathlib.Path(region_directory, self.file_name))
 
             return np.hstack((drive_array, charge_array))    # , mid_array
 

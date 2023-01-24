@@ -144,6 +144,9 @@ class SimBEV:
         # analysis of cars
         self.analyze = analyze
 
+        # output of time series of each car
+        self.car_output = car_output
+
         self.name = name
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
         save_directory_name = "{}_{}_simbev_run".format(
@@ -155,7 +158,9 @@ class SimBEV:
         self.step_size_str = str(self.step_size) + "min"
 
         # run setup functions
-        self._create_car_types(car_output)
+        if car_output or analyze:
+            output = True
+        self._create_car_types(output)
         self._add_regions_from_dataframe()
 
     def _create_car_types(self, output):
