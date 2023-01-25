@@ -55,10 +55,7 @@ def get_column_by_random_number(probability_series, random_number):
     return probability_series.index[0]
 
 
-def export_metadata(
-        simbev,
-        config
-):
+def export_metadata(simbev, config):
     """Export metadata of run to JSON file in result's root directory
 
     Parameters
@@ -136,30 +133,8 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
                     "phev_medium": float,
                     "phev_luxury": float
                 },
-
-
             },
         "by_destination": {
-            # "average_trip_count": {
-            #         "distance_home": float,
-            #         "distance_work": float,
-            #         "distance_business": float,
-            #         "distance_school": float,
-            #         "distance_shopping": float,
-            #         "distance_private": float,
-            #         "distance_leisure": float,
-            #         "distance_hpc": float
-            #     },
-            # "average_drive_time": {
-            #         "distance_home": float,
-            #         "distance_work": float,
-            #         "distance_business": float,
-            #         "distance_school": float,
-            #         "distance_shopping": float,
-            #         "distance_private": float,
-            #         "distance_leisure": float,
-            #         "distance_hpc": float
-            #     },
             "average_distance": {
                     "distance_home": float,
                     "distance_work": float,
@@ -182,15 +157,18 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
                                                "charge_count", "hpc_count", "charge_max_length", "charge_min_length",
                                                "charge_mean_length", "charge_max_energy",
                                                "charge_min_energy", "charge_mean_energy", "hpc_mean_energy",
-                                               "home_mean_energy", "work_mean_energy", "public_mean_energy"
+                                               "home_mean_energy", "work_mean_energy", "public_mean_energy",
+                                               "public_count", "private_count"
                                                ])
 
     df.to_csv(Path(directory, "analysis.csv"))
-    array_to_numeric = ["drive_count", "average_driving_time", "average_distance"]
+
+    # extract further analysis data and save it in json-format.
+    array_to_numeric = ["drive_count", "average_driving_time", "average_distance", "private_count", "public_count"]
     a = array_to_numeric + destination_array
     for item in a:
         df[item] = df[item].replace('nan', '-1')
-        df[item] = pd.to_numeric(df[item])
+        df[item] = pd.to_numeric(df[[item]].squeeze())
 
     start_date = start_date.date()
     number_of_days = end_date-start_date
@@ -201,33 +179,35 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
     analysis_mid_dict["average_drive_time"] = round(df["average_driving_time"].mean(), 4)
     analysis_mid_dict["average_distance"] = round(df["average_distance"].mean(), 4)
 
+    analysis_mid_dict["charging_event_share_private"] = round(df[["private_count"]].sum().iloc[0] /
+                                                              (df[["private_count"]].sum().iloc[0] +
+                                                               df[["public_count"]].sum()).iloc[0], 4)
+    analysis_mid_dict["charging_event_share_public"] = round(df[["public_count"]].sum().iloc[0] /
+                                                             (df[["private_count"]].sum().iloc[0] +
+                                                              df[["public_count"]].sum()).iloc[0], 4)
+
     # by car-type
     # trip count by day
     for vehicle in vehicle_array:
         analysis_mid_dict["by_car_type"]["average_trip_count"][vehicle] = round(df["drive_count"].loc[
                                                                                    df["car_type"] == vehicle
                                                                                ].mean()/number_of_days, 4)
-
     # average drive time by trip
     for vehicle in vehicle_array:
         analysis_mid_dict["by_car_type"]["average_drive_time"][vehicle] = round(df["average_driving_time"].loc[
                                                                                    df["car_type"] == vehicle
                                                                                ].mean(), 4)
-
     # average distance by trip
     for vehicle in vehicle_array:
         analysis_mid_dict["by_car_type"]["average_distance"][vehicle] = round(df["average_distance"].loc[
                                                                                    df["car_type"] == vehicle
                                                                                ].mean(), 4)
     # by destination
-
     for destination in destination_array:
         analysis_mid_dict["by_destination"]["average_distance"][destination] = round(df[destination].loc[
                                                                                          df[destination]
                                                                                          != (-1)].mean(), 4)
-
-    # by destination
-
+    # save json-file
     with open(Path(directory, "analysis_mid_{}.json".format(region_id)), "w") as outfile:
         json.dump(analysis_mid_dict, outfile, indent=4, sort_keys=False)
 
@@ -236,6 +216,7 @@ def timeitlog(timing):
     def decorator(func):
         os_path = Path(__file__).parent.parent
         path_to_log_file = Path(os_path, 'results', 'log_file_simbev.txt')
+
         @wraps(func)
         def timeit_wrapper(*args, **kwargs):
             if timing:
