@@ -11,6 +11,7 @@ import pathlib
 import datetime
 import math
 import configparser as cp
+import json
 import time
 
 
@@ -138,6 +139,7 @@ class SimBEV:
         self.created_region_types = {}
         self.car_types = {}
         self.grid_data_list = []
+        self.analysis_data_list = []
         self.grid_output = grid_output
         self.plot_options = plot_options
 
@@ -154,11 +156,13 @@ class SimBEV:
         self.save_directory = pathlib.Path("simbev", "results", save_directory_name)
         self.data_directory = pathlib.Path("simbev", "data")
         self.file_name_all = "grid_time_series_all_regions.csv"
+        self.file_name_analysis_all = "analysis_all_regions.csv"
+        self.file_name_analysis_all_json = "analysis_all_regions.json"
 
         self.step_size_str = str(self.step_size) + "min"
 
         # run setup functions
-        if car_output or analyze:
+        if grid_output or analyze:
             output = True
         self._create_car_types(output)
         self._add_regions_from_dataframe()
@@ -313,7 +317,7 @@ class SimBEV:
             helpers.export_analysis(region.analyze_array, region_directory, self.start_date_output, self.end_date,
                                     region.id)
         print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
-        return region.grid_data_frame
+        return (region.grid_data_frame, region.analyze_array)
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         """Determines charging capacity for specific charging event
@@ -396,7 +400,26 @@ class SimBEV:
         result : DataFrame
             Grid-timeseries of current region.
         """
-        self.grid_data_list.append(result)
+        result_grid = result[0]
+        result_analysis = result[1]
+        self.grid_data_list.append(result_grid)
+
+        columns = ["car_type", "drive_count", "drive_max_length", "drive_min_length", "drive_mean_length",
+                   "drive_max_consumption", "drive_min_consumption", "drive_mean_consumption",
+                   "average_driving_time", "average_distance", "distance_home",
+                   "distance_work", "distance_business", "distance_school",
+                   "distance_shopping", "distance_private", "distance_leisure",
+                   "distance_hpc",
+                   "charge_count", "hpc_count", "charge_max_length",
+                   "charge_min_length",
+                   "charge_mean_length", "charge_max_energy",
+                   "charge_min_energy", "charge_mean_energy", "hpc_mean_energy",
+                   "home_mean_energy", "work_mean_energy", "public_mean_energy",
+                   "public_count", "private_count"
+                     ]
+        df_result_analysis = pd.DataFrame(result_analysis, columns=[columns])
+
+        self.analysis_data_list.append(df_result_analysis)
 
     def export_grid_timeseries_all_regions(self):
         """Export of grid-timeseries of all regions.
@@ -406,6 +429,34 @@ class SimBEV:
         DataFrame
             Returns grid-timeseries for all regions.
         """
+
+        if self.analyze:
+            analysis_collection = None
+            for data in self.analysis_data_list:
+                if analysis_collection is None:
+                    analysis_collection = data.copy()
+                else:
+                    analysis_collection = pd.concat([analysis_collection, data])
+            analysis_collection = analysis_collection.round(4)
+            analysis_collection = analysis_collection.reset_index(drop=True)
+            analysis_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_analysis_all))
+
+            # get share of private and public charging events and save in .json.
+
+            array_to_numeric = ["public_count", "private_count"]
+            for item in array_to_numeric:
+                analysis_collection[item] = pd.to_numeric(analysis_collection[[item]].squeeze())
+
+            share_dict = {'share_private': round(analysis_collection[["private_count"]].sum().iloc[0] /
+                                                 (analysis_collection[["private_count"]].sum().iloc[0] +
+                                                  analysis_collection[["public_count"]].sum().iloc[0]), 4),
+                          'share_public': round(analysis_collection[["public_count"]].sum().iloc[0] /
+                                                (analysis_collection[["private_count"]].sum().iloc[0] +
+                                                 analysis_collection[["public_count"]].sum().iloc[0]), 4)}
+
+            with open(pathlib.Path(self.save_directory, self.file_name_analysis_all_json), "w") as outfile:
+                json.dump(share_dict, outfile, indent=4, sort_keys=False)
+
         if self.grid_output:
             grid_ts_collection = None
             for data in self.grid_data_list:
