@@ -54,8 +54,8 @@ class SimBEV:
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
         save_directory_name = "{}_{}_simbev_run".format(
             self.name, self.timestamp)
-        self.save_directory = pathlib.Path("simbev", "results", save_directory_name)
-        self.data_directory = pathlib.Path("simbev", "data")
+        self.save_directory = pathlib.Path(config_dict["scenario_path"], "results", save_directory_name)
+        self.data_directory = pathlib.Path("data", "probability")  # TODO change based on simulation mode or via config?
         self.file_name_all = "grid_time_series_all_regions.csv"
 
         self.step_size_str = str(self.step_size) + "min"
@@ -89,7 +89,7 @@ class SimBEV:
 
     def _create_region_type(self, region_type):
         rs7_region = RegionType(region_type, self.grid_output, self.step_size, self.charging_probabilities)
-        rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size)
+        rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size, self.data_directory)
         rs7_region.get_probabilities(self.data_directory)
         self.created_region_types[region_type] = rs7_region
 
@@ -231,7 +231,7 @@ class SimBEV:
             return grid_ts_collection
 
     @classmethod
-    def from_config(cls, scenario_path):
+    def from_config(cls, config_path):
         """
         Creates a SimBEV object from a specified scenario name. The scenario needs to be located in /simbev/scenarios.
 
@@ -239,12 +239,13 @@ class SimBEV:
             SimBEV Object
             ConfigParser Object
         """
+        scenario_path = config_path.parent.parent
         if not scenario_path.is_dir():
             raise FileNotFoundError(f'Scenario "{scenario_path.stem}" not found in ./scenarios .')
 
         # read config file
         cfg = cp.ConfigParser()
-        cfg_file = pathlib.Path(scenario_path, "simbev_config.cfg")
+        cfg_file = pathlib.Path(config_path)
         if not cfg_file.is_file():
             raise FileNotFoundError(f"Config file {cfg_file} not found.")
         try:
@@ -290,8 +291,9 @@ class SimBEV:
                     "end_date": end_date,
                     "home_private": cfg.getfloat("charging_probabilities", "private_parking_home", fallback=0.5),
                     "work_private": cfg.getfloat("charging_probabilities", "private_parking_work", fallback=0.5),
+                    "scenario_path": scenario_path,
                     }
         num_threads = cfg.getint('sim_params', 'num_threads')
 
         return SimBEV(region_df, charge_prob_dict, tech_df, cfg_dict, scenario_path.stem, home_work_private, energy_min,
-                      plot_options, num_threads, car_output, grid_output), cfg
+                      plot_options, num_threads, car_output, grid_output), cfg # TODO change this to data dict, config dict, ...
