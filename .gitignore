@@ -1,5 +1,7 @@
-simbev/results/*/
-simbev/scenarios/
+results/
+scenarios/
+data/probability/*/
+data/profiles/*/
 *.pyc
 .pytest_cache
 .vscode
