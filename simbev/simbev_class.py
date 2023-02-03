@@ -108,9 +108,8 @@ class SimBEV:
     """
 
     def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, hpc_data: pd.DataFrame,
-                 config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, car_output=True,
-                 grid_output=True, timing=True, analyze=False)):
-
+                 config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, scaling=1,
+                 car_output=True, grid_output=True, timing=False, analyze=False):
         self.timing = timing
         # parameters from arguments
         self.region_data = region_data
@@ -134,6 +133,7 @@ class SimBEV:
         self.energy_min = energy_min
 
         self.num_threads = num_threads
+        self.scaling = scaling
 
         # additional parameters
         self.regions: List[Region] = []
@@ -222,19 +222,22 @@ class SimBEV:
             region_id = self.region_data.index[region_counter]
             region_type = self.region_data.iat[region_counter, 0]
 
-            car_dict = self.region_data.iloc[region_counter, 1:].to_dict()
+            car_dict = ((self.region_data.iloc[region_counter, 1:]/self.scaling).astype(int)).to_dict()
 
             # create region_type
             if region_type not in self.created_region_types.keys():
                 self._create_region_type(region_type)
 
             # create region objects
-            new_region = Region(region_id, self.created_region_types[region_type], region_counter, car_dict)
+            new_region = Region(region_id, self.created_region_types[region_type], region_counter, car_dict,
+                                self.scaling)
             self.regions.append(new_region)
 
     def run_multi(self):
         """Runs Simulation for multiprocessing
         """
+        print('Scaling set to {}: 1 simulated vehicle represents {} vehicles in grid time series'.format(
+            self.scaling, self.scaling))
         self.num_threads = min(self.num_threads, len(self.regions))
         if self.num_threads == 1:
             for region in self.regions:
@@ -525,6 +528,8 @@ class SimBEV:
         grid_output = cfg.getboolean("output", "grid_time_series_csv", fallback=True)
         plot_options = {"by_region": cfg.getboolean("output", "plot_grid_time_series_split", fallback=False),
                         "all_in_one": cfg.getboolean("output", "plot_grid_time_series_collective", fallback=False)}
+        analyze = cfg.getboolean("output", "analyze", fallback=False)
+
         timing_output = cfg.getboolean("output", "timing", fallback=False)
         analyze = cfg.getboolean("output", "analyze", fallback=False)
 
@@ -544,5 +549,9 @@ class SimBEV:
 
         num_threads = cfg.getint('sim_params', 'num_threads')
 
+        scaling = cfg.getint('sim_params', 'scaling')
+
         return SimBEV(region_df, charge_prob_dict, tech_df, hpc_df, cfg_dict, scenario_path.stem, home_work_private,
-                      energy_min, plot_options, num_threads, car_output, grid_output, timing_output, analyze), cfg   # TODO change this to data dict, config dict, ...
+                      energy_min, plot_options, num_threads, scaling, car_output, grid_output, timing_output,
+                      analyze), cfg
+# TODO change this to data dict, config dict, ...
