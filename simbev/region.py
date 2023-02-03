@@ -139,7 +139,7 @@ class Region:
         Object of class RegionType
     """
 
-    def __init__(self, region_id, region_type: RegionType, region_counter, car_dict):
+    def __init__(self, region_id, region_type: RegionType, region_counter, car_dict, scaling):
 
         self.id = region_id
         self.region_type = region_type
@@ -154,6 +154,7 @@ class Region:
         self.grid_data_frame = []
         self.car_dict = car_dict
         self.analyze_array = None
+        self.scaling = scaling
 
         self.file_name = "{}_grid_time_series_{}.csv".format(self.number, self.id)
 
@@ -310,6 +311,5 @@ class Region:
             timestamp = data['timestamp']
             cars_per_uc = data.filter(regex='cars').astype(int)
             totals = data.filter(regex='total')
-            self.grid_data_frame = pd.concat([timestamp, totals, cars_per_uc], axis=1)
-
+            self.grid_data_frame = pd.concat([timestamp, self.scaling*totals, self.scaling*cars_per_uc], axis=1)
             self.grid_data_frame.to_csv(pathlib.Path(region_directory, self.file_name))
