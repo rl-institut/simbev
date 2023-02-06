@@ -222,7 +222,9 @@ class SimBEV:
             region_id = self.region_data.index[region_counter]
             region_type = self.region_data.iat[region_counter, 0]
 
-            car_dict = ((self.region_data.iloc[region_counter, 1:]/self.scaling).astype(int)).to_dict()
+            car_dict = ((self.region_data.iloc[region_counter, 1:]/self.scaling).apply(np.ceil).astype(int)).to_dict()
+            scaling_factors = ((self.region_data.iloc[region_counter, 1:])/(
+                    self.region_data.iloc[region_counter, 1:]/self.scaling).apply(np.ceil).astype(int)).to_dict()
 
             # create region_type
             if region_type not in self.created_region_types.keys():
@@ -230,7 +232,7 @@ class SimBEV:
 
             # create region objects
             new_region = Region(region_id, self.created_region_types[region_type], region_counter, car_dict,
-                                self.scaling)
+                                scaling_factors)
             self.regions.append(new_region)
 
     def run_multi(self):
