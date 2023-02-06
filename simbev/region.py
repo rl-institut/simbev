@@ -15,9 +15,9 @@ class RegionType:
         self.probabilities = {}
         self.output = grid_output
 
-    def create_timeseries(self, start_date, end_date, step_size):
+    def create_timeseries(self, start_date, end_date, step_size, data_directory):
         if not self.time_series:
-            self.time_series = get_timeseries(start_date, end_date, self.rs7_type, step_size)
+            self.time_series = get_timeseries(start_date, end_date, self.rs7_type, step_size, data_directory)
             self.trip_starts = self.time_series.sum(axis=1)
             self.trip_starts = self.trip_starts / self.trip_starts.max()
 

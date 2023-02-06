@@ -48,12 +48,12 @@ def get_cutoff(date: datetime.date):
 
 
 # Args: region (as string), example: get_name_csv("SR_Metro", get_season(datetime.date.today()))
-def get_name_csv(region, season):
-    return Path("simbev", "data", region,  season + ".csv")
+def get_name_csv(region, season, data_directory):
+    return Path(data_directory, region,  season + ".csv")
 
 
 # main function, returns pandas
-def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
+def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, data_directory):
     # build a matrix containing information about each season during the time span
     weekdays = 7
     min_per_day = 1440
@@ -76,7 +76,7 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize):
 
     # iteration over the created matrix. uses weeklist information to create time series dataframe
     for current_season in weeklist:
-        file_name = get_name_csv(region, current_season[0])
+        file_name = get_name_csv(region, current_season[0], data_directory)
         data_df = pd.read_csv(file_name, sep=';', decimal=',', usecols=range(1, 8))
         temp = pd.DataFrame()
         # check if weekdays are left over from last month, add to start of series
