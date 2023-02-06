@@ -447,7 +447,7 @@ class Car:
                 park_ts_end = trip.park_start+max_charging_time
 
             self.region.update_grid_timeseries(use_case, chargepower_timestep, power, trip.park_start + i,
-                                               trip.park_start + i + 1, i, park_ts_end)
+                                               trip.park_start + i + 1, i, park_ts_end, self.car_type.name)
 
         chargepower_avg = sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
 

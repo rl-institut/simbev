@@ -170,7 +170,8 @@ class Region:
         """
         return sum(self.car_dict.values())
 
-    def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end, i, park_ts_end):
+    def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end, i, park_ts_end,
+                               car_type):
         """ Writes values in grid-time-series
 
         Parameters
@@ -188,7 +189,9 @@ class Region:
         i : int
             Counter for steps in charging curve.
         park_ts_end : int
-            end of parking-time.
+            End of parking-time.
+        car_type : str
+            Type of car (BEV/PHEV and Segment).
         """
 
         # distribute power to use cases dependent on power
@@ -197,17 +200,16 @@ class Region:
             if code in self.header_grid_ts:
                 column = self.header_grid_ts.index(code)
                 if i == 0:
-                    self.grid_time_series[timestep_start:park_ts_end, column] += 1
-
+                    self.grid_time_series[timestep_start:park_ts_end, column] += (1*self.scaling[car_type])
             # distribute to use cases total
             code_uc_ges = '{}_total_power'.format(use_case)
             if code_uc_ges in self.header_grid_ts:
                 column = self.header_grid_ts.index(code_uc_ges)
-                self.grid_time_series[timestep_start:timestep_end, column] += chargepower
+                self.grid_time_series[timestep_start:timestep_end, column] += (chargepower*self.scaling[car_type])
 
             # add to total amount
             column = self.header_grid_ts.index('total_power')
-            self.grid_time_series[timestep_start:timestep_end, column] += chargepower
+            self.grid_time_series[timestep_start:timestep_end, column] += (chargepower*self.scaling[car_type])
 
     def get_purpose(self, rng, time_step):
         """Determinants purpose of trip.
@@ -309,7 +311,7 @@ class Region:
             data = data.drop(columns=['timestep'])
             data = data.round(4)
             timestamp = data['timestamp']
-            cars_per_uc = data.filter(regex='cars').astype(int)
+            cars_per_uc = data.filter(regex='cars').apply(np.ceil).astype(int)
             totals = data.filter(regex='total')
-            self.grid_data_frame = pd.concat([timestamp, self.scaling*totals, self.scaling*cars_per_uc], axis=1)
+            self.grid_data_frame = pd.concat([timestamp, totals, cars_per_uc], axis=1)
             self.grid_data_frame.to_csv(pathlib.Path(region_directory, self.file_name))
