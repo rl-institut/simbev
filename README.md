@@ -34,13 +34,16 @@ Make sure you have conda installed, e.g. miniconda. Then create the env:
 
 ## Run simBEV
 
-- You can use a default scenario or define a custom one in the directory `scenarios`, see
-  [scenario readme](./simbev/scenarios/README.md) for further instructions
-- Run simbev with the desired scenario: `python -m simbev <SCENARIO_NAME>`
-  (defaults to `python -m simbev default`)
-- Results are created in directory `results`
+### Get the data
+If you want to run SimBEV in the mode using probabilities, a data set is available [here](https://zenodo.org/record/7609683)
 
-## Set parameters for your scenario
+### Create a scenario
+- You can use a default scenario or define a custom one in the directory `scenarios`
+- Run simbev with the desired scenario: `python -m simbev path/to/config`
+  (defaults to `python -m simbev scenarios/default/configs/default.cfg`)
+- Results are created in the subdirectory `results` in the scenario directory
+
+### Set parameters for your scenario
 
 Select regio-type for the mobility characteristics:
 - regiotypes:
