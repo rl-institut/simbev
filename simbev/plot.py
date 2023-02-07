@@ -1,7 +1,7 @@
 def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
     import matplotlib.pyplot as plt
     # TODO fix plot first region outputs all regions data (log_region_data)
-    if simbev.plot_options["by_region"]:
+    if simbev.output_options["region_plot"]:
         for idx, data in enumerate(simbev.grid_data_list):
             df_results = data.set_index('timestamp')
 
@@ -23,7 +23,7 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
             figname = "region_{}".format(idx+1)
             plt.savefig('{}/{}.png'.format(simbev.save_directory, figname))
 
-    if simbev.plot_options["all_in_one"]:
+    if simbev.output_options["collective_plot"]:
         df_results = grid_timeseries_all.set_index('timestamp')
 
         plt.figure(figsize=(15, 9))
