@@ -405,10 +405,10 @@ class Car:
         charging_time_array = np.zeros(len(charging_soc_array))
 
         for index, soc in enumerate(charging_soc_array):
-            power_array[index] = min(((trip.simbev.charging_curve['a_2'] * (soc * 100) ** 2
-                                       + trip.simbev.charging_curve['a_1'] * (soc * 100)
+            power_array[index] = min(((trip.simbev.charging_curve['a_2'] * (soc) ** 2
+                                       + trip.simbev.charging_curve['a_1'] * (soc)
                                        + trip.simbev.charging_curve['a_0'])
-                                      * self.car_type.charging_capacity[charging_type] / 100), power)
+                                      * self.car_type.charging_capacity[charging_type]), power)
             charging_time_array[index] = soc_delta * self.car_type.battery_capacity / power_array[index] * 60
 
         charging_time = sum(charging_time_array)
