@@ -109,7 +109,7 @@ class SimBEV:
         Probabilities for private parking space at work by region.
     """
 
-    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, hpc_data: pd.DataFrame,
+    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, charging_curve, hpc_data: pd.DataFrame,
                  config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, scaling=1,
                  car_output=True, grid_output=True, timing=False, analyze=False):
         self.timing = timing
@@ -117,6 +117,7 @@ class SimBEV:
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
         self.tech_data = tech_data
+        self.charging_curve = charging_curve
         self.hpc_data = hpc_data.to_dict()['values']
 
         # parameters from config_dict
@@ -308,7 +309,7 @@ class SimBEV:
                         car.car_type.name,
                         (car.number + 1), region.car_dict[car.car_type.name]
                     ), end="", flush=True)
-                
+
                 # if private run, check if private charging infrastructure is available
                 if self.private_only_run and (work_power or home_power):
                     # TODO catch error, then run again
@@ -535,6 +536,10 @@ class SimBEV:
         home_work_private = home_work_private.set_index('region')
         tech_df = pd.read_csv(pathlib.Path(scenario_path, cfg["tech_data"]["tech_data"]), sep=',',
                               index_col=0)
+        charging_curve = {'a_2': cfg.getfloat('tech_data', 'a_2'),
+                          'a_1': cfg.getfloat('tech_data', 'a_1'),
+                          'a_0': cfg.getfloat('tech_data', 'a_0')
+                          }
 
         energy_min = pd.read_csv(pathlib.Path(scenario_path, cfg['charging_probabilities']['energy_min']))
         energy_min = energy_min.set_index('uc')
@@ -573,7 +578,6 @@ class SimBEV:
 
         scaling = cfg.getint('sim_params', 'scaling')
 
-        return SimBEV(region_df, charge_prob_dict, tech_df, hpc_df, cfg_dict, scenario_path.stem, home_work_private,
-                      energy_min, plot_options, num_threads, scaling, car_output, grid_output, timing_output,
-                      analyze), cfg
-# TODO change this to data dict, config dict, ...
+        return SimBEV(region_df, charge_prob_dict, tech_df, charging_curve, hpc_df, cfg_dict, scenario_path.stem,
+                      home_work_private, energy_min, plot_options, num_threads, scaling, car_output, grid_output,
+                      timing_output, analyze), cfg  # TODO change this to data dict, config dict, ...
