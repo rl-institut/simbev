@@ -132,7 +132,7 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, d
     # build a matrix containing information about each season during the time span
     while start < end:
         cutoff = get_cutoff(start)
-        if cutoff < end:    # useful season
+        if cutoff < end:    # use the whole season
             delta = cutoff - start
             weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start, cutoff])
         else:   # end date is during this season
