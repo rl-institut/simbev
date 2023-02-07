@@ -191,7 +191,7 @@ class SimBEV:
                 energy_min = self.energy_min["phev"].to_dict()
 
             car_type = CarType(car_type_name, bat_cap, charging_capacity, self.soc_min, self.charging_threshold,
-                               energy_min, {}, consumption, output, analyze_mid=True)
+                               energy_min, {}, consumption, output, self.hpc_data, analyze_mid=True)
             if "bev" in car_type.name:
                 car_type.label = "BEV"
             else:
@@ -295,7 +295,7 @@ class SimBEV:
                 # SOC init value for the first monday
                 # formula from Kilian, TODO maybe not needed anymore
                 soc_init = self.rng.random() ** (1 / 3) * 0.8 + 0.2 if self.rng.random() < 0.12 else 1
-                car = Car(car_type, car_number, work_parking, home_parking, self.hpc_data, work_power, home_power, region, soc_init)
+                car = Car(car_type, car_number, work_parking, home_parking, work_power, home_power, region, soc_init)
 
                 if self.num_threads == 1:
                     print("\r{}% {} {} / {}".format(

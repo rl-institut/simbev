@@ -29,6 +29,10 @@ class CarType:
         consumption of car.
     output : bool
         Setting for output.
+    hpc_data : dict
+        Config parameters for hpc
+    analyze_mid : bool
+        Setting for analysis-output
     label : str
         Drive type of vehicle.
     """
@@ -42,8 +46,10 @@ class CarType:
     # TODO consumption based on speed instead of constant
     consumption: float
     output: bool
+    hpc_data: dict
     analyze_mid: bool
     label: str = None
+
 
 
 def analyze_charge_events(output_df: pd.DataFrame):
@@ -139,8 +145,6 @@ class Car:
         Identifier for private parking at work.
     home_parking : bool
         Identifier for private parking at work.
-    hpc_data : dict
-        Configuration-data for hpc charging.
     work_capacity
         Power of LIS at work
     home_capacity
@@ -190,7 +194,7 @@ class Car:
         Power of charging-point at work
     """
 
-    def __init__(self, car_type: CarType, number: int, work_parking, home_parking, hpc_data,
+    def __init__(self, car_type: CarType, number: int, work_parking, home_parking,
                  work_capacity, home_capacity, region, soc: float = 1., status: str = "home"):
 
         self.car_type = car_type
@@ -205,7 +209,6 @@ class Car:
         self.region = region
         self.user_spec = 0
         self.hpc_pref = 0
-        self.hpc_data = hpc_data
 
         # lists to track output data
         # TODO: swap to np.array for better performance?
@@ -587,17 +590,17 @@ class Car:
         elif self.home_capacity != 0 and self.home_parking:
             if self.work_capacity != 0 and self.work_parking:
                 self.user_spec = 'A'  # private LIS at home and at work
-                self.hpc_pref = self.hpc_data['hpc_pref_A']
+                self.hpc_pref = self.car_type.hpc_data['hpc_pref_A']
             else:
                 self.user_spec = 'B'  # private LIS at home but not at work
-                self.hpc_pref = self.hpc_data['hpc_pref_B']
+                self.hpc_pref = self.car_type.hpc_data['hpc_pref_B']
         else:
             if self.work_capacity != 0 and self.work_parking:
                 self.user_spec = 'C'  # private LIS not at home but at work
-                self.hpc_pref = self.hpc_data['hpc_pref_C']
+                self.hpc_pref = self.car_type.hpc_data['hpc_pref_C']
             else:
                 self.user_spec = 'D'  # private LIS not at home and not at work. Primarily HPC
-                self.hpc_pref = self.hpc_data['hpc_pref_D']
+                self.hpc_pref = self.car_type.hpc_data['hpc_pref_D']
 
     def export(self, region_directory, simbev):
         """
