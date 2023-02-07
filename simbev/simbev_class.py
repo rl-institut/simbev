@@ -255,7 +255,8 @@ class SimBEV:
                 pool.apply_async(self.run, (region,), callback=self._log_grid_data)
             pool.close()
             pool.join()
-        grid_time_series_all_regions = helpers.timeitlog(self.timing)(self.export_grid_timeseries_all_regions)()
+        grid_time_series_all_regions = helpers.timeitlog(self.timing, self.save_directory)(
+            self.export_grid_timeseries_all_regions)()
         if True in self.plot_options.values():
             plot.plot_gridtimeseries_by_usecase(self, grid_time_series_all_regions)
 

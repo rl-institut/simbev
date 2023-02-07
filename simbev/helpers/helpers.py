@@ -212,10 +212,10 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
         json.dump(analysis_mid_dict, outfile, indent=4, sort_keys=False)
 
 
-def timeitlog(timing):
+def timeitlog(timing, save_directory):
     def decorator(func):
-        os_path = Path(__file__).parent.parent
-        path_to_log_file = Path(os_path, 'results', 'log_file_simbev.txt')
+        os_path = Path(__file__).parent.parent.parent
+        path_to_log_file = Path(save_directory, 'timing_log_file_simbev.txt')
 
         @wraps(func)
         def timeit_wrapper(*args, **kwargs):
@@ -229,8 +229,6 @@ def timeitlog(timing):
                     f.write("Function {} ran on {} took {} seconds \n".format(func, datetime.datetime.now(), total_time))
             else:
                 result = func(*args, **kwargs)
-            # print(f'Function {func.__name__}{args} {kwargs} Took {total_time:.4f} seconds')
             return result
-
         return timeit_wrapper
     return decorator
