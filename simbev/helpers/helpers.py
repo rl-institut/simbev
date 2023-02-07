@@ -214,7 +214,6 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
 
 def timeitlog(timing, save_directory):
     def decorator(func):
-        os_path = Path(__file__).parent.parent.parent
         path_to_log_file = Path(save_directory, 'timing_log_file_simbev.txt')
 
         @wraps(func)
@@ -224,7 +223,6 @@ def timeitlog(timing, save_directory):
                 result = func(*args, **kwargs)
                 end_time = time.perf_counter()
                 total_time = end_time - start_time
-                # first item in the args, ie `args[0]` is `self`
                 with open(path_to_log_file, 'a') as f:
                     f.write("Function {} ran on {} took {} seconds \n".format(func, datetime.datetime.now(), total_time))
             else:
