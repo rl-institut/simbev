@@ -53,6 +53,9 @@ class SimBEV:
 
         self.num_threads = config_dict["num_threads"]
         self.output_options = config_dict["output_options"]
+
+        self.input_type = config_dict["input_type"]
+        self.input_directory = pathlib.Path(config_dict["input_directory"])
         self.scaling = scaling
 
         # additional parameters
@@ -128,7 +131,11 @@ class SimBEV:
 
         rs7_region = RegionType(region_type, self.output_options["grid"], self.step_size, self.charging_probabilities)
         rs7_region.create_timeseries(self.start_date, self.end_date, self.step_size, self.data_directory)
-        rs7_region.get_probabilities(self.data_directory)
+        if self.input_type == "probability":
+            rs7_region.get_probabilities(self.data_directory)
+        else:
+            pass
+            # TODO profiles check if anything is necessary to do here
         self.created_region_types[region_type] = rs7_region
 
     def _add_regions_from_dataframe(self):
@@ -170,7 +177,7 @@ class SimBEV:
         else:
             pool = mp.Pool(processes=self.num_threads)
 
-            for region_ctr, region in enumerate(self.regions):
+            for region in self.regions:
                 pool.apply_async(self.run, (region,), callback=self._log_grid_data)
             pool.close()
             pool.join()
@@ -224,6 +231,9 @@ class SimBEV:
                         car.car_type.name,
                         (car.number + 1), region.car_dict[car.car_type.name]
                     ), end="", flush=True)
+
+                # TODO profiles: add profiles to car on creation? or apply profiles during simulation?
+                # idea: create a list of trips that get simulated. code where?
 
                 # if private run, check if private charging infrastructure is available
                 if self.private_only_run and (work_power or home_power):
