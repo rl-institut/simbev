@@ -6,7 +6,38 @@ import simbev.helpers.helpers as helpers
 
 
 class RegionType:
+    """Constructor for class RegionType.
+    Parameters
+    ----------
+    rs7_type : str
+        Type of the region defined by RegioStaR7.
+    grid_output : bool
+        Identifier if grid output is activated.
+    step_size : int
+        Step-size of simulation.
+    charging_probabilities : dict
+        Probabilities for power of charging-point.
+
+    Attributes
+    ----------
+    charging_probabilities : dict
+        Probabilities for power of charging-point.
+    output : bool
+        Identifier if grid output is activated.
+    probabilities : dict
+        Probabilities related to trip that are dependent on region-type.
+    rs7_type : int
+        Type of the region defined by RegioStaR7.
+    step_size : int
+        Step-size of simulation.
+    time_series : DataFrame
+        Timeseries of processed MiD-data, that includes amount of trips started by destination and datetime.
+    trip_starts : Series
+        Probabilities for start of a trip by datetime.
+    """
+
     def __init__(self, rs7_type, grid_output, step_size, charging_probabilities):
+
         self.rs7_type = rs7_type
         self.step_size = step_size
         self.charging_probabilities = charging_probabilities
@@ -16,12 +47,31 @@ class RegionType:
         self.output = grid_output
 
     def create_timeseries(self, start_date, end_date, step_size, data_directory):
+        """ Creating timeseries for vehicle.
+
+        Parameters
+        ----------
+        start_date : date
+            Start-date of simulation.
+        end_date : date
+            End-date of simulation.
+        step_size : int
+            Step-size of simulation
+        """
+
         if not self.time_series:
             self.time_series = get_timeseries(start_date, end_date, self.rs7_type, step_size, data_directory)
             self.trip_starts = self.time_series.sum(axis=1)
             self.trip_starts = self.trip_starts / self.trip_starts.max()
 
     def get_probabilities(self, data_directory):
+        """Unites probabilities for trip.
+
+        Parameters
+        ----------
+        data_directory : WindowsPath
+            Directory of input-data.
+        """
 
         self.probabilities = {
             "speed": {},
@@ -49,7 +99,48 @@ class RegionType:
 
 
 class Region:
-    def __init__(self, region_id, region_type: RegionType, region_counter, car_dict):
+    """
+    Class that contains information and methods related to the region.
+
+    Parameters
+    ----------
+    region_id : str
+        Identifier for region-type
+    region_type : RegionType
+        Object of class RegionType
+    region_counter : int
+        Number of region
+    car_dict : dict
+        Distribution of cars in region.
+
+    Attributes
+    ----------
+    analyze_array : ndarray
+        Array that contains values of analysis.
+    car_amount : int
+        Amount of cars in region.
+    car_dict : dict
+        Distribution of car-types.
+    file_name : str
+        Name of csv-file for grid timeseries of specific region.
+    grid_data_frame : list
+        Summarized time-series for whole region.
+    grid_time_series : ndarray
+        Summarized time-series for whole region.
+    header_grid_ts : list
+        Header of grid-time-series.
+    id : str
+        Identifier of region.
+    last_time_step : int
+        Last time-step of simulation.
+    number : int
+        Counter of regions simulated
+    region_type : RegionType
+        Object of class RegionType
+    """
+
+    def __init__(self, region_id, region_type: RegionType, region_counter, car_dict, scaling):
+
         self.id = region_id
         self.region_type = region_type
         self.number = region_counter
@@ -63,6 +154,7 @@ class Region:
         self.grid_data_frame = []
         self.car_dict = car_dict
         self.analyze_array = None
+        self.scaling = scaling
 
         self.file_name = "{}_grid_time_series_{}.csv".format(self.number, self.id)
 
@@ -70,32 +162,97 @@ class Region:
 
     @property
     def car_amount(self):
+        """ Returns number of vehicles
+        Returns
+        -------
+        int
+            Number of vehicles
+        """
         return sum(self.car_dict.values())
 
-    def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end):
+    def update_grid_timeseries(self, use_case, chargepower, power_lis, timestep_start, timestep_end, i, park_ts_end,
+                               car_type):
+        """ Writes values in grid-time-series
+
+        Parameters
+        ----------
+        use_case : str
+            Use-case of event.
+        chargepower : float
+            Average power of charging-event.
+        power_lis : float
+            Maximum power of charging-point.
+        timestep_start : int
+            Start of event.
+        timestep_end : int
+            End of event.
+        i : int
+            Counter for steps in charging curve.
+        park_ts_end : int
+            End of parking-time.
+        car_type : str
+            Type of car (BEV/PHEV and Segment).
+        """
+
         # distribute power to use cases dependent on power
         if self.region_type.output:
             code = 'cars_{}_{}'.format(use_case, power_lis)
             if code in self.header_grid_ts:
                 column = self.header_grid_ts.index(code)
-                self.grid_time_series[timestep_start:timestep_end, column] += 1
-
+                if i == 0:
+                    self.grid_time_series[timestep_start:park_ts_end, column] += (1*self.scaling[car_type])
             # distribute to use cases total
             code_uc_ges = '{}_total_power'.format(use_case)
             if code_uc_ges in self.header_grid_ts:
                 column = self.header_grid_ts.index(code_uc_ges)
-                self.grid_time_series[timestep_start:timestep_end, column] += chargepower
+                self.grid_time_series[timestep_start:timestep_end, column] += (chargepower*self.scaling[car_type])
 
             # add to total amount
             column = self.header_grid_ts.index('total_power')
-            self.grid_time_series[timestep_start:timestep_end, column] += chargepower
+            self.grid_time_series[timestep_start:timestep_end, column] += (chargepower*self.scaling[car_type])
 
     def get_purpose(self, rng, time_step):
+        """Determinants purpose of trip.
+
+        Parameters
+        ----------
+        rng : Generator
+            Random number generator
+        time_step : int
+            Time-step of simulation.
+
+        Returns
+        -------
+        int
+            Destination of trip.
+        """
         random_number = rng.random()
         purpose_probabilities = self.region_type.time_series.iloc[time_step]
         return helpers.get_column_by_random_number(purpose_probabilities, random_number)
 
     def get_probability(self, rng, destination, key):
+        """ Gets properties for trip in use of probabilities
+
+        Parameters
+        ----------
+        rng : Generator
+            Random number generator.
+        destination : str
+            Destination of trip.
+        key : str
+            Key for probability.
+
+        Returns
+        -------
+        float
+            probability for parameter.
+
+        Raises
+        ------
+        ValueError
+            If destination is hpc.
+        """
+
         if destination == 'hpc':
             raise ValueError("Destination {} is not accepted in get probability!".format(destination))
         probabilities = self.region_type.probabilities[key][destination]
@@ -103,6 +260,8 @@ class Region:
         return prob.iat[0, -1]
 
     def create_grid_timeseries(self):
+        """Constructs grid-time-series
+        """
         header_slow = list(self.region_type.charging_probabilities['slow'].columns)
         header_fast = list(self.region_type.charging_probabilities['fast'].columns)
         if '0' in header_slow:
@@ -132,12 +291,12 @@ class Region:
 
     def export_grid_timeseries(self, region_directory):
         """
-        Exports the grid time series to a csv file.
+        Exports the grid time series to a .csv file.
 
         Parameters
         ----------
-        region_directory : :obj:`pathlib.Path`
-            save directory for the region
+        region_directory : WindowsPath
+            Save-directory for the region.
         """
         if self.region_type.output:
             data = pd.DataFrame(self.grid_time_series)
@@ -152,8 +311,7 @@ class Region:
             data = data.drop(columns=['timestep'])
             data = data.round(4)
             timestamp = data['timestamp']
-            cars_per_uc = data.filter(regex='cars').astype(int)
+            cars_per_uc = data.filter(regex='cars').apply(np.ceil).astype(int)
             totals = data.filter(regex='total')
             self.grid_data_frame = pd.concat([timestamp, totals, cars_per_uc], axis=1)
-
-            self.grid_data_frame.to_csv(pathlib.Path(region_directory, self.file_name))
+            self.grid_data_frame.to_csv(pathlib.Path(region_directory, self.file_name), index=False)
