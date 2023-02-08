@@ -308,8 +308,21 @@ class SimBEV:
                         car.car_type.name,
                         (car.number + 1), region.car_dict[car.car_type.name]
                     ), end="", flush=True)
+                
+                # if private run, check if private charging infrastructure is available
+                if self.private_only_run and (work_power or home_power):
+                    # TODO catch error, then run again
+                    try:
+                        private_car = copy.copy(car)
+                        private_car.private_only = True
+                        self.simulate_car(private_car, region)
+                        car = private_car
+                    except SoCError:
+                        exception_count += 1
+                        self.simulate_car(car, region)
+                else:
 
-                self.simulate_car(car, region)
+                    self.simulate_car(car, region)
 
                 # export vehicle csv
                 if self.analyze:
@@ -322,7 +335,7 @@ class SimBEV:
                     car.export(region_directory, self)
             cars_simulated += car_count
         if self.private_only_run:
-            print("Number of cars that couldn't run private only:", exception_count)
+            print("\nNumber of cars that couldn't run private only: {}/{}".format(exception_count, cars_simulated))
 
         region.export_grid_timeseries(region_directory)
         if self.analyze:
