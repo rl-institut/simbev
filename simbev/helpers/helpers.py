@@ -161,7 +161,7 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
                                                "public_count", "private_count"
                                                ])
 
-    df.to_csv(Path(directory, "analysis.csv"))
+    df.to_csv(Path(directory, "analysis.csv"), index=False)
 
     # extract further analysis data and save it in json-format.
     array_to_numeric = ["drive_count", "average_driving_time", "average_distance", "private_count", "public_count"]

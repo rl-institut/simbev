@@ -446,7 +446,7 @@ class SimBEV:
                     analysis_collection = pd.concat([analysis_collection, data])
             analysis_collection = analysis_collection.round(4)
             analysis_collection = analysis_collection.reset_index(drop=True)
-            analysis_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_analysis_all))
+            analysis_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_analysis_all), index=False)
 
             # get share of private and public charging events and save in .json.
 
@@ -474,7 +474,7 @@ class SimBEV:
                         += (data.loc[:,
                             data.columns != 'timestamp'])
             grid_ts_collection = grid_ts_collection.round(4)
-            grid_ts_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_all))
+            grid_ts_collection.to_csv(pathlib.Path(self.save_directory, self.file_name_all), index=False)
             return grid_ts_collection
 
     @classmethod

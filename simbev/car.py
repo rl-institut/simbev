@@ -661,7 +661,7 @@ class Car:
             if simbev.car_output:
                 activity = activity.drop(columns=["destination", "distance"])
                 activity = activity.reset_index(drop=True)
-                activity.to_csv(pathlib.Path(region_directory, self.file_name))
+                activity.to_csv(pathlib.Path(region_directory, self.file_name), index=False)
 
             return np.hstack((drive_array, charge_array))    # , mid_array
 
