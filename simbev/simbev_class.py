@@ -6,6 +6,7 @@ from simbev.region import Region, RegionType
 from simbev.car import CarType, Car
 from simbev.trip import Trip
 import simbev.plot as plot
+from simbev.helpers.errors import SoCError
 import multiprocessing as mp
 import pathlib
 import datetime
@@ -13,6 +14,7 @@ import math
 import configparser as cp
 import json
 import time
+import copy
 
 
 class SimBEV:
@@ -131,6 +133,7 @@ class SimBEV:
         self.home_parking = home_work_private.loc["home", :]
         self.work_parking = home_work_private.loc["work", :]
         self.energy_min = energy_min
+        self.private_only_run = config_dict["private_only_run"]
 
         self.num_threads = num_threads
         self.scaling = scaling
@@ -282,6 +285,7 @@ class SimBEV:
         region_directory.mkdir(parents=True, exist_ok=True)
 
         cars_simulated = 0
+        exception_count = 0
         for car_type_name, car_count in region.car_dict.items():
             for car_number in range(car_count):
                 # Create new car
@@ -304,9 +308,21 @@ class SimBEV:
                         car.car_type.name,
                         (car.number + 1), region.car_dict[car.car_type.name]
                     ), end="", flush=True)
+                
+                # if private run, check if private charging infrastructure is available
+                if self.private_only_run and (work_power or home_power):
+                    # TODO catch error, then run again
+                    try:
+                        private_car = copy.copy(car)
+                        private_car.private_only = True
+                        self.simulate_car(private_car, region)
+                        car = private_car
+                    except SoCError:
+                        exception_count += 1
+                        self.simulate_car(car, region)
+                else:
 
-                # run simulation for car with optional timing
-                self.simulate_car(car, region)
+                    self.simulate_car(car, region)
 
                 # export vehicle csv
                 if self.analyze:
@@ -318,6 +334,8 @@ class SimBEV:
                 else:
                     car.export(region_directory, self)
             cars_simulated += car_count
+        if self.private_only_run:
+            print("\nNumber of cars that couldn't run private only: {}/{}".format(exception_count, cars_simulated))
 
         region.export_grid_timeseries(region_directory)
         if self.analyze:
@@ -536,8 +554,8 @@ class SimBEV:
         timing_output = cfg.getboolean("output", "timing", fallback=False)
         analyze = cfg.getboolean("output", "analyze", fallback=False)
 
-        cfg_dict = {"step_size": cfg.getint("basic", "stepsize"),
-                    "soc_min": cfg.getfloat("basic", "soc_min"),
+        cfg_dict = {"step_size": cfg.getint("basic", "stepsize", fallback=15),
+                    "soc_min": cfg.getfloat("basic", "soc_min", fallback=0.2),
                     "charging_threshold": cfg.getfloat("basic", "charging_threshold"),
                     "rng_seed": cfg["sim_params"].getint("seed", None),
                     "eta_cp": cfg.getfloat("basic", "eta_cp"),
@@ -546,6 +564,7 @@ class SimBEV:
                     "home_private": cfg.getfloat("charging_probabilities", "private_parking_home", fallback=0.5),
                     "work_private": cfg.getfloat("charging_probabilities", "private_parking_work", fallback=0.5),
                     "scenario_path": scenario_path,
+                    "private_only_run": cfg.getboolean("sim_params", "private_only_run", fallback=False)
                     }
 
         hpc_df = pd.read_csv(pathlib.Path(scenario_path, cfg["hpc_params"]["hpc_data"]), sep=',', index_col=0)

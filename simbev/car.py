@@ -194,7 +194,7 @@ class Car:
     """
 
     def __init__(self, car_type: CarType, number: int, work_parking, home_parking,
-                 work_capacity, home_capacity, region, soc: float = 1., status: str = "home"):
+                 work_capacity, home_capacity, region, soc: float = 1., status: str = "home", private_only = False):
 
         self.car_type = car_type
         self.soc_start = soc
@@ -208,6 +208,7 @@ class Car:
         self.region = region
         self.user_spec = 0
         self.hpc_pref = 0
+        self.private_only = private_only
 
         # lists to track output data
         # TODO: swap to np.array for better performance?
@@ -225,6 +226,8 @@ class Car:
             "destination": [],
             "distance": [],
         }
+
+        self.grid_timeseries_list = []
 
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
                                                              car_type.battery_capacity)
@@ -448,8 +451,16 @@ class Car:
             else:
                 park_ts_end = trip.park_start+max_charging_time
 
-            self.region.update_grid_timeseries(use_case, chargepower_timestep, power, trip.park_start + i,
-                                               trip.park_start + i + 1, i, park_ts_end, self.car_type.name)
+            grid_dict = {
+                "use_case": use_case,
+                "chargepower_timestep": chargepower_timestep,
+                "power": power,
+                "start": trip.park_start + i,
+                "end": trip.park_start + i + 1,
+                "time": i,
+                "park_ts_end": park_ts_end,
+            }
+            self.grid_timeseries_list.append(grid_dict)
 
         chargepower_avg = sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
 
@@ -617,6 +628,17 @@ class Car:
         ndarray
             Returns summarized information on charging- and driving-events.
         """
+        for charge_event in self.grid_timeseries_list:
+            self.region.update_grid_timeseries(
+                charge_event["use_case"],
+                charge_event["chargepower_timestep"],
+                charge_event["power"],
+                charge_event["start"],
+                charge_event["end"],
+                charge_event["time"],
+                charge_event["park_ts_end"],
+                self.car_type.name,
+            )
         if self.car_type.output:
             activity = pd.DataFrame(self.output)
             # remove first week from dataframe
