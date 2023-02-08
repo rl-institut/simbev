@@ -507,4 +507,4 @@ class SimBEV:
             "energy_min": energy_min,
         }
 
-        return SimBEV(data_dict, cfg_dict, scenario_path.stem), cfg
+        return SimBEV(data_dict, cfg_dict, config_path.stem), cfg
