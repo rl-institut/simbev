@@ -194,7 +194,7 @@ class Car:
     """
 
     def __init__(self, car_type: CarType, number: int, work_parking, home_parking,
-                 work_capacity, home_capacity, region, soc: float = 1., status: str = "home"):
+                 work_capacity, home_capacity, region, soc: float = 1., status: str = "home", private_only = False):
 
         self.car_type = car_type
         self.soc_start = soc
@@ -208,6 +208,7 @@ class Car:
         self.region = region
         self.user_spec = 0
         self.hpc_pref = 0
+        self.private_only = private_only
 
         # lists to track output data
         # TODO: swap to np.array for better performance?

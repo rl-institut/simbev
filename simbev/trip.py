@@ -1,4 +1,5 @@
 import math
+from simbev.helpers.errors import SoCError
 
 
 class Trip:
@@ -116,7 +117,7 @@ class Trip:
             self.car.charge_home(self)
         elif self.location == "work" and self.car.work_parking:
             self.car.charge_work(self)
-        else:
+        elif not self.car.private_only:
             if self.car.soc <= self.simbev.hpc_data['soc_start_threshold'] and self.car.hpc_pref >= self.rng.random() \
                     and self.park_time <= (self.simbev.hpc_data['park_time_max'] / self.step_size):
                 # get parameters for charging at hpc station
@@ -129,6 +130,8 @@ class Trip:
                 station_capacity = self.simbev.get_charging_capacity(self.location, self.distance)
                 self.car.charge(self, station_capacity, "slow", step_size=self.simbev.step_size,
                                 max_charging_time=self.park_time)
+        else:
+            self.car.park(self)
 
         if self.drive_found:
             trip_completed = self.car.drive(self.distance, self.drive_start, self.drive_timestamp, self.drive_time,
@@ -136,6 +139,8 @@ class Trip:
 
             # call hpc events if trip cant be completed
             if not trip_completed:
+                if self.car.private_only:
+                    raise SoCError(f"Vehicle {self.car.file_name} dropped below the minimum SoC while trying to charge private only.")
                 self._create_fast_charge_events()
 
     def _set_timestamps(self):
