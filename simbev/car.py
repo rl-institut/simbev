@@ -47,9 +47,8 @@ class CarType:
     consumption: float
     output: bool
     hpc_data: dict
-    analyze_mid: bool
+    analyze_mid: bool = False
     label: str = None
-
 
 
 def analyze_charge_events(output_df: pd.DataFrame):
