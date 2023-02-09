@@ -37,6 +37,7 @@ class CarType:
     label : str
         Drive type of vehicle.
     """
+
     name: str
     battery_capacity: float
     charging_capacity: dict
@@ -75,19 +76,51 @@ def analyze_charge_events(output_df: pd.DataFrame):
     max_charge = charge_events["energy"].max()
     min_charge = round(charge_events["energy"].min(), 4)
     avg_charge = round(charge_events["energy"].mean(), 4)
-    hpc_avg_charge = charge_events["energy"].loc[charge_events["use_case"] == "hpc"].mean()
-    home_avg_charge = charge_events["energy"].loc[charge_events["use_case"] == "home"].mean()
-    work_avg_charge = charge_events["energy"].loc[charge_events["use_case"] == "work"].mean()
-    public_avg_charge = charge_events["energy"].loc[charge_events["use_case"] == "public"].mean()
+    hpc_avg_charge = (
+        charge_events["energy"].loc[charge_events["use_case"] == "hpc"].mean()
+    )
+    home_avg_charge = (
+        charge_events["energy"].loc[charge_events["use_case"] == "home"].mean()
+    )
+    work_avg_charge = (
+        charge_events["energy"].loc[charge_events["use_case"] == "work"].mean()
+    )
+    public_avg_charge = (
+        charge_events["energy"].loc[charge_events["use_case"] == "public"].mean()
+    )
 
     # counting public and private charging events
-    public_count = len(charge_events.loc[(charge_events["use_case"] == 'public') |
-                                         (charge_events["use_case"] == 'hpc')].index)
-    private_count = len(charge_events.loc[(charge_events["use_case"] == "home") |
-                                          (charge_events["use_case"] == 'work')].index)
+    public_count = len(
+        charge_events.loc[
+            (charge_events["use_case"] == "public")
+            | (charge_events["use_case"] == "hpc")
+        ].index
+    )
+    private_count = len(
+        charge_events.loc[
+            (charge_events["use_case"] == "home")
+            | (charge_events["use_case"] == "work")
+        ].index
+    )
 
-    return np.array([event_count, hpc_count, max_time, min_time, avg_time, max_charge, min_charge, avg_charge,
-                     hpc_avg_charge, home_avg_charge, work_avg_charge, public_avg_charge, public_count, private_count])
+    return np.array(
+        [
+            event_count,
+            hpc_count,
+            max_time,
+            min_time,
+            avg_time,
+            max_charge,
+            min_charge,
+            avg_charge,
+            hpc_avg_charge,
+            home_avg_charge,
+            work_avg_charge,
+            public_avg_charge,
+            public_count,
+            private_count,
+        ]
+    )
 
 
 def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
@@ -117,18 +150,55 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
     # mid analysis
     avg_time = round(drive_events["event_time"].mean(), 4)
     avg_distance = round(drive_events["distance"].mean(), 4)
-    distance_home = round(drive_events["distance"].loc[drive_events["destination"] == "home"].mean(), 4)
-    distance_work = round(drive_events["distance"].loc[drive_events["destination"] == "work"].mean(), 4)
-    distance_private = round(drive_events["distance"].loc[drive_events["destination"] == "private"].mean(), 4)
-    distance_leisure = round(drive_events["distance"].loc[drive_events["destination"] == "leisure"].mean(), 4)
-    distance_shopping = round(drive_events["distance"].loc[drive_events["destination"] == "shopping"].mean(), 4)
-    distance_hpc = round(drive_events["distance"].loc[drive_events["destination"] == "hpc"].mean(), 4)
-    distance_school = round(drive_events["distance"].loc[drive_events["destination"] == "school"].mean(), 4)
-    distance_business = round(drive_events["distance"].loc[drive_events["destination"] == "business"].mean(), 4)
+    distance_home = round(
+        drive_events["distance"].loc[drive_events["destination"] == "home"].mean(), 4
+    )
+    distance_work = round(
+        drive_events["distance"].loc[drive_events["destination"] == "work"].mean(), 4
+    )
+    distance_private = round(
+        drive_events["distance"].loc[drive_events["destination"] == "private"].mean(), 4
+    )
+    distance_leisure = round(
+        drive_events["distance"].loc[drive_events["destination"] == "leisure"].mean(), 4
+    )
+    distance_shopping = round(
+        drive_events["distance"].loc[drive_events["destination"] == "shopping"].mean(),
+        4,
+    )
+    distance_hpc = round(
+        drive_events["distance"].loc[drive_events["destination"] == "hpc"].mean(), 4
+    )
+    distance_school = round(
+        drive_events["distance"].loc[drive_events["destination"] == "school"].mean(), 4
+    )
+    distance_business = round(
+        drive_events["distance"].loc[drive_events["destination"] == "business"].mean(),
+        4,
+    )
 
-    return np.array([car_type, event_count, max_time, min_time, avg_time, max_consumption, min_consumption,
-                     avg_consumption, avg_time, avg_distance, distance_home, distance_work, distance_business,
-                     distance_school, distance_shopping, distance_private, distance_leisure, distance_hpc])
+    return np.array(
+        [
+            car_type,
+            event_count,
+            max_time,
+            min_time,
+            avg_time,
+            max_consumption,
+            min_consumption,
+            avg_consumption,
+            avg_time,
+            avg_distance,
+            distance_home,
+            distance_work,
+            distance_business,
+            distance_school,
+            distance_shopping,
+            distance_private,
+            distance_leisure,
+            distance_hpc,
+        ]
+    )
 
 
 class Car:
@@ -193,9 +263,19 @@ class Car:
         Power of charging-point at work
     """
 
-    def __init__(self, car_type: CarType, number: int, work_parking, home_parking,
-                 work_capacity, home_capacity, region, soc: float = 1., status: str = "home", private_only = False):
-
+    def __init__(
+        self,
+        car_type: CarType,
+        number: int,
+        work_parking,
+        home_parking,
+        work_capacity,
+        home_capacity,
+        region,
+        soc: float = 1.0,
+        status: str = "home",
+        private_only=False,
+    ):
         self.car_type = car_type
         self.soc_start = soc
         self.soc = soc
@@ -229,13 +309,22 @@ class Car:
 
         self.grid_timeseries_list = []
 
-        self.file_name = "{}_{:05d}_{}kWh_events.csv".format(car_type.name, number,
-                                                             car_type.battery_capacity)
+        self.file_name = "{}_{:05d}_{}kWh_events.csv".format(
+            car_type.name, number, car_type.battery_capacity
+        )
         # Set user specificationn and hpc preference
         self.set_user_spec()
 
-    def _update_activity(self, timestamp, event_start, event_time, distance=0, destination='',
-                         nominal_charging_capacity=0, charging_power=0):
+    def _update_activity(
+        self,
+        timestamp,
+        event_start,
+        event_time,
+        distance=0,
+        destination="",
+        nominal_charging_capacity=0,
+        charging_power=0,
+    ):
         """Records newest energy and activity
 
         Parameters
@@ -257,8 +346,11 @@ class Car:
             self.output["event_time"].append(event_time)
             self.output["location"].append(self.status)
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
-            self.output["soc_start"].append(self.output["soc_end"][-1] if len(self.output["soc_end"]) > 0 else
-                                            self.soc_start)
+            self.output["soc_start"].append(
+                self.output["soc_end"][-1]
+                if len(self.output["soc_end"]) > 0
+                else self.soc_start
+            )
             self.output["soc_end"].append(round(self.soc, 4))
             charging_demand = self._get_last_charging_demand()
             consumption = self._get_last_consumption()
@@ -269,7 +361,7 @@ class Car:
             self.output["destination"].append(destination)
 
     def park(self, trip):
-        #TODO: delete function because not in use
+        # TODO: delete function because not in use
 
         """Parking Event.
 
@@ -280,7 +372,15 @@ class Car:
         """
         self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time)
 
-    def charge(self, trip, power, charging_type, step_size=None, long_distance=None, max_charging_time=None):
+    def charge(
+        self,
+        trip,
+        power,
+        charging_type,
+        step_size=None,
+        long_distance=None,
+        max_charging_time=None,
+    ):
         """Function for charging.
 
         Parameters
@@ -306,35 +406,60 @@ class Car:
             avg_power = 0
 
             if power != 0:
-                charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size, max_charging_time,
-                                                                           charging_type, soc_end=1)
+                charging_time, avg_power, power, soc = self.charging_curve(
+                    trip, power, step_size, max_charging_time, charging_type, soc_end=1
+                )
                 self.soc = soc
 
-            self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
-                                  nominal_charging_capacity=power, charging_power=avg_power)
+            self._update_activity(
+                trip.park_timestamp,
+                trip.park_start,
+                trip.park_time,
+                nominal_charging_capacity=power,
+                charging_power=avg_power,
+            )
 
         elif charging_type == "fast":
-            if self.car_type.charging_capacity['fast'] == 0:
-                raise ValueError("Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
-                    self.car_type.name
-                ))
-            soc_end = trip.rng.uniform(trip.simbev.hpc_data['soc_end_min'], trip.simbev.hpc_data['soc_end_max'])
-            charging_time, avg_power, power, soc = self.charging_curve(trip, power, step_size, max_charging_time,
-                                                                       charging_type, soc_end)
+            if self.car_type.charging_capacity["fast"] == 0:
+                raise ValueError(
+                    "Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
+                        self.car_type.name
+                    )
+                )
+            soc_end = trip.rng.uniform(
+                trip.simbev.hpc_data["soc_end_min"], trip.simbev.hpc_data["soc_end_max"]
+            )
+            charging_time, avg_power, power, soc = self.charging_curve(
+                trip, power, step_size, max_charging_time, charging_type, soc_end
+            )
             self.soc = soc
             if long_distance:
-                self._update_activity(trip.park_timestamp, trip.park_start, charging_time,
-                                      nominal_charging_capacity=power, charging_power=avg_power)
+                self._update_activity(
+                    trip.park_timestamp,
+                    trip.park_start,
+                    charging_time,
+                    nominal_charging_capacity=power,
+                    charging_power=avg_power,
+                )
             else:
                 # update trip properties
                 trip.park_time = charging_time
                 trip.drive_start = trip.park_start + trip.park_time
                 trip.trip_end = trip.drive_start + trip.drive_time
-                self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
-                                      nominal_charging_capacity=power, charging_power=avg_power)
+                self._update_activity(
+                    trip.park_timestamp,
+                    trip.park_start,
+                    trip.park_time,
+                    nominal_charging_capacity=power,
+                    charging_power=avg_power,
+                )
             return charging_time
         else:
-            raise ValueError("Charging type {} is not accepted in charge function!".format(charging_type))
+            raise ValueError(
+                "Charging type {} is not accepted in charge function!".format(
+                    charging_type
+                )
+            )
 
     def charge_home(self, trip):
         """Function for initiation of charging-event in use-case home.
@@ -346,8 +471,13 @@ class Car:
         """
 
         if self.home_capacity is not None:
-            self.charge(trip, self.home_capacity, "slow", step_size=self.region.region_type.step_size,
-                        max_charging_time=trip.park_time)
+            self.charge(
+                trip,
+                self.home_capacity,
+                "slow",
+                step_size=self.region.region_type.step_size,
+                max_charging_time=trip.park_time,
+            )
         else:
             raise ValueError("Home charging attempted but power is None!")
 
@@ -361,12 +491,19 @@ class Car:
         """
 
         if self.work_capacity is not None:
-            self.charge(trip, self.work_capacity, "slow", step_size=self.region.region_type.step_size,
-                        max_charging_time=trip.park_time)
+            self.charge(
+                trip,
+                self.work_capacity,
+                "slow",
+                step_size=self.region.region_type.step_size,
+                max_charging_time=trip.park_time,
+            )
         else:
             raise ValueError("Work charging attempted but power is None!")
 
-    def charging_curve(self, trip, power, step_size, max_charging_time, charging_type, soc_end):
+    def charging_curve(
+        self, trip, power, step_size, max_charging_time, charging_type, soc_end
+    ):
         """Implementation of charging curve. The charging-curve is based on a 3rd degree polynomial function.
         The charging-functions is sliced into 10 sections. These sections are fitted into the time-steps.
 
@@ -394,21 +531,31 @@ class Car:
         soc_start = self.soc
 
         # check if min charging energy is charged
-        if ((soc_end - soc_start) * self.car_type.battery_capacity) <= \
-                self.car_type.energy_min[self._get_usecase(power)]:
+        if (
+            (soc_end - soc_start) * self.car_type.battery_capacity
+        ) <= self.car_type.energy_min[self._get_usecase(power)]:
             return trip.park_time, 0, 0, soc_start
 
         # set up parameters for charging curve
         soc_delta = (soc_end - soc_start) / 10
-        charging_soc_array = np.arange(soc_start + soc_delta / 2, soc_end + soc_delta / 2, soc_delta)
+        charging_soc_array = np.arange(
+            soc_start + soc_delta / 2, soc_end + soc_delta / 2, soc_delta
+        )
         charging_soc_array[-1] = min(charging_soc_array[-1], 1)
         power_array = np.zeros(len(charging_soc_array))
         charging_time_array = np.zeros(len(charging_soc_array))
 
         for index, soc in enumerate(charging_soc_array):
-            power_array[index] = min(((self.car_type.charging_curve(soc))
-                                      * self.car_type.charging_capacity[charging_type]), power)
-            charging_time_array[index] = soc_delta * self.car_type.battery_capacity / power_array[index] * 60
+            power_array[index] = min(
+                (
+                    (self.car_type.charging_curve(soc))
+                    * self.car_type.charging_capacity[charging_type]
+                ),
+                power,
+            )
+            charging_time_array[index] = (
+                soc_delta * self.car_type.battery_capacity / power_array[index] * 60
+            )
 
         charging_time = sum(charging_time_array)
         charged_energy_list = []
@@ -416,43 +563,57 @@ class Car:
 
         # iterate through all timesteps the charging event is part of
         for charging_time_step in range(time_steps):
-            if max_charging_time is not None and charging_time_step >= max_charging_time:
-                soc_end = min(1, soc_start + sum(charged_energy_list) / self.car_type.battery_capacity)
+            if (
+                max_charging_time is not None
+                and charging_time_step >= max_charging_time
+            ):
+                soc_end = min(
+                    1,
+                    soc_start
+                    + sum(charged_energy_list) / self.car_type.battery_capacity,
+                )
                 # check if min charging energy is charged
-                if ((soc_end - soc_start) * self.car_type.battery_capacity) <= \
-                        self.car_type.energy_min[self._get_usecase(power)]:
+                if (
+                    (soc_end - soc_start) * self.car_type.battery_capacity
+                ) <= self.car_type.energy_min[self._get_usecase(power)]:
                     return trip.park_time, 0, 0, soc_start
                 time_steps = max_charging_time
                 break
 
-            time_sum = 0    # duration of section in charging curve
-            charging_section_counter = 0   # counter for charging section fitted in timeframe
+            time_sum = 0  # duration of section in charging curve
+            charging_section_counter = (
+                0  # counter for charging section fitted in timeframe
+            )
             # fill array for charging in timestep
-            while time_sum <= step_size and charging_section_counter < len(charging_time_array):
+            while time_sum <= step_size and charging_section_counter < len(
+                charging_time_array
+            ):
                 time_sum = time_sum + charging_time_array[charging_section_counter]
                 charging_section_counter += 1
             charging_time_sections = charging_time_array[:charging_section_counter]
 
             time_cutoff = time_sum - step_size  # last charging-step in timestep
-            charging_time_sections[-1] -= time_cutoff   # charging times of sections that are fitted to timestep
+            charging_time_sections[
+                -1
+            ] -= time_cutoff  # charging times of sections that are fitted to timestep
             power_sections = power_array[:charging_section_counter]
             energy_sections = charging_time_sections * power_sections / 60
 
             charged_energy_list.append(round(sum(energy_sections), 4))
 
-            charging_time_array = charging_time_array[charging_section_counter - 1:]
+            charging_time_array = charging_time_array[charging_section_counter - 1 :]
             charging_time_array[0] = time_cutoff
 
-            power_array = power_array[charging_section_counter - 1:]
+            power_array = power_array[charging_section_counter - 1 :]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
             use_case = self._get_usecase(power)
 
-            if use_case == 'hpc' and trip.car.status == 'hpc':
+            if use_case == "hpc" and trip.car.status == "hpc":
                 park_timestep_end = trip.park_start + time_steps
 
             else:
-                park_timestep_end = trip.park_start+max_charging_time
+                park_timestep_end = trip.park_start + max_charging_time
 
             grid_dict = {
                 "use_case": use_case,
@@ -465,7 +626,9 @@ class Car:
             }
             self.grid_timeseries_list.append(grid_dict)
 
-        chargepower_avgerage = sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
+        chargepower_avgerage = (
+            sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
+        )
 
         return time_steps, chargepower_avgerage, power, soc_end
 
@@ -491,8 +654,12 @@ class Car:
             Returns if drive is possible.
         """
         if duration <= 0:
-            raise ValueError(f"Drive duration of vehicle {self.file_name} is {duration} at {timestamp}")
-        soc_delta = self.car_type.consumption * distance / self.car_type.battery_capacity
+            raise ValueError(
+                f"Drive duration of vehicle {self.file_name} is {duration} at {timestamp}"
+            )
+        soc_delta = (
+            self.car_type.consumption * distance / self.car_type.battery_capacity
+        )
         if soc_delta >= self.usable_soc and self.car_type.label == "BEV":
             return False
         else:
@@ -502,9 +669,18 @@ class Car:
                 if self.car_type.label == "PHEV":
                     self.soc = 0
                 else:
-                    raise ValueError("SoC of car {} became negative ({})".format(self.car_type.name,
-                                                                                 self.soc))
-            self._update_activity(timestamp, start_time, duration, distance=distance, destination=destination)
+                    raise ValueError(
+                        "SoC of car {} became negative ({})".format(
+                            self.car_type.name, self.soc
+                        )
+                    )
+            self._update_activity(
+                timestamp,
+                start_time,
+                duration,
+                distance=distance,
+                destination=destination,
+            )
             self.status = destination
             return True
 
@@ -517,14 +693,20 @@ class Car:
         float
             Returns remaining range of vehicle.
         """
-        return self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption
+        return (
+            self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption
+        )
 
     @property
     def remaining_range(self):
         """Returns remaining range of vehicle."""
         # eta used to prevent rounding errors. reduces effective range by 100m
         eta = 0.1
-        return max(self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption - eta, 0)
+        return max(
+            self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption
+            - eta,
+            0,
+        )
 
     @property
     def usable_soc(self):
@@ -595,25 +777,26 @@ class Car:
             return "public"
 
     def set_user_spec(self):
-        """Assigns specific user-group to vehicle.
-        """
+        """Assigns specific user-group to vehicle."""
         if self.car_type.charging_capacity["fast"] == 0:
-            self.user_spec = '0'  # Todo set better term?
+            self.user_spec = "0"  # Todo set better term?
             self.hpc_pref = -1
         elif self.home_capacity != 0 and self.home_parking:
             if self.work_capacity != 0 and self.work_parking:
-                self.user_spec = 'A'  # private LIS at home and at work
-                self.hpc_pref = self.car_type.hpc_data['hpc_pref_A']
+                self.user_spec = "A"  # private LIS at home and at work
+                self.hpc_pref = self.car_type.hpc_data["hpc_pref_A"]
             else:
-                self.user_spec = 'B'  # private LIS at home but not at work
-                self.hpc_pref = self.car_type.hpc_data['hpc_pref_B']
+                self.user_spec = "B"  # private LIS at home but not at work
+                self.hpc_pref = self.car_type.hpc_data["hpc_pref_B"]
         else:
             if self.work_capacity != 0 and self.work_parking:
-                self.user_spec = 'C'  # private LIS not at home but at work
-                self.hpc_pref = self.car_type.hpc_data['hpc_pref_C']
+                self.user_spec = "C"  # private LIS not at home but at work
+                self.hpc_pref = self.car_type.hpc_data["hpc_pref_C"]
             else:
-                self.user_spec = 'D'  # private LIS not at home and not at work. Primarily HPC
-                self.hpc_pref = self.car_type.hpc_data['hpc_pref_D']
+                self.user_spec = (
+                    "D"  # private LIS not at home and not at work. Primarily HPC
+                )
+                self.hpc_pref = self.car_type.hpc_data["hpc_pref_D"]
 
     def export(self, region_directory, simbev):
         """
@@ -647,7 +830,9 @@ class Car:
             # remove first week from dataframe
             week_time_steps = int(24 * 7 * 60 / simbev.step_size)
             activity["event_start"] -= week_time_steps
-            activity = activity.loc[(activity["event_start"] + activity["event_time"]) > 0]
+            activity = activity.loc[
+                (activity["event_start"] + activity["event_time"]) > 0
+            ]
 
             # change first row event if it has charging demand or consumption if it doesn't start at time step 0
             if activity.at[activity.index[0], "event_start"] < 0:
@@ -657,24 +842,38 @@ class Car:
 
                 # change charging events
                 if activity.at[activity.index[0], "energy"] > 0:
-                    pre_demand = activity.at[activity.index[0], "average_charging_power"] * pre_event_len * \
-                                 simbev.step_size / 60
-                    new_demand = round(max(activity.at[activity.index[0], "energy"] - pre_demand, 0), 4)
+                    pre_demand = (
+                        activity.at[activity.index[0], "average_charging_power"]
+                        * pre_event_len
+                        * simbev.step_size
+                        / 60
+                    )
+                    new_demand = round(
+                        max(activity.at[activity.index[0], "energy"] - pre_demand, 0), 4
+                    )
                     activity.at[activity.index[0], "energy"] = new_demand
 
                 # change driving events
                 elif activity.at[activity.index[0], "energy"] < 0:
-                    new_consumption = round(activity.at[activity.index[0], "energy"] * (post_event_len / event_len), 4)
+                    new_consumption = round(
+                        activity.at[activity.index[0], "energy"]
+                        * (post_event_len / event_len),
+                        4,
+                    )
                     activity.at[activity.index[0], "energy"] = new_consumption
 
                 # adjust value for starting soc in first row
-                activity.at[activity.index[0], "soc_start"] = round(activity.at[activity.index[0], "soc_end"] -
-                                                                    activity.at[activity.index[0], "energy"] /
-                                                                    self.car_type.battery_capacity, 4)
+                activity.at[activity.index[0], "soc_start"] = round(
+                    activity.at[activity.index[0], "soc_end"]
+                    - activity.at[activity.index[0], "energy"]
+                    / self.car_type.battery_capacity,
+                    4,
+                )
 
                 # adjust value for average charging power in first row
-                activity.at[activity.index[0], "average_charging_power"] = \
-                    activity.at[activity.index[0], "energy"] / (post_event_len * simbev.step_size / 60)
+                activity.at[activity.index[0], "average_charging_power"] = activity.at[
+                    activity.index[0], "energy"
+                ] / (post_event_len * simbev.step_size / 60)
 
                 # fit first row event to start at time step 0
                 activity.at[activity.index[0], "event_start"] = 0
@@ -686,7 +885,8 @@ class Car:
             if simbev.output_options["car"]:
                 activity = activity.drop(columns=["destination", "distance"])
                 activity = activity.reset_index(drop=True)
-                activity.to_csv(pathlib.Path(region_directory, self.file_name), index=False)
+                activity.to_csv(
+                    pathlib.Path(region_directory, self.file_name), index=False
+                )
 
-            return np.hstack((drive_array, charge_array))    # , mid_array
-
+            return np.hstack((drive_array, charge_array))  # , mid_array

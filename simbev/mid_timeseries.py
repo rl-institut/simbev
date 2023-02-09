@@ -1,4 +1,5 @@
 import pandas as pd
+
 # import numpy as np
 import math
 import datetime
@@ -6,7 +7,7 @@ from pathlib import Path
 
 
 def get_season(date: datetime.date):
-    """ Determines season.
+    """Determines season.
 
     Parameters
     ----------
@@ -33,7 +34,7 @@ def get_season(date: datetime.date):
 
 
 def get_season_idx(date: datetime.date):
-    """ Gets index of season.
+    """Gets index of season.
 
     Parameters
     ----------
@@ -83,7 +84,7 @@ def get_cutoff(date: datetime.date):
 
 # Args: region (as string), example: get_name_csv("SR_Metro", get_season(datetime.date.today()))
 def get_name_csv(region, season, data_directory):
-    """ Produces name of path for seasonal data.
+    """Produces name of path for seasonal data.
 
     Parameters
     ----------
@@ -97,11 +98,13 @@ def get_name_csv(region, season, data_directory):
         Path for the seasonal data in region.
 
     """
-    return Path(data_directory, region,  season + ".csv")
+    return Path(data_directory, region, season + ".csv")
 
 
 # main function, returns pandas
-def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, data_directory):
+def get_timeseries(
+    start: datetime.date, end: datetime.date, region, stepsize, data_directory
+):
     """
 
     Parameters
@@ -132,19 +135,34 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, d
     # build a matrix containing information about each season during the time span
     while start < end:
         cutoff = get_cutoff(start)
-        if cutoff < end:    # use the whole season
+        if cutoff < end:  # use the whole season
             delta = cutoff - start
-            weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start, cutoff])
-        else:   # end date is during this season
+            weeklist.append(
+                [
+                    get_season(start),
+                    math.floor(delta.days / 7),
+                    delta.days % 7,
+                    start,
+                    cutoff,
+                ]
+            )
+        else:  # end date is during this season
             delta = end - start + datetime.timedelta(1)
-            weeklist.append([get_season(start), math.floor(delta.days / 7), delta.days % 7, start,
-                             end + datetime.timedelta(1)])
+            weeklist.append(
+                [
+                    get_season(start),
+                    math.floor(delta.days / 7),
+                    delta.days % 7,
+                    start,
+                    end + datetime.timedelta(1),
+                ]
+            )
         start = cutoff
 
     # iteration over the created matrix. uses weeklist information to create time series dataframe
     for current_season in weeklist:
         file_name = get_name_csv(region, current_season[0], data_directory)
-        data_df = pd.read_csv(file_name, sep=';', decimal=',', usecols=range(1, 8))
+        data_df = pd.read_csv(file_name, sep=";", decimal=",", usecols=range(1, 8))
         temp = pd.DataFrame()
         # check if weekdays are left over from last month, add to start of series
         if weekdays_left < weekdays:
@@ -162,9 +180,13 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, d
         for i in range(0, current_season[1]):
             temp = pd.concat([temp, data_df], ignore_index=True)
         # add leftover partial week at the end of series
-        temp = pd.concat([temp, data_df.head(current_season[2] * min_per_day)], ignore_index=True)
+        temp = pd.concat(
+            [temp, data_df.head(current_season[2] * min_per_day)], ignore_index=True
+        )
 
-        date_rng = pd.date_range(current_season[3], current_season[4], freq='min', inclusive='left')
+        date_rng = pd.date_range(
+            current_season[3], current_season[4], freq="min", inclusive="left"
+        )
 
         # date = pd.DatetimeIndex(date_rng)
         # day_key = date.day_name()
@@ -174,6 +196,13 @@ def get_timeseries(start: datetime.date, end: datetime.date, region, stepsize, d
         pd_result = pd.concat([pd_result, temp])
         weekdays_left = weekdays - current_season[2]
 
-    pd_result.columns = ['work', 'business', 'school', 'shopping',
-                         'private', 'leisure', 'home']
+    pd_result.columns = [
+        "work",
+        "business",
+        "school",
+        "shopping",
+        "private",
+        "leisure",
+        "home",
+    ]
     return pd_result
