@@ -4,3 +4,4 @@ numpy
 pytest
 matplotlib
 scipy
+black
