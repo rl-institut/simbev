@@ -683,7 +683,7 @@ class Car:
 
             drive_array = analyze_drive_events(activity, self.car_type.name)
             charge_array = analyze_charge_events(activity)
-            if simbev.car_output:
+            if simbev.output_options["car"]:
                 activity = activity.drop(columns=["destination", "distance"])
                 activity = activity.reset_index(drop=True)
                 activity.to_csv(pathlib.Path(region_directory, self.file_name), index=False)

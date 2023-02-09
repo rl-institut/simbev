@@ -15,7 +15,6 @@ import configparser as cp
 import json
 import copy
 
-
 class SimBEV:
     # TODO docstring
     def __init__(
@@ -32,8 +31,8 @@ class SimBEV:
         self.home_parking = data_dict["private_probabilities"].loc["home", :]
         self.work_parking = data_dict["private_probabilities"].loc["work", :]
 
-        self.hpc_data = hpc_data.to_dict()['values']
-        self.charging_curve_points = charging_curve_points
+        self.hpc_data = data_dict["hpc_data"]
+        self.charging_curve_points = data_dict["charging_curve_points"]
 
         # parameters from config_dict
         self.step_size = config_dict["step_size"]
@@ -46,9 +45,9 @@ class SimBEV:
         self.start_date_output = datetime.datetime.combine(self.start_date_input,
                                                            datetime.datetime.min.time())
         self.end_date = config_dict["end_date"]
-        self.home_parking = home_work_private.loc["home", :]
-        self.work_parking = home_work_private.loc["work", :]
-        self.energy_min = energy_min
+        self.home_parking = data_dict["private_probabilities"].loc["home", :]
+        self.work_parking = data_dict["private_probabilities"].loc["work", :]
+        self.energy_min =  data_dict["energy_min"]
         self.private_only_run = config_dict["private_only_run"]
 
         self.num_threads = config_dict["num_threads"]
@@ -56,22 +55,13 @@ class SimBEV:
 
         self.input_type = config_dict["input_type"]
         self.input_directory = pathlib.Path(config_dict["input_directory"])
-        self.scaling = scaling
-
+        self.scaling = config_dict["scaling"]
         # additional parameters
         self.regions: List[Region] = []
         self.created_region_types = {}
         self.car_types = {}
         self.grid_data_list = []
         self.analysis_data_list = []
-        self.grid_output = grid_output
-        self.plot_options = plot_options
-
-        # analysis of cars
-        self.analyze = analyze
-
-        # output of time series of each car
-        self.car_output = car_output
 
         self.name = name
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -181,7 +171,7 @@ class SimBEV:
                 pool.apply_async(self.run, (region,), callback=self._log_grid_data)
             pool.close()
             pool.join()
-        grid_time_series_all_regions = helpers.timeitlog(self.timing, self.save_directory)(
+        grid_time_series_all_regions = helpers.timeitlog(self.output_options["timing"], self.save_directory)(
             self.export_grid_timeseries_all_regions)()
         if self.output_options["region_plot"] or self.output_options["collective_plot"]:
             plot.plot_gridtimeseries_by_usecase(self, grid_time_series_all_regions)
@@ -251,7 +241,7 @@ class SimBEV:
                     self.simulate_car(car, region)
 
                 # export vehicle csv
-                if self.analyze:
+                if self.output_options["analyze"]:
                     car_array = car.export(region_directory, self)
                     if region.analyze_array is None:
                         region.analyze_array = car_array
@@ -264,7 +254,7 @@ class SimBEV:
             print("\nNumber of cars that couldn't run private only: {}/{}".format(exception_count, cars_simulated))
 
         region.export_grid_timeseries(region_directory)
-        if self.analyze:
+        if self.output_options["analyze"]:
             helpers.export_analysis(region.analyze_array, region_directory, self.start_date_output, self.end_date,
                                     region.id)
         print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
@@ -381,7 +371,7 @@ class SimBEV:
             Returns grid-timeseries for all regions.
         """
 
-        if self.analyze:
+        if self.output_options["analyze"]:
             analysis_collection = None
             for data in self.analysis_data_list:
                 if analysis_collection is None:
@@ -459,6 +449,8 @@ class SimBEV:
         home_work_private = home_work_private.set_index('region')
         tech_df = pd.read_csv(pathlib.Path(scenario_path, cfg["tech_data"]["tech_data"]), sep=',',
                               index_col=0)
+        hpc_df = pd.read_csv(pathlib.Path(scenario_path, cfg["hpc_params"]["hpc_data"]), sep=',', index_col=0)
+        hpc_data = hpc_df.to_dict()['values']
 
         charging_curve_points = pd.read_csv(pathlib.Path(scenario_path, cfg['tech_data']['charging_curve']),
                                             sep=',', index_col=False)
@@ -476,22 +468,17 @@ class SimBEV:
         grid_output = cfg.getboolean("output", "grid_time_series_csv", fallback=True)
         region_plot = cfg.getboolean("output", "plot_grid_time_series_split", fallback=False)
         collective_plot = cfg.getboolean("output", "plot_grid_time_series_collective", fallback=False)
+        timing_output = cfg.getboolean("output", "timing", fallback=False)
+        analyze = cfg.getboolean("output", "analyze", fallback=False)
         output_options = {
             "car": car_output,
             "grid": grid_output,
             "region_plot": region_plot,
             "collective_plot": collective_plot,
+            "timing": timing_output,
+            "analyze": analyze,
         }
 
-        timing_output = cfg.getboolean("output", "timing", fallback=False)
-        analyze = cfg.getboolean("output", "analyze", fallback=False)
-
-        hpc_df = pd.read_csv(pathlib.Path(scenario_path, cfg["hpc_params"]["hpc_data"]), sep=',', index_col=0)
-
-        num_threads = cfg.getint('sim_params', 'num_threads')
-
-        scaling = cfg.getint('sim_params', 'scaling')
-        
         cfg_dict = {
             "step_size": cfg.getint("basic", "stepsize", fallback=15),
             "soc_min": cfg.getfloat("basic", "soc_min", fallback=0.2),
@@ -505,9 +492,10 @@ class SimBEV:
             "scenario_path": scenario_path,
             "input_type": cfg["basic"]["input_type"],
             "input_directory": cfg["basic"]["input_directory"],
-            "num_threads": cfg.getint('sim_params', 'num_threads'),
+            "num_threads": cfg.getint('sim_params', 'num_threads', fallback=1),
             "output_options": output_options,
             "private_only_run": cfg.getboolean("sim_params", "private_only_run", fallback=False),
+            "scaling": cfg.getint('sim_params', 'scaling')
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
@@ -515,6 +503,8 @@ class SimBEV:
             "tech_data": tech_df,
             "private_probabilities": home_work_private,
             "energy_min": energy_min,
+            "hpc_data": hpc_data,
+            "charging_curve_points": charging_curve_points,
         }
 
         return SimBEV(data_dict, cfg_dict, config_path.stem), cfg
