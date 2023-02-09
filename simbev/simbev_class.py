@@ -108,7 +108,7 @@ class SimBEV:
         Probabilities for private parking space at work by region.
     """
 
-    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, charging_curve_points, hpc_data: pd.DataFrame,
+    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, charging_curve_points,
                  config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, scaling=1,
                  car_output=True, grid_output=True, timing=False, analyze=False):
         self.timing = timing
@@ -117,7 +117,6 @@ class SimBEV:
         self.charging_probabilities = charging_prob_dict
         self.tech_data = tech_data
         self.charging_curve_points = charging_curve_points
-        self.hpc_data = hpc_data.to_dict()['values']
 
         # parameters from config_dict
         self.step_size = config_dict["step_size"]
@@ -195,7 +194,7 @@ class SimBEV:
                 energy_min = self.energy_min["phev"].to_dict()
 
             car_type = CarType(car_type_name, bat_cap, charging_capacity, self.soc_min, self.charging_threshold,
-                               energy_min, charging_curve, consumption, output, self.hpc_data, analyze_mid=True)
+                               energy_min, charging_curve, consumption, output, analyze_mid=True, )
             if "bev" in car_type.name:
                 car_type.label = "BEV"
             else:
