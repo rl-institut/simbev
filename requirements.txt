@@ -3,3 +3,4 @@ configparser
 numpy
 pytest
 matplotlib
+scipy
