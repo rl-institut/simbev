@@ -1,13 +1,9 @@
 import json
-import pathlib
 from pathlib import Path
 import datetime
-
 import pandas as pd
-import numpy as np
-
+from scipy.interpolate import interp1d
 from simbev import __version__
-
 from functools import wraps
 import time
 
@@ -230,3 +226,10 @@ def timeitlog(timing, save_directory):
             return result
         return timeit_wrapper
     return decorator
+
+
+def interpolate_charging_curve(x, y):
+
+    f = interp1d(x, y, kind='cubic', fill_value='extrapolate')
+
+    return f

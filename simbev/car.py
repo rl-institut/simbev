@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pathlib
 import math
+from scipy.interpolate import interp1d
 
 
 @dataclass
@@ -42,7 +43,7 @@ class CarType:
     soc_min: float
     charging_threshold: float
     energy_min: dict
-    charging_curve: dict
+    charging_curve: interp1d
     # TODO consumption based on speed instead of constant
     consumption: float
     output: bool
@@ -104,7 +105,6 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
     ndarray
         Returns information about driving events of vehicle in whole timeframe.
     """
-
 
     drive_events = output_df.loc[output_df["energy"] < 0]
     event_count = len(drive_events.index)
@@ -367,7 +367,8 @@ class Car:
             raise ValueError("Work charging attempted but power is None!")
 
     def charging_curve(self, trip, power, step_size, max_charging_time, charging_type, soc_end):
-        """Implementation of charging curve.
+        """Implementation of charging curve. The charging-curve is based on a 3rd degree polynomial function.
+        The charging-functions is sliced into 10 sections. These sections are fitted into the time-steps.
 
         Parameters
         ----------
@@ -392,79 +393,81 @@ class Car:
 
         soc_start = self.soc
 
-        # check if min charging energy is loaded
+        # check if min charging energy is charged
         if ((soc_end - soc_start) * self.car_type.battery_capacity) <= \
                 self.car_type.energy_min[self._get_usecase(power)]:
             return trip.park_time, 0, 0, soc_start
 
-        delta = (soc_end - soc_start) / 10
-        soc_load_list = np.arange(soc_start + delta / 2, soc_end + delta / 2, delta)
-        p_soc = np.zeros(len(soc_load_list))
-        t_load = np.zeros(len(soc_load_list))
+        # set up parameters for charging curve
+        soc_delta = (soc_end - soc_start) / 10
+        charging_soc_array = np.arange(soc_start + soc_delta / 2, soc_end + soc_delta / 2, soc_delta)
+        charging_soc_array[-1] = min(charging_soc_array[-1], 1)
+        power_array = np.zeros(len(charging_soc_array))
+        charging_time_array = np.zeros(len(charging_soc_array))
 
-        for i, soc in enumerate(soc_load_list):
-            p_soc[i] = min(((-0.01339 * (soc * 100) ** 2 + 0.7143 * (
-                    soc * 100) + 84.48) * self.car_type.charging_capacity[charging_type] / 100), power)
-            t_load[i] = delta * self.car_type.battery_capacity / p_soc[i] * 60
+        for index, soc in enumerate(charging_soc_array):
+            power_array[index] = min(((self.car_type.charging_curve(soc))
+                                      * self.car_type.charging_capacity[charging_type]), power)
+            charging_time_array[index] = soc_delta * self.car_type.battery_capacity / power_array[index] * 60
 
-        charging_time = sum(t_load)
+        charging_time = sum(charging_time_array)
         charged_energy_list = []
         time_steps = math.ceil(charging_time / step_size)
 
-        for i in range(time_steps):
-
-            if max_charging_time is not None and i >= max_charging_time:
+        # iterate through all timesteps the charging event is part of
+        for charging_time_step in range(time_steps):
+            if max_charging_time is not None and charging_time_step >= max_charging_time:
                 soc_end = min(1, soc_start + sum(charged_energy_list) / self.car_type.battery_capacity)
-                # check if min charging energy is loaded
+                # check if min charging energy is charged
                 if ((soc_end - soc_start) * self.car_type.battery_capacity) <= \
                         self.car_type.energy_min[self._get_usecase(power)]:
                     return trip.park_time, 0, 0, soc_start
                 time_steps = max_charging_time
                 break
 
-            t_sum = 0
-            k = 0
-            # fill array for loading in timestep
-            while t_sum <= step_size and k < len(t_load):
-                t_sum = t_sum + t_load[k]
-                k += 1
-            t_load_new = t_load[:k]
+            time_sum = 0    # duration of section in charging curve
+            charging_section_counter = 0   # counter for charging section fitted in timeframe
+            # fill array for charging in timestep
+            while time_sum <= step_size and charging_section_counter < len(charging_time_array):
+                time_sum = time_sum + charging_time_array[charging_section_counter]
+                charging_section_counter += 1
+            charging_time_sections = charging_time_array[:charging_section_counter]
 
-            t_diff = t_sum - step_size  # last loading-step in timestep
-            t_load_new[-1] -= t_diff
-            p_soc_new = p_soc[:k]
-            e_load = t_load_new * p_soc_new / 60
+            time_cutoff = time_sum - step_size  # last charging-step in timestep
+            charging_time_sections[-1] -= time_cutoff   # charging times of sections that are fitted to timestep
+            power_sections = power_array[:charging_section_counter]
+            energy_sections = charging_time_sections * power_sections / 60
 
-            charged_energy_list.append(round(sum(e_load), 4))
+            charged_energy_list.append(round(sum(energy_sections), 4))
 
-            t_load = t_load[k - 1:]
-            t_load[0] = t_diff
+            charging_time_array = charging_time_array[charging_section_counter - 1:]
+            charging_time_array[0] = time_cutoff
 
-            p_soc = p_soc[k - 1:]
-            chargepower_timestep = sum(e_load) * 60 / step_size
+            power_array = power_array[charging_section_counter - 1:]
+            chargepower_timestep = sum(energy_sections) * 60 / step_size
 
             use_case = self._get_usecase(power)
 
             if use_case == 'hpc' and trip.car.status == 'hpc':
-                park_ts_end = trip.park_start + time_steps
+                park_timestep_end = trip.park_start + time_steps
 
             else:
-                park_ts_end = trip.park_start+max_charging_time
+                park_timestep_end = trip.park_start+max_charging_time
 
             grid_dict = {
                 "use_case": use_case,
                 "chargepower_timestep": chargepower_timestep,
                 "power": power,
-                "start": trip.park_start + i,
-                "end": trip.park_start + i + 1,
-                "time": i,
-                "park_ts_end": park_ts_end,
+                "start": trip.park_start + charging_time_step,
+                "end": trip.park_start + charging_time_step + 1,
+                "time": charging_time_step,
+                "park_ts_end": park_timestep_end,
             }
             self.grid_timeseries_list.append(grid_dict)
 
-        chargepower_avg = sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
+        chargepower_avgerage = sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
 
-        return time_steps, chargepower_avg, power, soc_end
+        return time_steps, chargepower_avgerage, power, soc_end
 
     def drive(self, distance, start_time, timestamp, duration, destination):
         """Method for driving.
