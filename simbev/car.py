@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import pathlib
 import math
+from scipy.interpolate import interp1d
 
 
 @dataclass
@@ -42,7 +43,7 @@ class CarType:
     soc_min: float
     charging_threshold: float
     energy_min: dict
-    charging_curve: dict
+    charging_curve: interp1d
     # TODO consumption based on speed instead of constant
     consumption: float
     output: bool
@@ -405,9 +406,7 @@ class Car:
         charging_time_array = np.zeros(len(charging_soc_array))
 
         for index, soc in enumerate(charging_soc_array):
-            power_array[index] = min(((trip.simbev.charging_curve['a_2'] * (soc) ** 2
-                                       + trip.simbev.charging_curve['a_1'] * (soc)
-                                       + trip.simbev.charging_curve['a_0'])
+            power_array[index] = min(((self.car_type.charging_curve(soc))
                                       * self.car_type.charging_capacity[charging_type]), power)
             charging_time_array[index] = soc_delta * self.car_type.battery_capacity / power_array[index] * 60
 

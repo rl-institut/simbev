@@ -13,8 +13,6 @@ import datetime
 import math
 import configparser as cp
 import json
-import time
-import copy
 
 
 class SimBEV:
@@ -109,7 +107,7 @@ class SimBEV:
         Probabilities for private parking space at work by region.
     """
 
-    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, charging_curve, hpc_data: pd.DataFrame,
+    def __init__(self, region_data: pd.DataFrame, charging_prob_dict, tech_data: pd.DataFrame, charging_curve_points, hpc_data: pd.DataFrame,
                  config_dict, name, home_work_private, energy_min, plot_options, num_threads=1, scaling=1,
                  car_output=True, grid_output=True, timing=False, analyze=False):
         self.timing = timing
@@ -117,7 +115,7 @@ class SimBEV:
         self.region_data = region_data
         self.charging_probabilities = charging_prob_dict
         self.tech_data = tech_data
-        self.charging_curve = charging_curve
+        self.charging_curve_points = charging_curve_points
         self.hpc_data = hpc_data.to_dict()['values']
 
         # parameters from config_dict
@@ -182,20 +180,21 @@ class SimBEV:
         """
         # create new car type
         for car_type_name in self.tech_data.index:
-            # TODO: add charging curve and implement in code
             bat_cap = self.tech_data.at[car_type_name, "battery_capacity"]
             consumption = self.tech_data.at[car_type_name, "energy_consumption"]
             charging_capacity_slow = self.tech_data.at[car_type_name, "max_charging_capacity_slow"]
             charging_capacity_fast = self.tech_data.at[car_type_name, "max_charging_capacity_fast"]
             charging_capacity = {"slow": charging_capacity_slow, "fast": charging_capacity_fast}
-            # TODO: add charging curve
+            charging_curve = helpers.interpolate_charging_curve(self.charging_curve_points['key'].tolist(),
+                                                                self.charging_curve_points[car_type_name].tolist())
+
             if "bev" in car_type_name:
                 energy_min = self.energy_min["bev"].to_dict()
             else:
                 energy_min = self.energy_min["phev"].to_dict()
 
             car_type = CarType(car_type_name, bat_cap, charging_capacity, self.soc_min, self.charging_threshold,
-                               energy_min, {}, consumption, output, self.hpc_data, analyze_mid=True)
+                               energy_min, charging_curve, consumption, output, self.hpc_data, analyze_mid=True)
             if "bev" in car_type.name:
                 car_type.label = "BEV"
             else:
@@ -343,7 +342,7 @@ class SimBEV:
             helpers.export_analysis(region.analyze_array, region_directory, self.start_date_output, self.end_date,
                                     region.id)
         print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
-        return (region.grid_data_frame, region.analyze_array)
+        return region.grid_data_frame, region.analyze_array
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         """Determines charging capacity for specific charging event
@@ -536,10 +535,9 @@ class SimBEV:
         home_work_private = home_work_private.set_index('region')
         tech_df = pd.read_csv(pathlib.Path(scenario_path, cfg["tech_data"]["tech_data"]), sep=',',
                               index_col=0)
-        charging_curve = {'a_2': cfg.getfloat('tech_data', 'a_2'),
-                          'a_1': cfg.getfloat('tech_data', 'a_1'),
-                          'a_0': cfg.getfloat('tech_data', 'a_0')
-                          }
+
+        charging_curve_points = pd.read_csv(pathlib.Path(scenario_path, cfg['tech_data']['charging_curve']),
+                                            sep=',', index_col=False)
 
         energy_min = pd.read_csv(pathlib.Path(scenario_path, cfg['charging_probabilities']['energy_min']))
         energy_min = energy_min.set_index('uc')
@@ -554,7 +552,6 @@ class SimBEV:
         grid_output = cfg.getboolean("output", "grid_time_series_csv", fallback=True)
         plot_options = {"by_region": cfg.getboolean("output", "plot_grid_time_series_split", fallback=False),
                         "all_in_one": cfg.getboolean("output", "plot_grid_time_series_collective", fallback=False)}
-        analyze = cfg.getboolean("output", "analyze", fallback=False)
 
         timing_output = cfg.getboolean("output", "timing", fallback=False)
         analyze = cfg.getboolean("output", "analyze", fallback=False)
@@ -578,6 +575,6 @@ class SimBEV:
 
         scaling = cfg.getint('sim_params', 'scaling')
 
-        return SimBEV(region_df, charge_prob_dict, tech_df, charging_curve, hpc_df, cfg_dict, scenario_path.stem,
+        return SimBEV(region_df, charge_prob_dict, tech_df, charging_curve_points, hpc_df, cfg_dict, scenario_path.stem,
                       home_work_private, energy_min, plot_options, num_threads, scaling, car_output, grid_output,
                       timing_output, analyze), cfg  # TODO change this to data dict, config dict, ...
