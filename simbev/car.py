@@ -346,17 +346,26 @@ class Car:
             self.output["event_time"].append(event_time)
             self.output["location"].append(self.status)
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
-            self.output["soc_start"].append(round(np.float32(
-                self.output["soc_end"][-1]
-                if len(self.output["soc_end"]) > 0
-                else self.soc_start), 4)
+            self.output["soc_start"].append(
+                round(
+                    np.float32(
+                        self.output["soc_end"][-1]
+                        if len(self.output["soc_end"]) > 0
+                        else self.soc_start
+                    ),
+                    4,
+                )
             )
             self.output["soc_end"].append(round(np.float32(self.soc), 4))
             charging_demand = self._get_last_charging_demand()
             consumption = self._get_last_consumption()
             self.output["energy"].append(np.float32(charging_demand + consumption))
-            self.output["station_charging_capacity"].append(np.float32(nominal_charging_capacity))
-            self.output["average_charging_power"].append(round(np.float32(charging_power), 4))
+            self.output["station_charging_capacity"].append(
+                np.float32(nominal_charging_capacity)
+            )
+            self.output["average_charging_power"].append(
+                round(np.float32(charging_power), 4)
+            )
             self.output["distance"].append(np.float32(distance))
             self.output["destination"].append(destination)
 
@@ -864,10 +873,12 @@ class Car:
                     activity.at[activity.index[0], "energy"] = new_consumption
 
                 # adjust value for starting soc in first row
-                activity.at[activity.index[0], "soc_start"] = round(np.float32(
-                    activity.at[activity.index[0], "soc_end"]
-                    - activity.at[activity.index[0], "energy"]
-                    / self.car_type.battery_capacity),
+                activity.at[activity.index[0], "soc_start"] = round(
+                    np.float32(
+                        activity.at[activity.index[0], "soc_end"]
+                        - activity.at[activity.index[0], "energy"]
+                        / self.car_type.battery_capacity
+                    ),
                     4,
                 )
 
@@ -881,8 +892,8 @@ class Car:
                 activity.at[activity.index[0], "event_time"] = np.int32(post_event_len)
                 activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
 
-                activity["event_start"] = activity["event_start"].astype('int32')
-                activity["event_time"] = activity["event_time"].astype('int32')
+                activity["event_start"] = activity["event_start"].astype("int32")
+                activity["event_time"] = activity["event_time"].astype("int32")
 
             drive_array = analyze_drive_events(activity, self.car_type.name)
             charge_array = analyze_charge_events(activity)
