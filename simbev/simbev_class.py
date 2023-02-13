@@ -614,7 +614,7 @@ class SimBEV:
         charging_curve_points = pd.read_csv(
             pathlib.Path(scenario_path, cfg["tech_data"]["charging_curve"]),
             sep=",",
-            index_col=False,
+            index_col=False
         )
 
         energy_min = pd.read_csv(
