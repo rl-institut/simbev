@@ -342,8 +342,8 @@ class Car:
         """
         if self.car_type.output:
             self.output["timestamp"].append(timestamp)
-            self.output["event_start"].append(event_start)
-            self.output["event_time"].append(event_time)
+            self.output["event_start"].append(np.int32(event_start))
+            self.output["event_time"].append(np.int32(event_time))
             self.output["location"].append(self.status)
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
             self.output["soc_start"].append(
@@ -888,12 +888,12 @@ class Car:
                 ] / (post_event_len * simbev.step_size / 60)
 
                 # fit first row event to start at time step 0
-                activity.at[activity.index[0], "event_start"] = np.int32(0)
-                activity.at[activity.index[0], "event_time"] = np.int32(post_event_len)
+                activity.at[activity.index[0], "event_start"] = 0
+                activity.at[activity.index[0], "event_time"] = post_event_len
                 activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
 
-                activity["event_start"] = activity["event_start"].astype("int32")
-                activity["event_time"] = activity["event_time"].astype("int32")
+                activity["event_start"] = activity["event_start"]
+                activity["event_time"] = activity["event_time"]
 
             drive_array = analyze_drive_events(activity, self.car_type.name)
             charge_array = analyze_charge_events(activity)
@@ -904,4 +904,4 @@ class Car:
                     pathlib.Path(region_directory, self.file_name), index=False
                 )
 
-            return np.hstack((drive_array, charge_array))  # , mid_array
+            return np.hstack((drive_array, charge_array))
