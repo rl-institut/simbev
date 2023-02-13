@@ -111,8 +111,7 @@ class SimBEV:
             else:
                 energy_min = self.energy_min["phev"].to_dict()
 
-            if self.output_options["analyze"] or self.output_options["car"]:
-                output = True
+            output = self.output_options["analyze"] or self.output_options["car"]
 
             car_type = CarType(
                 car_type_name,
