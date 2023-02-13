@@ -48,7 +48,7 @@ class CarType:
     # TODO consumption based on speed instead of constant
     consumption: float
     output: bool
-    hpc_data: dict
+    attractivity: pd.DataFrame
     analyze_mid: bool = False
     label: str = None
 
@@ -287,7 +287,7 @@ class Car:
         self.number = number
         self.region = region
         self.user_spec = 0
-        self.hpc_pref = 0
+        self.attractivity = 0
         self.private_only = private_only
 
         # lists to track output data
@@ -788,24 +788,19 @@ class Car:
     def set_user_spec(self):
         """Assigns specific user-group to vehicle."""
         if self.car_type.charging_capacity["fast"] == 0:
-            self.user_spec = "0"  # Todo set better term?
-            self.hpc_pref = -1
+            self.user_spec = 0  # Todo set better term?
         elif self.home_capacity != 0 and self.home_parking:
             if self.work_capacity != 0 and self.work_parking:
-                self.user_spec = "A"  # private LIS at home and at work
-                self.hpc_pref = self.car_type.hpc_data["hpc_pref_A"]
+                self.user_spec = 0  # private LIS at home and at work
             else:
-                self.user_spec = "B"  # private LIS at home but not at work
-                self.hpc_pref = self.car_type.hpc_data["hpc_pref_B"]
+                self.user_spec = 1  # private LIS at home but not at work
         else:
             if self.work_capacity != 0 and self.work_parking:
-                self.user_spec = "C"  # private LIS not at home but at work
-                self.hpc_pref = self.car_type.hpc_data["hpc_pref_C"]
+                self.user_spec = 2  # private LIS not at home but at work
             else:
                 self.user_spec = (
-                    "D"  # private LIS not at home and not at work. Primarily HPC
+                    3  # private LIS not at home and not at work. Primarily HPC
                 )
-                self.hpc_pref = self.car_type.hpc_data["hpc_pref_D"]
 
     def export(self, region_directory, simbev):
         """
