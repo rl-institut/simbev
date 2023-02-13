@@ -28,6 +28,7 @@ class SimBEV:
         self.work_parking = data_dict["private_probabilities"].loc["work", :]
 
         self.hpc_data = data_dict["hpc_data"]
+        self.attractivity = data_dict["user_groups_attractivity"]
         self.charging_curve_points = data_dict["charging_curve_points"]
 
         # parameters from config_dict
@@ -123,7 +124,7 @@ class SimBEV:
                 charging_curve,
                 consumption,
                 output,
-                self.hpc_data,
+                self.attractivity,
                 analyze_mid=True,
             )
             if "bev" in car_type.name:
@@ -605,11 +606,17 @@ class SimBEV:
             index_col=0,
         )
         hpc_df = pd.read_csv(
-            pathlib.Path(scenario_path, cfg["hpc_params"]["hpc_data"]),
+            pathlib.Path(scenario_path, cfg["tech_data"]["hpc_data"]),
             sep=",",
             index_col=0,
         )
         hpc_data = hpc_df.to_dict()["values"]
+
+        user_groups_attractivity = pd.read_csv(
+            pathlib.Path(scenario_path, cfg["user_data"]["user_groups"]),
+            sep=",",
+            index_col=0,
+        )
 
         charging_curve_points = pd.read_csv(
             pathlib.Path(scenario_path, cfg["tech_data"]["charging_curve"]),
@@ -679,6 +686,7 @@ class SimBEV:
             "energy_min": energy_min,
             "hpc_data": hpc_data,
             "charging_curve_points": charging_curve_points,
+            "user_groups_attractivity": user_groups_attractivity,
         }
 
         return SimBEV(data_dict, cfg_dict, config_path.stem), cfg
