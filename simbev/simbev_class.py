@@ -111,6 +111,9 @@ class SimBEV:
             else:
                 energy_min = self.energy_min["phev"].to_dict()
 
+            if self.output_options["analyze"] or self.output_options["car"]:
+                output = True
+
             car_type = CarType(
                 car_type_name,
                 bat_cap,
@@ -120,7 +123,7 @@ class SimBEV:
                 energy_min,
                 charging_curve,
                 consumption,
-                self.output_options["car"],
+                output,
                 self.hpc_data,
                 analyze_mid=True,
             )
