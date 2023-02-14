@@ -211,20 +211,20 @@ class Region:
             if code in self.header_grid_ts:
                 column = self.header_grid_ts.index(code)
                 if i == 0:
-                    self.grid_time_series[timestep_start:park_ts_end, column] += (
-                        1 * self.scaling[car_type]
-                    )
+                    self.grid_time_series[
+                        timestep_start:park_ts_end, column
+                    ] += np.float32(1 * self.scaling[car_type])
             # distribute to use cases total
             code_uc_ges = "{}_total_power".format(use_case)
             if code_uc_ges in self.header_grid_ts:
                 column = self.header_grid_ts.index(code_uc_ges)
-                self.grid_time_series[timestep_start:timestep_end, column] += (
-                    chargepower * self.scaling[car_type]
-                )
+                self.grid_time_series[
+                    timestep_start:timestep_end, column
+                ] += np.float32(chargepower * self.scaling[car_type])
 
             # add to total amount
             column = self.header_grid_ts.index("total_power")
-            self.grid_time_series[timestep_start:timestep_end, column] += (
+            self.grid_time_series[timestep_start:timestep_end, column] += np.float32(
                 chargepower * self.scaling[car_type]
             )
 
@@ -305,7 +305,9 @@ class Region:
                 for power in header_fast:
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
 
-        self.grid_time_series = np.zeros((len(time_stamps), len(self.header_grid_ts)))
+        self.grid_time_series = np.float32(
+            np.zeros((len(time_stamps), len(self.header_grid_ts)))
+        )
 
     def export_grid_timeseries(self, region_directory):
         """
