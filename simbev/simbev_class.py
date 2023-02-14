@@ -47,7 +47,8 @@ class SimBEV:
         self.energy_min = data_dict["energy_min"]
         self.private_only_run = config_dict["private_only_run"]
 
-        self.num_threads = config_dict["num_threads"]
+        self.region_threads = config_dict["region_threads"]
+        self.car_threads = config_dict["car_threads"]
         self.output_options = config_dict["output_options"]
 
         self.input_type = config_dict["input_type"]
@@ -192,25 +193,25 @@ class SimBEV:
             )
             self.regions.append(new_region)
 
-    def run_multi(self):
+    def run(self):
         """Runs Simulation for multiprocessing"""
         print(
             "Scaling set to {}: 1 simulated vehicle represents {} vehicles in grid time series".format(
                 self.scaling, self.scaling
             )
         )
-        self.num_threads = min(self.num_threads, len(self.regions))
-        if self.num_threads == 1:
+        self.region_threads = min(self.region_threads, len(self.regions))
+        if self.region_threads == 1:
             for region in self.regions:
-                grid_data = self.run(region)
+                grid_data = self.run_region(region)
 
                 self._log_grid_data(grid_data)
 
         else:
-            pool = mp.Pool(processes=self.num_threads)
+            pool = mp.Pool(processes=self.region_threads)
 
             for region in self.regions:
-                pool.apply_async(self.run, (region,), callback=self._log_grid_data)
+                pool.apply_async(self.run_region, (region,), callback=self._log_grid_data)
             pool.close()
             pool.join()
         grid_time_series_all_regions = helpers.timeitlog(
@@ -219,7 +220,7 @@ class SimBEV:
         if self.output_options["region_plot"] or self.output_options["collective_plot"]:
             plot.plot_gridtimeseries_by_usecase(self, grid_time_series_all_regions)
 
-    def run(self, region):
+    def run_region(self, region):
         """Runs Simulation for single-processing
 
         Parameters
@@ -233,7 +234,7 @@ class SimBEV:
             Returns grid-data for current region.
         """
 
-        if self.num_threads == 1:
+        if self.region_threads == 1:
             print(
                 f"===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) ====="
             )
@@ -245,95 +246,22 @@ class SimBEV:
         region_directory.mkdir(parents=True, exist_ok=True)
 
         cars_simulated = 0
-        exception_count = 0
+        # exception_count = 0
         for car_type_name, car_count in region.car_dict.items():
+            pool = mp.Pool(processes=self.car_threads)
             for car_number in range(car_count):
-                # Create new car
-                car_type = self.car_types[car_type_name]
-                # create new car objects
-                # TODO: parking parameters that change by region
-                work_parking = (
-                    self.work_parking[region.region_type.rs7_type] >= self.rng.random()
-                )
-                home_parking = (
-                    self.home_parking[region.region_type.rs7_type] >= self.rng.random()
-                )
 
-                work_power = (
-                    self.get_charging_capacity("work") if work_parking else None
-                )
-                home_power = (
-                    self.get_charging_capacity("home") if home_parking else None
-                )
-                # SOC init value for the first monday
-                # formula from Kilian, TODO maybe not needed anymore
-                soc_init = (
-                    self.rng.random() ** (1 / 3) * 0.8 + 0.2
-                    if self.rng.random() < 0.12
-                    else 1
-                )
-                car = Car(
-                    car_type,
-                    car_number,
-                    work_parking,
-                    home_parking,
-                    work_power,
-                    home_power,
-                    region,
-                    soc_init,
-                )
-
-                if self.num_threads == 1:
-                    print(
-                        "\r{}% {} {} / {}".format(
-                            round(
-                                (cars_simulated + car_number + 1)
-                                * 100
-                                / region.car_amount
-                            ),
-                            car.car_type.name,
-                            (car.number + 1),
-                            region.car_dict[car.car_type.name],
-                        ),
-                        end="",
-                        flush=True,
-                    )
-
-                # TODO profiles: add profiles to car on creation? or apply profiles during simulation?
-                # idea: create a list of trips that get simulated. code where?
-
-                # if private run, check if private charging infrastructure is available
-                if self.private_only_run and (work_power or home_power):
-                    # TODO catch error, then run again
-                    try:
-                        private_car = copy.copy(car)
-                        private_car.private_only = True
-                        self.simulate_car(private_car, region)
-                        car = private_car
-                    except SoCError:
-                        exception_count += 1
-                        self.simulate_car(car, region)
-                else:
-                    self.simulate_car(car, region)
-
-                # export vehicle csv
-                if self.output_options["analyze"]:
-                    car_array = car.export(region_directory, self)
-                    if region.analyze_array is None:
-                        region.analyze_array = car_array
-                    else:
-                        region.analyze_array = np.vstack(
-                            (region.analyze_array, car_array)
-                        )
-                else:
-                    car.export(region_directory, self)
-            cars_simulated += car_count
-        if self.private_only_run:
-            print(
-                "\nNumber of cars that couldn't run private only: {}/{}".format(
-                    exception_count, cars_simulated
-                )
-            )
+                for region in self.regions:
+                    pool.apply_async(self.run_car, (car_type_name, car_number, region, cars_simulated, region_directory))
+            pool.close()
+            pool.join()
+            cars_simulated += car_number + 1
+        # if self.private_only_run:
+        #     print(
+        #         "\nNumber of cars that couldn't run private only: {}/{}".format(
+        #             exception_count, cars_simulated
+        #         )
+        #     )
 
         region.export_grid_timeseries(region_directory)
         if self.output_options["analyze"]:
@@ -346,6 +274,85 @@ class SimBEV:
             )
         print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
         return region.grid_data_frame, region.analyze_array
+    
+    def run_car(self, car_type_name, car_number, region, cars_simulated, region_directory):
+        # Create new car
+        car_type = self.car_types[car_type_name]
+        # create new car objects
+        work_parking = (
+            self.work_parking[region.region_type.rs7_type] >= self.rng.random()
+        )
+        home_parking = (
+            self.home_parking[region.region_type.rs7_type] >= self.rng.random()
+        )
+
+        work_power = (
+            self.get_charging_capacity("work") if work_parking else None
+        )
+        home_power = (
+            self.get_charging_capacity("home") if home_parking else None
+        )
+        # SOC init value for the first monday
+        # formula from Kilian, TODO maybe not needed anymore
+        soc_init = (
+            self.rng.random() ** (1 / 3) * 0.8 + 0.2
+            if self.rng.random() < 0.12
+            else 1
+        )
+        car = Car(
+            car_type,
+            car_number,
+            work_parking,
+            home_parking,
+            work_power,
+            home_power,
+            region,
+            soc_init,
+        )
+
+        if self.region_threads == 1 and self.car_threads == 1:
+            print(
+                "\r{}% {} {} / {}".format(
+                    round(
+                        (cars_simulated + car_number + 1)
+                        * 100
+                        / region.car_amount
+                    ),
+                    car.car_type.name,
+                    (car.number + 1),
+                    region.car_dict[car.car_type.name],
+                ),
+                end="",
+                flush=True,
+            )
+
+        # TODO profiles: add profiles to car on creation? or apply profiles during simulation?
+        # idea: create a list of trips that get simulated. code where?
+
+        # if private run, check if private charging infrastructure is available
+        if self.private_only_run and (work_power or home_power):
+            try:
+                private_car = copy.copy(car)
+                private_car.private_only = True
+                self.simulate_car(private_car, region)
+                car = private_car
+            except SoCError:
+                # exception_count += 1
+                self.simulate_car(car, region)
+        else:
+            self.simulate_car(car, region)
+
+        # export vehicle csv
+        if self.output_options["analyze"]:
+            car_array = car.export(region_directory, self)
+            if region.analyze_array is None:
+                region.analyze_array = car_array
+            else:
+                region.analyze_array = np.vstack(
+                    (region.analyze_array, car_array)
+                )
+        else:
+            car.export(region_directory, self)
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         """Determines charging capacity for specific charging event
@@ -664,7 +671,8 @@ class SimBEV:
             "scenario_path": scenario_path,
             "input_type": cfg["basic"]["input_type"],
             "input_directory": cfg["basic"]["input_directory"],
-            "num_threads": cfg.getint("sim_params", "num_threads", fallback=1),
+            "region_threads": cfg.getint("sim_params", "region_threads", fallback=1),
+            "car_threads": cfg.getint("sim_params", "car_threads", fallback=1),
             "output_options": output_options,
             "private_only_run": cfg.getboolean(
                 "sim_params", "private_only_run", fallback=False

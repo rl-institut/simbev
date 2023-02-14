@@ -25,7 +25,7 @@ def main():
 
     # run simulation with optional timing
     helpers.timeitlog(simbev_obj.output_options["timing"], simbev_obj.save_directory)(
-        simbev_obj.run_multi
+        simbev_obj.run
     )()
 
     helpers.export_metadata(simbev_obj, cfg)
