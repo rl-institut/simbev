@@ -3,7 +3,7 @@ import simbev.helpers.helpers as helpers
 import pandas as pd
 import numpy as np
 from simbev.region import Region, RegionType
-from simbev.car import CarType, Car
+from simbev.car import CarType, Car, UserGroup
 from simbev.trip import Trip
 import simbev.plot as plot
 from simbev.helpers.errors import SoCError
@@ -58,6 +58,7 @@ class SimBEV:
         self.regions: List[Region] = []
         self.created_region_types = {}
         self.car_types = {}
+        self.user_groups = {}
         self.grid_data_list = []
         self.analysis_data_list = []
 
@@ -77,8 +78,17 @@ class SimBEV:
         self.step_size_str = str(self.step_size) + "min"
 
         # run setup functions
+        self._create_user_groups()
         self._create_car_types()
         self._add_regions_from_dataframe()
+
+    def _create_user_groups(self):
+        for user_group_number in self.attractivity.index:
+            user_group = UserGroup(
+                user_group_number,
+                self.attractivity.loc[user_group_number].to_dict(),
+            )
+            self.set_user_groups[user_group_number] = user_group
 
     def _create_car_types(self):
         """Creates car-types with all necessary properties.
@@ -88,6 +98,7 @@ class SimBEV:
         output : bool
             Setting for output.
         """
+
         # create new car type
         for car_type_name in self.tech_data.index:
             bat_cap = self.tech_data.at[car_type_name, "battery_capacity"]
@@ -259,13 +270,16 @@ class SimBEV:
                 home_parking = (
                     self.home_parking[region.region_type.rs7_type] >= self.rng.random()
                 )
-
                 work_power = (
                     self.get_charging_capacity("work") if work_parking else None
                 )
                 home_power = (
                     self.get_charging_capacity("home") if home_parking else None
                 )
+                user_group_id = self.set_user_group(
+                    work_parking, home_parking, work_power, home_power
+                )
+
                 # SOC init value for the first monday
                 # formula from Kilian, TODO maybe not needed anymore
                 soc_init = (
@@ -275,6 +289,7 @@ class SimBEV:
                 )
                 car = Car(
                     car_type,
+                    self.user_groups[user_group_id],
                     car_number,
                     work_parking,
                     home_parking,
@@ -428,6 +443,20 @@ class SimBEV:
                 # find next trip
                 trip = Trip(region, car, step, self)
                 trip.execute()
+
+    def set_user_group(self, work_parking, home_parking, work_capacity, home_capacity):
+        """Assigns specific user-group to vehicle."""
+        if home_capacity != 0 and home_parking:
+            if work_capacity != 0 and work_parking:
+                user_group = 0  # private LIS at home and at work
+            else:
+                user_group = 1  # private LIS at home but not at work
+        else:
+            if work_capacity != 0 and work_parking:
+                user_group = 2  # private LIS not at home but at work
+            else:
+                user_group = 3  # private LIS not at home and not at work
+        return user_group
 
     def _log_grid_data(self, result):
         """Appends grid-timeseries of current region to a list.

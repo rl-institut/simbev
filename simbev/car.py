@@ -7,6 +7,12 @@ from scipy.interpolate import interp1d
 
 
 @dataclass
+class UserGroup:
+    user_group: int
+    attractivity: dict
+
+
+@dataclass
 class CarType:
     """Object that describes car-types.
 
@@ -266,6 +272,7 @@ class Car:
     def __init__(
         self,
         car_type: CarType,
+        user_group: UserGroup,
         number: int,
         work_parking,
         home_parking,
@@ -277,6 +284,7 @@ class Car:
         private_only=False,
     ):
         self.car_type = car_type
+        self.user_group = user_group
         self.soc_start = soc
         self.soc = soc
         self.work_parking = work_parking
@@ -312,8 +320,6 @@ class Car:
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(
             car_type.name, number, car_type.battery_capacity
         )
-        # Set user specificationn and hpc preference
-        self.set_user_spec()
 
     def _update_activity(
         self,
@@ -784,23 +790,6 @@ class Car:
             return "hpc"
         else:
             return "public"
-
-    def set_user_spec(self):
-        """Assigns specific user-group to vehicle."""
-        if self.car_type.charging_capacity["fast"] == 0:
-            self.user_spec = 0  # Todo set better term?
-        elif self.home_capacity != 0 and self.home_parking:
-            if self.work_capacity != 0 and self.work_parking:
-                self.user_spec = 0  # private LIS at home and at work
-            else:
-                self.user_spec = 1  # private LIS at home but not at work
-        else:
-            if self.work_capacity != 0 and self.work_parking:
-                self.user_spec = 2  # private LIS not at home but at work
-            else:
-                self.user_spec = (
-                    3  # private LIS not at home and not at work. Primarily HPC
-                )
 
     def export(self, region_directory, simbev):
         """

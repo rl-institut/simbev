@@ -127,7 +127,7 @@ class Trip:
         elif not self.car.private_only:
             if (
                 self.car.soc <= self.simbev.hpc_data["soc_start_threshold"]
-                and self.car.car_type.attractivity.loc[self.car.user_spec, "hpc_urban"]
+                and self.car.user_group.attractivity["hpc_urban"]
                 >= self.rng.random()  # todo: change for all use cases
                 and self.park_time
                 <= (self.simbev.hpc_data["park_time_max"] / self.step_size)
