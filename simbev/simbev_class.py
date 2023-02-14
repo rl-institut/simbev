@@ -88,7 +88,7 @@ class SimBEV:
                 user_group_number,
                 self.attractivity.loc[user_group_number].to_dict(),
             )
-            self.set_user_groups[user_group_number] = user_group
+            self.user_groups[user_group_number] = user_group
 
     def _create_car_types(self):
         """Creates car-types with all necessary properties.

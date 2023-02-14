@@ -120,6 +120,7 @@ class Trip:
         """
         Executes created trip. Charging/parking and driving
         """
+        # todo: implement attractivity for all charging use cases
         if self.location == "home" and self.car.home_parking:
             self.car.charge_home(self)
         elif self.location == "work" and self.car.work_parking:
@@ -127,8 +128,7 @@ class Trip:
         elif not self.car.private_only:
             if (
                 self.car.soc <= self.simbev.hpc_data["soc_start_threshold"]
-                and self.car.user_group.attractivity["hpc_urban"]
-                >= self.rng.random()  # todo: change for all use cases
+                and self.car.user_group.attractivity["hpc_urban"] >= self.rng.random()
                 and self.park_time
                 <= (self.simbev.hpc_data["park_time_max"] / self.step_size)
                 and self.car.car_type.label != "PHEV"
@@ -172,7 +172,8 @@ class Trip:
             if not trip_completed:
                 if self.car.private_only:
                     raise SoCError(
-                        f"Vehicle {self.car.file_name} dropped below the minimum SoC while trying to charge private only."
+                        f"Vehicle {self.car.file_name} dropped below the minimum SoC "
+                        f"while trying to charge private only."
                     )
                 self._create_fast_charge_events()
 
