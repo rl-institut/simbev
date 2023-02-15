@@ -72,7 +72,7 @@ def analyze_charge_events(output_df: pd.DataFrame):
     ndarray
         Returns information about charging events of vehicle in whole timeframe.
     """
-
+    # todo: addapt analysis to new use cases
     charge_events = output_df.loc[output_df["energy"] > 0]
     event_count = str(len(charge_events.index))
     hpc_count = len(charge_events.loc[charge_events["use_case"] == "hpc"].index)
@@ -279,6 +279,7 @@ class Car:
         work_capacity,
         home_capacity,
         region,
+        home_situation,
         soc: float = 1.0,
         status: str = "home",
         private_only=False,
@@ -294,8 +295,9 @@ class Car:
         self.status = status  # replace with enum?
         self.number = number
         self.region = region
-        self.user_spec = 0
-        self.attractivity = 0
+        self.home_situation = (
+            ""  # Describes if Car is at home in apartment building or detached house
+        )
         self.private_only = private_only
 
         # lists to track output data
@@ -778,7 +780,6 @@ class Car:
         str
             Returns use-case of event.
         """
-
         if self.status == "driving":
             return ""
         elif self.work_parking and self.status == "work":
@@ -786,8 +787,12 @@ class Car:
         elif self.home_parking and self.status == "home":
             return "home"
         # TODO: decide on status an requirement for hpc
+        elif self.status == "hpc":
+            return "public_highway"
         elif power >= 150:
-            return "hpc"
+            return "public_fast"
+        elif self.status == "shopping":
+            return "retail"
         else:
             return "public"
 

@@ -279,6 +279,7 @@ class SimBEV:
                 user_group_id = self.set_user_group(
                     work_parking, home_parking, work_power, home_power
                 )
+                # todo decide if car is at home in detached house or apartment building
 
                 # SOC init value for the first monday
                 # formula from Kilian, TODO maybe not needed anymore
@@ -296,6 +297,7 @@ class SimBEV:
                     work_power,
                     home_power,
                     region,
+                    "detached",
                     soc_init,
                 )
 

@@ -30,7 +30,7 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
                 label="public",
             )
             plt.plot(
-                df_results["hpc_total_power"],
+                df_results["public_highway_total_power"],
                 color="#76B900",
                 linestyle="-",
                 linewidth=1,
@@ -75,7 +75,7 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
             label="public",
         )
         plt.plot(
-            df_results["hpc_total_power"],
+            df_results["public_highway_total_power"],
             color="#76B900",
             linestyle="-",
             linewidth=1,

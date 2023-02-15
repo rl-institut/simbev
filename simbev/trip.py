@@ -121,14 +121,22 @@ class Trip:
         Executes created trip. Charging/parking and driving
         """
         # todo: implement attractivity for all charging use cases
-        if self.location == "home" and self.car.home_parking:
+        if (
+            self.location == "home"
+            and self.car.home_parking
+            and self.car.user_group.attractivity["home"] >= self.rng.random()
+        ):
             self.car.charge_home(self)
-        elif self.location == "work" and self.car.work_parking:
+        elif (
+            self.location == "work"
+            and self.car.work_parking
+            and self.car.user_group.attractivity["work"] >= self.rng.random()
+        ):
             self.car.charge_work(self)
         elif not self.car.private_only:
             if (
                 self.car.soc <= self.simbev.hpc_data["soc_start_threshold"]
-                and self.car.user_group.attractivity["hpc_urban"] >= self.rng.random()
+                and self.car.user_group.attractivity["public_fast"] >= self.rng.random()
                 and self.park_time
                 <= (self.simbev.hpc_data["park_time_max"] / self.step_size)
                 and self.car.car_type.label != "PHEV"
@@ -145,7 +153,10 @@ class Trip:
                     self.step_size,
                     max_charging_time=self.park_time,
                 )
-            else:
+            elif (
+                self.location == "shopping"
+                and self.car.user_group.attractivity["retail"] >= self.rng.random()
+            ):
                 station_capacity = self.simbev.get_charging_capacity(
                     self.location, self.distance
                 )
@@ -156,6 +167,21 @@ class Trip:
                     step_size=self.simbev.step_size,
                     max_charging_time=self.park_time,
                 )
+            elif self.car.user_group.attractivity["public"] >= self.rng.random():
+                station_capacity = self.simbev.get_charging_capacity(
+                    self.location, self.distance
+                )
+                self.car.charge(
+                    self,
+                    station_capacity,
+                    "slow",
+                    step_size=self.simbev.step_size,
+                    max_charging_time=self.park_time,
+                )
+
+            else:
+                self.car.park(self)
+
         else:
             self.car.park(self)
 
