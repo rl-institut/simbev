@@ -62,6 +62,9 @@ class SimBEV:
 
         self.input_type = config_dict["input_type"]
         self.input_directory = pathlib.Path(config_dict["input_directory"])
+        self.input_data = None
+        if self.input_type == "profile":
+            self.input_data = pd.read_csv(self.input_directory)
         self.scaling = config_dict["scaling"]
         # additional parameters
         self.regions: List[Region] = []
@@ -77,9 +80,6 @@ class SimBEV:
         self.save_directory = pathlib.Path(
             config_dict["scenario_path"], "results", save_directory_name
         )
-        self.data_directory = pathlib.Path(
-            "data", "probability"
-        )  # TODO change based on simulation mode or via config?
         self.file_name_all = "grid_time_series_all_regions.csv"
         self.file_name_analysis_all = "analysis_all_regions.csv"
         self.file_name_analysis_all_json = "analysis_all_regions.json"
@@ -169,11 +169,12 @@ class SimBEV:
             self.step_size,
             self.charging_probabilities,
         )
+        # TODO change creation of time series to still work on profile input
         rs7_region.create_timeseries(
-            self.start_date, self.end_date, self.step_size, self.data_directory
+            self
         )
         if self.input_type == "probability":
-            rs7_region.get_probabilities(self.data_directory)
+            rs7_region.get_probabilities(self.input_directory)
         else:
             pass
             # TODO profiles check if anything is necessary to do here

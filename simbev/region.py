@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import pathlib
-from simbev.mid_timeseries import get_timeseries
+from simbev.mid_timeseries import get_timeseries, get_profile_time_series
 import simbev.helpers.helpers as helpers
 
 
@@ -45,10 +45,10 @@ class RegionType:
         self.probabilities = {}
         self.output = grid_output
 
-    def create_timeseries(self, start_date, end_date, step_size, data_directory):
+    def create_timeseries(self, simbev):
         """Creating timeseries for vehicle.
 
-        Parameters
+        Parameters .start_date, self.end_date, self.step_size, self.input_directory
         ----------
         start_date : date
             Start-date of simulation.
@@ -59,11 +59,18 @@ class RegionType:
         """
 
         if not self.time_series:
-            self.time_series = get_timeseries(
-                start_date, end_date, self.rs7_type, step_size, data_directory
-            )
-            self.trip_starts = self.time_series.sum(axis=1)
-            self.trip_starts = self.trip_starts / self.trip_starts.max()
+            if simbev.input_type == "probability":
+                self.time_series = get_timeseries(
+                    simbev.start_date, simbev.end_date, self.rs7_type, simbev.step_size, simbev.input_directory
+                )
+                self.trip_starts = self.time_series.sum(axis=1)
+                self.trip_starts = self.trip_starts / self.trip_starts.max()
+            elif simbev.input_type == "profile" and simbev.input_data is not None:
+                self.time_series = get_profile_time_series(
+                    simbev.start_date, simbev.end_date, simbev.input_data
+                )
+            else:
+                raise ValueError("Input type or data not defined.")
 
     def get_probabilities(self, data_directory):
         """Unites probabilities for trip.

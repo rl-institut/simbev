@@ -1,6 +1,5 @@
 import pandas as pd
-
-# import numpy as np
+import random
 import math
 import datetime
 from pathlib import Path
@@ -206,3 +205,83 @@ def get_timeseries(
         "home",
     ]
     return pd_result
+
+
+def get_profile_time_series(start_date, end_date, df):
+    """
+    Returns a time series starting from the start date up until the end date filled with
+    week data chosen at random from the input DataFrame for each week.
+
+    Parameters
+    ----------
+    start_date : str or datetime
+        The start date of the time series in yyyy-mm-dd format.
+    end_date : str or datetime
+        The end date of the time series in yyyy-mm-dd format.
+    df : pandas DataFrame
+        The input DataFrame containing week data, where each entry with the same ID belongs to the same week.
+
+    Returns
+    -------
+    pandas DataFrame
+        The resulting time series.
+    """
+    # Convert start and end dates to datetime if needed
+    if not isinstance(start_date, pd.Timestamp):
+        start_date = pd.to_datetime(start_date)
+    if not isinstance(end_date, pd.Timestamp):
+        end_date = pd.to_datetime(end_date)
+    
+    # Create an empty DataFrame to hold the time series
+    time_series = pd.DataFrame(columns=df.columns)
+    ids = df['id'].unique()
+    # Loop through each week between the start and end dates
+    week_start = start_date
+    while week_start <= end_date:
+        # Select a random ID from the input DataFrame
+
+        random_id = random.choice(ids)
+
+        # Get the week data for the chosen ID
+        week_data = df[df['id'] == random_id]
+
+        # Determine the end date for the current week
+        week_end = week_start + pd.Timedelta(days=6 - week_start.weekday())
+
+        # If the week end date is beyond the end date of the time series, adjust it accordingly
+        if week_end > end_date:
+            week_end = end_date
+
+        # Get the data for this week that falls within the desired date range
+        week_data_filtered = week_data[(week_data['day'] >= (week_start.weekday())) & (week_data['day'] <= (week_end.weekday()))]
+
+        # Append the filtered week data to the time series
+        time_series = pd.concat([time_series, week_data_filtered])
+
+        # Move to the next week
+        week_start = week_end + pd.Timedelta(days=1)
+
+        # TODO include dates or timesteps in timeseries
+
+    return time_series
+
+
+# TODO use this function to add timestamps to region time series?
+def get_weekday_date(date: pd.Timestamp, weekday: int) -> pd.Timestamp:
+    """
+    Calculate the date of a given weekday within the same week as a given date.
+
+    Parameters
+    ----------
+    date : pandas.Timestamp
+        Input date.
+    weekday : int
+        Integer representing the desired weekday (0 = Monday, 1 = Tuesday, ..., 6 = Sunday).
+
+    Returns
+    -------
+    pandas.Timestamp
+        Date of the desired weekday within the same week as the input date.
+    """
+    weekday_date = date + pd.offsets.Day(weekday - date.weekday())
+    return weekday_date
