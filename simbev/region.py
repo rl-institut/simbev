@@ -289,7 +289,14 @@ class Region:
         time_series = self.region_type.time_series
         time_stamps = np.array(time_series.index.to_pydatetime())
         self.header_grid_ts = ["timestep", "timestamp", "total_power"]
-        use_cases = ["home", "work", "public", "retail", "public_fast", "public_highway"]
+        use_cases = [
+            "home",
+            "work",
+            "public",
+            "retail",
+            "public_fast",
+            "public_highway",
+        ]
         for uc in use_cases:
             self.header_grid_ts.append("{}_total_power".format(uc))
             if uc == "home":
@@ -307,7 +314,7 @@ class Region:
             if uc == "public_fast":
                 for power in header_fast:
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
-            if uc == "public_motorway":
+            if uc == "public_highway":
                 for power in header_fast:
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
 

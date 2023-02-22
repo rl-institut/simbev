@@ -72,10 +72,17 @@ def analyze_charge_events(output_df: pd.DataFrame):
     ndarray
         Returns information about charging events of vehicle in whole timeframe.
     """
+    use_cases = ["home", "work", "public", "retail", "public_fast", "public_highway"]
     # todo: addapt analysis to new use cases
     charge_events = output_df.loc[output_df["energy"] > 0]
     event_count = str(len(charge_events.index))
-    hpc_count = len(charge_events.loc[charge_events["use_case"] == "hpc"].index)
+    hpc_count = len(
+        charge_events.loc[
+            (charge_events["use_case"] == "hpc")
+            | (charge_events["use_case"] == "public_fast")
+            | (charge_events["use_case"] == "public_highway")
+        ].index
+    )
     max_time = charge_events["event_time"].max()
     min_time = charge_events["event_time"].min()
     avg_time = round(charge_events["event_time"].mean(), 4)
@@ -83,7 +90,13 @@ def analyze_charge_events(output_df: pd.DataFrame):
     min_charge = round(charge_events["energy"].min(), 4)
     avg_charge = round(charge_events["energy"].mean(), 4)
     hpc_avg_charge = (
-        charge_events["energy"].loc[charge_events["use_case"] == "hpc"].mean()
+        charge_events["energy"]
+        .loc[
+            (charge_events["use_case"] == "hpc")
+            | (charge_events["use_case"] == "public_fast")
+            | (charge_events["use_case"] == "public_highway")
+        ]
+        .mean()
     )
     home_avg_charge = (
         charge_events["energy"].loc[charge_events["use_case"] == "home"].mean()
@@ -92,7 +105,12 @@ def analyze_charge_events(output_df: pd.DataFrame):
         charge_events["energy"].loc[charge_events["use_case"] == "work"].mean()
     )
     public_avg_charge = (
-        charge_events["energy"].loc[charge_events["use_case"] == "public"].mean()
+        charge_events["energy"]
+        .loc[
+            (charge_events["use_case"] == "public")
+            | (charge_events["use_case"] == "retail")
+        ]
+        .mean()
     )
 
     # counting public and private charging events
@@ -100,6 +118,9 @@ def analyze_charge_events(output_df: pd.DataFrame):
         charge_events.loc[
             (charge_events["use_case"] == "public")
             | (charge_events["use_case"] == "hpc")
+            | (charge_events["use_case"] == "public_fast")
+            | (charge_events["use_case"] == "public_highway")
+            | (charge_events["use_case"] == "retail")
         ].index
     )
     private_count = len(
@@ -626,7 +647,11 @@ class Car:
 
             use_case = self._get_usecase(power)
 
-            if use_case == "hpc" and trip.car.status == "hpc":
+            if (
+                use_case == "hpc"
+                or use_case == "public_fast"
+                or use_case == "public_highway"
+            ) and trip.car.status == "hpc":
                 park_timestep_end = trip.park_start + time_steps
 
             else:
