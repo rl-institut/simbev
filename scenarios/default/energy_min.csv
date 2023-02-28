@@ -1,7 +1,5 @@
 uc,bev,phev
 home,4,3
 work,4,3
-retail,7,5
 public,7,5
-public_fast,20,10
-public_highway,20,10
+hpc,20,10

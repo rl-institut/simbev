@@ -316,9 +316,7 @@ class Car:
         self.status = status  # replace with enum?
         self.number = number
         self.region = region
-        self.home_situation = (
-            ""  # Describes if Car is at home in apartment building or detached house
-        )
+        self.home_situation = home_situation  # Describes if Car is at home in apartment building or detached house
         self.private_only = private_only
 
         # lists to track output data
@@ -329,6 +327,7 @@ class Car:
             "event_time": [],
             "location": [],
             "use_case": [],
+            "charging_use_case": [],
             "soc_start": [],
             "soc_end": [],
             "energy": [],
@@ -375,6 +374,9 @@ class Car:
             self.output["event_time"].append(np.int32(event_time))
             self.output["location"].append(self.status)
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
+            self.output["charging_use_case"].append(
+                self._get_charging_usecase(nominal_charging_capacity)
+            )
             self.output["soc_start"].append(
                 round(
                     np.float32(
@@ -645,12 +647,12 @@ class Car:
             power_array = power_array[charging_section_counter - 1 :]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
-            use_case = self._get_usecase(power)
+            charging_use_case = self._get_charging_usecase(power)
 
             if (
-                use_case == "hpc"
-                or use_case == "public_fast"
-                or use_case == "public_highway"
+                charging_use_case == "hpc"
+                or charging_use_case == "urban_fast"
+                or charging_use_case == "highway_fast"
             ) and trip.car.status == "hpc":
                 park_timestep_end = trip.park_start + time_steps
 
@@ -658,7 +660,7 @@ class Car:
                 park_timestep_end = trip.park_start + max_charging_time
 
             grid_dict = {
-                "use_case": use_case,
+                "charging_use_case": charging_use_case,
                 "chargepower_timestep": np.float32(chargepower_timestep),
                 "power": np.float32(power),
                 "start": trip.park_start + charging_time_step,
@@ -791,7 +793,6 @@ class Car:
         else:
             return 0
 
-    # TODO maybe solve this in charging (Jakob)
     def _get_usecase(self, power):
         """Determines use-case of parking-event.
 
@@ -812,14 +813,42 @@ class Car:
         elif self.home_parking and self.status == "home":
             return "home"
         # TODO: decide on status an requirement for hpc
-        elif self.status == "hpc":
-            return "public_highway"
         elif power >= 150:
-            return "public_fast"
+            return "hpc"
+        else:
+            return "public"
+
+    # TODO maybe solve this in charging (Jakob)
+    def _get_charging_usecase(self, power):
+        """Determines use-case of parking-event.
+
+        Parameters
+        ----------
+        power : int
+            Power of charging-point.
+
+        Returns
+        -------
+        str
+            Returns use-case of event.
+        """
+        if self.status == "driving":
+            return ""
+        elif self.work_parking and self.status == "work":
+            return "work"
+        elif self.home_parking and self.status == "home" and self.home_situation:
+            return "home_detached"
+        elif self.home_parking and self.status == "home" and not self.home_situation:
+            return "home_apartment"
+        # TODO: decide on status an requirement for hpc
+        elif self.status == "hpc":
+            return "highway_fast"
+        elif power >= 150:
+            return "urban_fast"
         elif self.status == "shopping":
             return "retail"
         else:
-            return "public"
+            return "street"
 
     def export(self, region_directory, simbev):
         """
@@ -839,7 +868,7 @@ class Car:
         """
         for charge_event in self.grid_timeseries_list:
             self.region.update_grid_timeseries(
-                charge_event["use_case"],
+                charge_event["charging_use_case"],
                 charge_event["chargepower_timestep"],
                 charge_event["power"],
                 charge_event["start"],

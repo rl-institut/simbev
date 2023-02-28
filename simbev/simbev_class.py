@@ -47,6 +47,7 @@ class SimBEV:
         self.work_parking = data_dict["private_probabilities"].loc["work", :]
         self.energy_min = data_dict["energy_min"]
         self.private_only_run = config_dict["private_only_run"]
+        self.probability_detached_home = config_dict["probability_detached_home"]
 
         self.num_threads = config_dict["num_threads"]
         self.output_options = config_dict["output_options"]
@@ -288,6 +289,11 @@ class SimBEV:
                     if self.rng.random() < 0.12
                     else 1
                 )
+                if self.rng.random() <= self.probability_detached_home:
+                    home_detached = True
+                else:
+                    home_detached = False
+
                 car = Car(
                     car_type,
                     self.user_groups[user_group_id],
@@ -297,7 +303,7 @@ class SimBEV:
                     work_power,
                     home_power,
                     region,
-                    "detached",
+                    home_detached,
                     soc_init,
                 )
 
@@ -708,6 +714,9 @@ class SimBEV:
                 "sim_params", "private_only_run", fallback=False
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
+            "probability_detached_home": cfg.getfloat(
+                "basic", "probability_detached_home"
+            ),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
