@@ -711,9 +711,6 @@ class SimBEV:
                 "sim_params", "private_only_run", fallback=False
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
-            "probability_detached_home": cfg.getfloat(
-                "basic", "probability_detached_home"
-            ),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
