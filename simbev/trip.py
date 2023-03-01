@@ -121,21 +121,34 @@ class Trip:
         Executes created trip. Charging/parking and driving
         """
         if (
-            self.location == "home"
+            self.location == "home" and self.car.home_detached
             and self.car.home_parking
-            and self.car.user_group.attractivity["home"] > self.rng.random()
         ):
-            self.car.charge_home(self)
+            if self.car.user_group.attractivity["home_detached"] > self.rng.random():
+                self.car.charge_home(self)
+            else:
+                self.car.park(self)
+
+        elif (
+                self.location == "home" and not self.car.home_detached
+                and self.car.home_parking
+        ):
+            if self.car.user_group.attractivity["home_apartment"] > self.rng.random():
+                self.car.charge_home(self)
+            else:
+                self.car.park(self)
         elif (
             self.location == "work"
             and self.car.work_parking
-            and self.car.user_group.attractivity["work"] > self.rng.random()
         ):
-            self.car.charge_work(self)
+            if self.car.user_group.attractivity["work"] > self.rng.random():
+                self.car.charge_work(self)
+            else:
+                self.car.park(self)
         elif not self.car.private_only:
             if (
                 self.car.soc <= self.simbev.hpc_data["soc_start_threshold"]
-                and self.car.user_group.attractivity["public_fast"] > self.rng.random()
+                and self.car.user_group.attractivity["urban_fast"] > self.rng.random()
                 and self.park_time
                 <= (self.simbev.hpc_data["park_time_max"] / self.step_size)
                 and self.car.car_type.label != "PHEV"
@@ -154,19 +167,22 @@ class Trip:
                 )
             elif (
                 self.location == "shopping"
-                and self.car.user_group.attractivity["retail"] > self.rng.random()
             ):
-                station_capacity = self.simbev.get_charging_capacity(
-                    self.location, self.distance
-                )
-                self.car.charge(
-                    self,
-                    station_capacity,
-                    "slow",
-                    step_size=self.simbev.step_size,
-                    max_charging_time=self.park_time,
-                )
-            elif self.car.user_group.attractivity["public"] > self.rng.random():
+                if self.car.user_group.attractivity["retail"] > self.rng.random():
+                    station_capacity = self.simbev.get_charging_capacity(
+                        self.location, self.distance
+                    )
+                    self.car.charge(
+                        self,
+                        station_capacity,
+                        "slow",
+                        step_size=self.simbev.step_size,
+                        max_charging_time=self.park_time,
+                    )
+                else:
+                    self.car.park(self)
+
+            elif self.car.user_group.attractivity["street"] > self.rng.random():
                 station_capacity = self.simbev.get_charging_capacity(
                     self.location, self.distance
                 )

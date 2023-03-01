@@ -45,9 +45,9 @@ class SimBEV:
         self.end_date = config_dict["end_date"]
         self.home_parking = data_dict["private_probabilities"].loc["home", :]
         self.work_parking = data_dict["private_probabilities"].loc["work", :]
+        self.probability_detached_home = data_dict["private_probabilities"].loc["probability_detached_home"]
         self.energy_min = data_dict["energy_min"]
         self.private_only_run = config_dict["private_only_run"]
-        self.probability_detached_home = config_dict["probability_detached_home"]
 
         self.num_threads = config_dict["num_threads"]
         self.output_options = config_dict["output_options"]
@@ -289,10 +289,7 @@ class SimBEV:
                     if self.rng.random() < 0.12
                     else 1
                 )
-                if self.rng.random() <= self.probability_detached_home:
-                    home_detached = True
-                else:
-                    home_detached = False
+                home_detached = (self.rng.random() <= self.probability_detached_home[region.id])
 
                 car = Car(
                     car_type,

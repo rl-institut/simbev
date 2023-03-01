@@ -300,7 +300,7 @@ class Car:
         work_capacity,
         home_capacity,
         region,
-        home_situation,
+        home_detached,
         soc: float = 1.0,
         status: str = "home",
         private_only=False,
@@ -316,7 +316,7 @@ class Car:
         self.status = status  # replace with enum?
         self.number = number
         self.region = region
-        self.home_situation = home_situation  # Describes if Car is at home in apartment building or detached house
+        self.home_detached = home_detached  # Describes if Car is at home in apartment building or detached house
         self.private_only = private_only
 
         # lists to track output data
@@ -836,9 +836,9 @@ class Car:
             return ""
         elif self.work_parking and self.status == "work":
             return "work"
-        elif self.home_parking and self.status == "home" and self.home_situation:
+        elif self.home_parking and self.status == "home" and self.home_detached:
             return "home_detached"
-        elif self.home_parking and self.status == "home" and not self.home_situation:
+        elif self.home_parking and self.status == "home" and not self.home_detached:
             return "home_apartment"
         # TODO: decide on status an requirement for hpc
         elif self.status == "hpc":
