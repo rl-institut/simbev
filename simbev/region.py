@@ -310,7 +310,7 @@ class Region:
                 for power in header_slow:
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
 
-            if uc == "urban_fast" or uc == "highway_fast":
+            if "_fast" in uc:
                 for power in header_fast:
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
 

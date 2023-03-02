@@ -72,7 +72,6 @@ def analyze_charge_events(output_df: pd.DataFrame):
     ndarray
         Returns information about charging events of vehicle in whole timeframe.
     """
-    use_cases = ["home", "work", "public", "retail", "public_fast", "public_highway"]
     # todo: addapt analysis to new use cases
     charge_events = output_df.loc[output_df["energy"] > 0]
     event_count = str(len(charge_events.index))
@@ -649,11 +648,7 @@ class Car:
 
             charging_use_case = self._get_charging_usecase(power)
 
-            if (
-                charging_use_case == "hpc"
-                or charging_use_case == "urban_fast"
-                or charging_use_case == "highway_fast"
-            ) and trip.car.status == "hpc":
+            if charging_use_case == "highway_fast" and trip.car.status == "hpc":
                 park_timestep_end = trip.park_start + time_steps
 
             else:

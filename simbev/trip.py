@@ -117,27 +117,20 @@ class Trip:
         self._set_timestamps()
 
     def charge_decision(self, key):
-        return self.car.user_group.attractivity[key] > self.rng.random()
+        return self.car.user_group.attractivity[key] >= self.rng.random()
 
     def execute(self):
         """
         Executes created trip. Charging/parking and driving
         """
         if self.location == "home" and self.car.home_detached and self.car.home_parking:
-            if self.charge_decision("home_detached"):
+            if (self.charge_decision("home_detached") and self.car.home_detached) or (
+                self.charge_decision("home_apartment") and not self.car.home_detached
+            ):
                 self.car.charge_home(self)
             else:
                 self.car.park(self)
 
-        elif (
-            self.location == "home"
-            and not self.car.home_detached
-            and self.car.home_parking
-        ):
-            if self.charge_decision("home_apartment"):
-                self.car.charge_home(self)
-            else:
-                self.car.park(self)
         elif self.location == "work" and self.car.work_parking:
             if self.charge_decision("work"):
                 self.car.charge_work(self)

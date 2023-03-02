@@ -455,13 +455,13 @@ class SimBEV:
 
     def set_user_group(self, work_parking, home_parking, work_capacity, home_capacity):
         """Assigns specific user-group to vehicle."""
-        if home_capacity != 0 and home_parking:
-            if work_capacity != 0 and work_parking:
+        if home_capacity and home_parking:
+            if work_capacity and work_parking:
                 user_group = 0  # private LIS at home and at work
             else:
                 user_group = 1  # private LIS at home but not at work
         else:
-            if work_capacity != 0 and work_parking:
+            if work_capacity and work_parking:
                 user_group = 2  # private LIS not at home but at work
             else:
                 user_group = 3  # private LIS not at home and not at work
