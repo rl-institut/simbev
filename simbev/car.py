@@ -647,8 +647,9 @@ class Car:
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
             charging_use_case = self._get_charging_usecase(power)
+            use_case = self._get_usecase(power)
 
-            if charging_use_case == "highway_fast" and trip.car.status == "hpc":
+            if use_case == "hpc" and trip.car.status == "hpc":
                 park_timestep_end = trip.park_start + time_steps
 
             else:
