@@ -116,20 +116,33 @@ class Trip:
         self.fit_trip_to_timerange()
         self._set_timestamps()
 
+    def charge_decision(self, key):
+        return self.car.user_group.attractivity[key] >= self.rng.random()
+
     def execute(self):
         """
         Executes created trip. Charging/parking and driving
         """
-        if self.location == "home" and self.car.home_parking:
-            self.car.charge_home(self)
+        if self.location == "home" and self.car.home_detached and self.car.home_parking:
+            if (self.charge_decision("home_detached") and self.car.home_detached) or (
+                self.charge_decision("home_apartment") and not self.car.home_detached
+            ):
+                self.car.charge_home(self)
+            else:
+                self.car.park(self)
+
         elif self.location == "work" and self.car.work_parking:
-            self.car.charge_work(self)
+            if self.charge_decision("work"):
+                self.car.charge_work(self)
+            else:
+                self.car.park(self)
         elif not self.car.private_only:
             if (
                 self.car.soc <= self.simbev.hpc_data["soc_start_threshold"]
-                and self.car.hpc_pref >= self.rng.random()
+                and self.charge_decision("urban_fast")
                 and self.park_time
                 <= (self.simbev.hpc_data["park_time_max"] / self.step_size)
+                and self.car.car_type.label != "PHEV"
             ):
                 # get parameters for charging at hpc station
                 charging_capacity = self.simbev.get_charging_capacity(
@@ -143,7 +156,22 @@ class Trip:
                     self.step_size,
                     max_charging_time=self.park_time,
                 )
-            else:
+            elif self.location == "shopping":
+                if self.charge_decision("retail"):
+                    station_capacity = self.simbev.get_charging_capacity(
+                        self.location, self.distance
+                    )
+                    self.car.charge(
+                        self,
+                        station_capacity,
+                        "slow",
+                        step_size=self.simbev.step_size,
+                        max_charging_time=self.park_time,
+                    )
+                else:
+                    self.car.park(self)
+
+            elif self.charge_decision("street"):
                 station_capacity = self.simbev.get_charging_capacity(
                     self.location, self.distance
                 )
@@ -154,6 +182,10 @@ class Trip:
                     step_size=self.simbev.step_size,
                     max_charging_time=self.park_time,
                 )
+
+            else:
+                self.car.park(self)
+
         else:
             self.car.park(self)
 
@@ -170,7 +202,8 @@ class Trip:
             if not trip_completed:
                 if self.car.private_only:
                     raise SoCError(
-                        f"Vehicle {self.car.file_name} dropped below the minimum SoC while trying to charge private only."
+                        f"Vehicle {self.car.file_name} dropped below the minimum SoC "
+                        f"while trying to charge private only."
                     )
                 self._create_fast_charge_events()
 

@@ -7,6 +7,12 @@ from scipy.interpolate import interp1d
 
 
 @dataclass
+class UserGroup:
+    user_group: int
+    attractivity: dict
+
+
+@dataclass
 class CarType:
     """Object that describes car-types.
 
@@ -48,7 +54,7 @@ class CarType:
     # TODO consumption based on speed instead of constant
     consumption: float
     output: bool
-    hpc_data: dict
+    attractivity: pd.DataFrame
     analyze_mid: bool = False
     label: str = None
 
@@ -66,10 +72,16 @@ def analyze_charge_events(output_df: pd.DataFrame):
     ndarray
         Returns information about charging events of vehicle in whole timeframe.
     """
-
+    # todo: addapt analysis to new use cases
     charge_events = output_df.loc[output_df["energy"] > 0]
     event_count = str(len(charge_events.index))
-    hpc_count = len(charge_events.loc[charge_events["use_case"] == "hpc"].index)
+    hpc_count = len(
+        charge_events.loc[
+            (charge_events["use_case"] == "hpc")
+            | (charge_events["use_case"] == "public_fast")
+            | (charge_events["use_case"] == "public_highway")
+        ].index
+    )
     max_time = charge_events["event_time"].max()
     min_time = charge_events["event_time"].min()
     avg_time = round(charge_events["event_time"].mean(), 4)
@@ -77,7 +89,13 @@ def analyze_charge_events(output_df: pd.DataFrame):
     min_charge = round(charge_events["energy"].min(), 4)
     avg_charge = round(charge_events["energy"].mean(), 4)
     hpc_avg_charge = (
-        charge_events["energy"].loc[charge_events["use_case"] == "hpc"].mean()
+        charge_events["energy"]
+        .loc[
+            (charge_events["use_case"] == "hpc")
+            | (charge_events["use_case"] == "public_fast")
+            | (charge_events["use_case"] == "public_highway")
+        ]
+        .mean()
     )
     home_avg_charge = (
         charge_events["energy"].loc[charge_events["use_case"] == "home"].mean()
@@ -86,7 +104,12 @@ def analyze_charge_events(output_df: pd.DataFrame):
         charge_events["energy"].loc[charge_events["use_case"] == "work"].mean()
     )
     public_avg_charge = (
-        charge_events["energy"].loc[charge_events["use_case"] == "public"].mean()
+        charge_events["energy"]
+        .loc[
+            (charge_events["use_case"] == "public")
+            | (charge_events["use_case"] == "retail")
+        ]
+        .mean()
     )
 
     # counting public and private charging events
@@ -94,6 +117,9 @@ def analyze_charge_events(output_df: pd.DataFrame):
         charge_events.loc[
             (charge_events["use_case"] == "public")
             | (charge_events["use_case"] == "hpc")
+            | (charge_events["use_case"] == "public_fast")
+            | (charge_events["use_case"] == "public_highway")
+            | (charge_events["use_case"] == "retail")
         ].index
     )
     private_count = len(
@@ -266,17 +292,20 @@ class Car:
     def __init__(
         self,
         car_type: CarType,
+        user_group: UserGroup,
         number: int,
         work_parking,
         home_parking,
         work_capacity,
         home_capacity,
         region,
+        home_detached,
         soc: float = 1.0,
         status: str = "home",
         private_only=False,
     ):
         self.car_type = car_type
+        self.user_group = user_group
         self.soc_start = soc
         self.soc = soc
         self.work_parking = work_parking
@@ -286,8 +315,7 @@ class Car:
         self.status = status  # replace with enum?
         self.number = number
         self.region = region
-        self.user_spec = 0
-        self.hpc_pref = 0
+        self.home_detached = home_detached  # Describes if Car is at home in apartment building or detached house
         self.private_only = private_only
 
         # lists to track output data
@@ -298,6 +326,7 @@ class Car:
             "event_time": [],
             "location": [],
             "use_case": [],
+            "charging_use_case": [],
             "soc_start": [],
             "soc_end": [],
             "energy": [],
@@ -312,8 +341,6 @@ class Car:
         self.file_name = "{}_{:05d}_{}kWh_events.csv".format(
             car_type.name, number, car_type.battery_capacity
         )
-        # Set user specificationn and hpc preference
-        self.set_user_spec()
 
     def _update_activity(
         self,
@@ -346,6 +373,9 @@ class Car:
             self.output["event_time"].append(np.int32(event_time))
             self.output["location"].append(self.status)
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
+            self.output["charging_use_case"].append(
+                self._get_charging_usecase(nominal_charging_capacity)
+            )
             self.output["soc_start"].append(
                 round(
                     np.float32(
@@ -616,6 +646,7 @@ class Car:
             power_array = power_array[charging_section_counter - 1 :]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
+            charging_use_case = self._get_charging_usecase(power)
             use_case = self._get_usecase(power)
 
             if use_case == "hpc" and trip.car.status == "hpc":
@@ -625,7 +656,7 @@ class Car:
                 park_timestep_end = trip.park_start + max_charging_time
 
             grid_dict = {
-                "use_case": use_case,
+                "charging_use_case": charging_use_case,
                 "chargepower_timestep": np.float32(chargepower_timestep),
                 "power": np.float32(power),
                 "start": trip.park_start + charging_time_step,
@@ -758,7 +789,6 @@ class Car:
         else:
             return 0
 
-    # TODO maybe solve this in charging (Jakob)
     def _get_usecase(self, power):
         """Determines use-case of parking-event.
 
@@ -772,7 +802,6 @@ class Car:
         str
             Returns use-case of event.
         """
-
         if self.status == "driving":
             return ""
         elif self.work_parking and self.status == "work":
@@ -785,27 +814,37 @@ class Car:
         else:
             return "public"
 
-    def set_user_spec(self):
-        """Assigns specific user-group to vehicle."""
-        if self.car_type.charging_capacity["fast"] == 0:
-            self.user_spec = "0"  # Todo set better term?
-            self.hpc_pref = -1
-        elif self.home_capacity != 0 and self.home_parking:
-            if self.work_capacity != 0 and self.work_parking:
-                self.user_spec = "A"  # private LIS at home and at work
-                self.hpc_pref = self.car_type.hpc_data["hpc_pref_A"]
-            else:
-                self.user_spec = "B"  # private LIS at home but not at work
-                self.hpc_pref = self.car_type.hpc_data["hpc_pref_B"]
+    # TODO maybe solve this in charging (Jakob)
+    def _get_charging_usecase(self, power):
+        """Determines use-case of parking-event.
+
+        Parameters
+        ----------
+        power : int
+            Power of charging-point.
+
+        Returns
+        -------
+        str
+            Returns use-case of event.
+        """
+        if self.status == "driving":
+            return ""
+        elif self.work_parking and self.status == "work":
+            return "work"
+        elif self.home_parking and self.status == "home" and self.home_detached:
+            return "home_detached"
+        elif self.home_parking and self.status == "home" and not self.home_detached:
+            return "home_apartment"
+        # TODO: decide on status an requirement for hpc
+        elif self.status == "hpc":
+            return "highway_fast"
+        elif power >= 150:
+            return "urban_fast"
+        elif self.status == "shopping":
+            return "retail"
         else:
-            if self.work_capacity != 0 and self.work_parking:
-                self.user_spec = "C"  # private LIS not at home but at work
-                self.hpc_pref = self.car_type.hpc_data["hpc_pref_C"]
-            else:
-                self.user_spec = (
-                    "D"  # private LIS not at home and not at work. Primarily HPC
-                )
-                self.hpc_pref = self.car_type.hpc_data["hpc_pref_D"]
+            return "street"
 
     def export(self, region_directory, simbev):
         """
@@ -825,7 +864,7 @@ class Car:
         """
         for charge_event in self.grid_timeseries_list:
             self.region.update_grid_timeseries(
-                charge_event["use_case"],
+                charge_event["charging_use_case"],
                 charge_event["chargepower_timestep"],
                 charge_event["power"],
                 charge_event["start"],

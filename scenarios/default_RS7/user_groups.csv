@@ -1,0 +1,5 @@
+user_group,home_detached,home_apartment,work,urban_fast,highway_fast,retail,street
+0,0.85,0.85,0.6,0.2,0.25,0.2,0.1
+1,0.95,0.95,0,0.2,0.3,0.2,0.1
+2,0,0,0.95,0.3,0.55,0.4,0.4
+3,0,0,0,0.4,0.6,0.55,0.7

@@ -3,7 +3,7 @@ import simbev.helpers.helpers as helpers
 import pandas as pd
 import numpy as np
 from simbev.region import Region, RegionType
-from simbev.car import CarType, Car
+from simbev.car import CarType, Car, UserGroup
 from simbev.trip import Trip
 import simbev.plot as plot
 from simbev.helpers.errors import SoCError
@@ -28,6 +28,7 @@ class SimBEV:
         self.work_parking = data_dict["private_probabilities"].loc["work", :]
 
         self.hpc_data = data_dict["hpc_data"]
+        self.attractivity = data_dict["user_groups_attractivity"]
         self.charging_curve_points = data_dict["charging_curve_points"]
 
         # parameters from config_dict
@@ -44,6 +45,9 @@ class SimBEV:
         self.end_date = config_dict["end_date"]
         self.home_parking = data_dict["private_probabilities"].loc["home", :]
         self.work_parking = data_dict["private_probabilities"].loc["work", :]
+        self.probability_detached_home = data_dict["private_probabilities"].loc[
+            "probability_detached_home"
+        ]
         self.energy_min = data_dict["energy_min"]
         self.private_only_run = config_dict["private_only_run"]
 
@@ -57,6 +61,7 @@ class SimBEV:
         self.regions: List[Region] = []
         self.created_region_types = {}
         self.car_types = {}
+        self.user_groups = {}
         self.grid_data_list = []
         self.analysis_data_list = []
 
@@ -76,8 +81,17 @@ class SimBEV:
         self.step_size_str = str(self.step_size) + "min"
 
         # run setup functions
+        self._create_user_groups()
         self._create_car_types()
         self._add_regions_from_dataframe()
+
+    def _create_user_groups(self):
+        for user_group_number in self.attractivity.index:
+            user_group = UserGroup(
+                user_group_number,
+                self.attractivity.loc[user_group_number].to_dict(),
+            )
+            self.user_groups[user_group_number] = user_group
 
     def _create_car_types(self):
         """Creates car-types with all necessary properties.
@@ -87,6 +101,7 @@ class SimBEV:
         output : bool
             Setting for output.
         """
+
         # create new car type
         for car_type_name in self.tech_data.index:
             bat_cap = self.tech_data.at[car_type_name, "battery_capacity"]
@@ -123,7 +138,7 @@ class SimBEV:
                 charging_curve,
                 consumption,
                 output,
-                self.hpc_data,
+                self.attractivity,
                 analyze_mid=True,
             )
             if "bev" in car_type.name:
@@ -258,13 +273,17 @@ class SimBEV:
                 home_parking = (
                     self.home_parking[region.region_type.rs7_type] >= self.rng.random()
                 )
-
                 work_power = (
                     self.get_charging_capacity("work") if work_parking else None
                 )
                 home_power = (
                     self.get_charging_capacity("home") if home_parking else None
                 )
+                user_group_id = self.set_user_group(
+                    work_parking, home_parking, work_power, home_power
+                )
+                # todo decide if car is at home in detached house or apartment building
+
                 # SOC init value for the first monday
                 # formula from Kilian, TODO maybe not needed anymore
                 soc_init = (
@@ -272,14 +291,20 @@ class SimBEV:
                     if self.rng.random() < 0.12
                     else 1
                 )
+                home_detached = (
+                    self.rng.random() <= self.probability_detached_home[region.id]
+                )
+
                 car = Car(
                     car_type,
+                    self.user_groups[user_group_id],
                     car_number,
                     work_parking,
                     home_parking,
                     work_power,
                     home_power,
                     region,
+                    home_detached,
                     soc_init,
                 )
 
@@ -427,6 +452,20 @@ class SimBEV:
                 # find next trip
                 trip = Trip(region, car, step, self)
                 trip.execute()
+
+    def set_user_group(self, work_parking, home_parking, work_capacity, home_capacity):
+        """Assigns specific user-group to vehicle."""
+        if home_capacity and home_parking:
+            if work_capacity and work_parking:
+                user_group = 0  # private LIS at home and at work
+            else:
+                user_group = 1  # private LIS at home but not at work
+        else:
+            if work_capacity and work_parking:
+                user_group = 2  # private LIS not at home but at work
+            else:
+                user_group = 3  # private LIS not at home and not at work
+        return user_group
 
     def _log_grid_data(self, result):
         """Appends grid-timeseries of current region to a list.
@@ -605,11 +644,17 @@ class SimBEV:
             index_col=0,
         )
         hpc_df = pd.read_csv(
-            pathlib.Path(scenario_path, cfg["hpc_params"]["hpc_data"]),
+            pathlib.Path(scenario_path, cfg["tech_data"]["hpc_data"]),
             sep=",",
             index_col=0,
         )
         hpc_data = hpc_df.to_dict()["values"]
+
+        user_groups_attractivity = pd.read_csv(
+            pathlib.Path(scenario_path, cfg["user_data"]["user_groups"]),
+            sep=",",
+            index_col=0,
+        )
 
         charging_curve_points = pd.read_csv(
             pathlib.Path(scenario_path, cfg["tech_data"]["charging_curve"]),
@@ -679,6 +724,7 @@ class SimBEV:
             "energy_min": energy_min,
             "hpc_data": hpc_data,
             "charging_curve_points": charging_curve_points,
+            "user_groups_attractivity": user_groups_attractivity,
         }
 
         return SimBEV(data_dict, cfg_dict, config_path.stem), cfg
