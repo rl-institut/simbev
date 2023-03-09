@@ -459,16 +459,18 @@ class SimBEV:
         """
         if self.input_type == "probability":
             # create first trip
-            trip = Trip(region, car, 0, self)
+            trip = Trip.from_probability(region, car, 0, self)
             # iterate through all time steps
-            for step in range(len(region.region_type.trip_starts.index)):
+            for step in range(len(region.region_type.time_series.index)):
                 # check if current trip is done
                 if step >= trip.trip_end:
                     # find next trip
-                    trip = Trip(region, car, step, self)
+                    trip = Trip.from_probability(region, car, step, self)
                     trip.execute()
         elif self.input_type == "profile":
-            pass
+            trips = Trip.from_driving_profile(car)
+            for trip in trips:
+                trip.execute()
 
     def set_user_group(self, work_parking, home_parking, work_capacity, home_capacity):
         """Assigns specific user-group to vehicle."""

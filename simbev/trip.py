@@ -76,7 +76,17 @@ class Trip:
         self.rng = simbev.rng
         self.step_size = simbev.step_size
 
-        self.create()
+    @classmethod
+    def from_driving_profile(cls, region, car, simbev):
+        # TODO add this once final profiles exist
+        # return list of all driving profiles of car.driving_profile in order
+        pass
+
+    @classmethod
+    def from_probability(cls, region, car, time_step, simbev):
+        trip = cls(region, car, time_step, simbev)
+        trip.create()
+        return trip
 
     def create(self):
         """
@@ -88,7 +98,7 @@ class Trip:
         self.park_time = self.simbev.hours_to_time_steps(self.park_time)
         self.drive_start = self.park_start + self.park_time
 
-        while not self.drive_found and self.drive_start < self.region.last_time_step:
+        while not self.drive_found and (self.drive_start < self.region.last_time_step):
             if (
                 self.rng.random()
                 < self.region.region_type.trip_starts.iat[self.drive_start]
@@ -152,6 +162,7 @@ class Trip:
                 charging_capacity = self.simbev.get_charging_capacity(
                     location="hpc", distance=self.distance
                 )
+                # TODO check
                 max_charging_time = self.region.last_time_step - self.park_start
                 self.car.charge(
                     self,
@@ -216,9 +227,9 @@ class Trip:
         """
         Sets timestep for drive and park.
         """
-        self.park_timestamp = self.region.region_type.trip_starts.index[self.park_start]
+        self.park_timestamp = self.region.region_type.time_series.index[self.park_start]
         if self.drive_found:
-            self.drive_timestamp = self.region.region_type.trip_starts.index[
+            self.drive_timestamp = self.region.region_type.time_series.index[
                 self.drive_start
             ]
 
@@ -281,7 +292,7 @@ class Trip:
                 location=self.car.status, distance=self.distance
             )
             self.park_start = self.drive_start + hpc_drive_time
-            self.park_timestamp = self.region.region_type.trip_starts.index[
+            self.park_timestamp = self.region.region_type.time_series.index[
                 self.park_start
             ]
             max_charging_time = self.region.last_time_step - self.park_start
