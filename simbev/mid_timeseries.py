@@ -176,7 +176,7 @@ def get_timeseries(
                 else:
                     current_season[2] = current_season[2] - weekdays_left
         # add full weeks to the series
-        for i in range(0, current_season[1]):
+        for _ in range(0, current_season[1]):
             temp = pd.concat([temp, data_df], ignore_index=True)
         # add leftover partial week at the end of series
         temp = pd.concat(
@@ -205,6 +205,13 @@ def get_timeseries(
         "home",
     ]
     return pd_result
+
+
+def get_empty_timeseries(start_date, end_date, step_size):
+    date_range = pd.date_range(
+            start_date, end_date, freq=f"{step_size}min", inclusive="left"
+        )
+    return pd.DataFrame([0] * len(date_range), index=date_range)
 
 
 def get_profile_time_series(start_date, end_date, df):

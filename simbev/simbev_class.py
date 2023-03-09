@@ -5,6 +5,7 @@ import numpy as np
 from simbev.region import Region, RegionType
 from simbev.car import CarType, Car, UserGroup
 from simbev.trip import Trip
+from simbev.mid_timeseries import get_profile_time_series
 import simbev.plot as plot
 from simbev.helpers.errors import SoCError
 import multiprocessing as mp
@@ -169,15 +170,13 @@ class SimBEV:
             self.step_size,
             self.charging_probabilities,
         )
-        # TODO change creation of time series to still work on profile input
+
         rs7_region.create_timeseries(
             self
         )
         if self.input_type == "probability":
             rs7_region.get_probabilities(self.input_directory)
-        else:
-            pass
-            # TODO profiles check if anything is necessary to do here
+
         self.created_region_types[region_type] = rs7_region
 
     def _add_regions_from_dataframe(self):
@@ -319,6 +318,11 @@ class SimBEV:
                     soc_init,
                 )
 
+                if self.input_type == "profile":
+                    car.driving_profile = get_profile_time_series(
+                        self.start_date, self.end_date, self.input_data
+                    )
+
                 if self.num_threads == 1:
                     print(
                         "\r{}% {} {} / {}".format(
@@ -340,7 +344,6 @@ class SimBEV:
 
                 # if private run, check if private charging infrastructure is available
                 if self.private_only_run and (work_power or home_power):
-                    # TODO catch error, then run again
                     try:
                         private_car = copy.copy(car)
                         private_car.private_only = True
@@ -454,15 +457,18 @@ class SimBEV:
         region : Region
             Includes all properties of current region.
         """
-        # create first trip
-        trip = Trip(region, car, 0, self)
-        # iterate through all time steps
-        for step in range(len(region.region_type.trip_starts.index)):
-            # check if current trip is done
-            if step >= trip.trip_end:
-                # find next trip
-                trip = Trip(region, car, step, self)
-                trip.execute()
+        if self.input_type == "probability":
+            # create first trip
+            trip = Trip(region, car, 0, self)
+            # iterate through all time steps
+            for step in range(len(region.region_type.trip_starts.index)):
+                # check if current trip is done
+                if step >= trip.trip_end:
+                    # find next trip
+                    trip = Trip(region, car, step, self)
+                    trip.execute()
+        elif self.input_type == "profile":
+            pass
 
     def set_user_group(self, work_parking, home_parking, work_capacity, home_capacity):
         """Assigns specific user-group to vehicle."""

@@ -319,6 +319,7 @@ class Car:
         self.region = region
         self.home_detached = home_detached  # Describes if Car is at home in apartment building or detached house
         self.private_only = private_only
+        self.driving_profile = None
 
         # lists to track output data
         # TODO: swap to np.array for better performance?

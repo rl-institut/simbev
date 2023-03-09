@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import pathlib
-from simbev.mid_timeseries import get_timeseries, get_profile_time_series
+from simbev.mid_timeseries import get_timeseries, get_empty_timeseries
 import simbev.helpers.helpers as helpers
 
 
@@ -65,12 +65,10 @@ class RegionType:
                 )
                 self.trip_starts = self.time_series.sum(axis=1)
                 self.trip_starts = self.trip_starts / self.trip_starts.max()
-            elif simbev.input_type == "profile" and simbev.input_data is not None:
-                self.time_series = get_profile_time_series(
-                    simbev.start_date, simbev.end_date, simbev.input_data
-                )
             else:
-                raise ValueError("Input type or data not defined.")
+                self.time_series = get_empty_timeseries(
+                    simbev.start_date, simbev.end_date, simbev.step_size,
+                )
 
     def get_probabilities(self, data_directory):
         """Unites probabilities for trip.
@@ -154,7 +152,7 @@ class Region:
         self.region_type = region_type
         self.number = region_counter
 
-        self.last_time_step = len(self.region_type.trip_starts.index)
+        self.last_time_step = len(self.region_type.time_series.index)
 
         self.car_dict = {}
 
