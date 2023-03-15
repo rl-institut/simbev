@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import random
 import math
 import datetime
@@ -214,7 +215,7 @@ def get_empty_timeseries(start_date, end_date, step_size):
     return pd.DataFrame([0] * len(date_range), index=date_range)
 
 
-def get_profile_time_series(start_date, end_date, df):
+def get_profile_time_series(start_date, end_date, step_size, df):
     """
     Returns a time series starting from the start date up until the end date filled with
     week data chosen at random from the input DataFrame for each week.
@@ -225,6 +226,8 @@ def get_profile_time_series(start_date, end_date, df):
         The start date of the time series in yyyy-mm-dd format.
     end_date : str or datetime
         The end date of the time series in yyyy-mm-dd format.
+    step_size : int
+        Step size of the simulation in minutes.
     df : pandas DataFrame
         The input DataFrame containing week data, where each entry with the same ID belongs to the same week.
 
@@ -239,11 +242,14 @@ def get_profile_time_series(start_date, end_date, df):
     if not isinstance(end_date, pd.Timestamp):
         end_date = pd.to_datetime(end_date)
     
+    df["time_step"] = 0
     # Create an empty DataFrame to hold the time series
     time_series = pd.DataFrame(columns=df.columns)
     ids = df['id'].unique()
     # Loop through each week between the start and end dates
     week_start = start_date
+    time_step = 0
+    steps_per_day = 1440 / step_size
     while week_start <= end_date:
         # Select a random ID from the input DataFrame
 
@@ -253,14 +259,18 @@ def get_profile_time_series(start_date, end_date, df):
         week_data = df[df['id'] == random_id]
 
         # Determine the end date for the current week
-        week_end = week_start + pd.Timedelta(days=6 - week_start.weekday())
+        num_days = 7 - week_start.weekday()
+        week_end = week_start + pd.Timedelta(days= num_days - 1)
 
         # If the week end date is beyond the end date of the time series, adjust it accordingly
         if week_end > end_date:
             week_end = end_date
 
         # Get the data for this week that falls within the desired date range
-        week_data_filtered = week_data[(week_data['day'] >= (week_start.weekday())) & (week_data['day'] <= (week_end.weekday()))]
+        week_data_filtered = week_data[(week_data['day'] >= (week_start.weekday())) & (week_data['day'] <= (week_end.weekday()))].copy()
+
+        week_data_filtered["time_step"] = time_step + week_data_filtered["departure_time"] * (week_data['day'] - week_start.weekday() + 1) / step_size
+        week_data_filtered["time_step"] = week_data_filtered["time_step"].apply(np.floor)
 
         # Append the filtered week data to the time series
         time_series = pd.concat([time_series, week_data_filtered])
@@ -268,27 +278,6 @@ def get_profile_time_series(start_date, end_date, df):
         # Move to the next week
         week_start = week_end + pd.Timedelta(days=1)
 
-        # TODO include dates or timesteps in timeseries
+        time_step += num_days * steps_per_day
 
     return time_series
-
-
-# TODO use this function to add timestamps to region time series?
-def get_weekday_date(date: pd.Timestamp, weekday: int) -> pd.Timestamp:
-    """
-    Calculate the date of a given weekday within the same week as a given date.
-
-    Parameters
-    ----------
-    date : pandas.Timestamp
-        Input date.
-    weekday : int
-        Integer representing the desired weekday (0 = Monday, 1 = Tuesday, ..., 6 = Sunday).
-
-    Returns
-    -------
-    pandas.Timestamp
-        Date of the desired weekday within the same week as the input date.
-    """
-    weekday_date = date + pd.offsets.Day(weekday - date.weekday())
-    return weekday_date

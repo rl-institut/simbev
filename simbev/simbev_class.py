@@ -320,7 +320,7 @@ class SimBEV:
 
                 if self.input_type == "profile":
                     car.driving_profile = get_profile_time_series(
-                        self.start_date, self.end_date, self.input_data
+                        self.start_date, self.end_date, self.step_size, self.input_data
                     )
 
                 if self.num_threads == 1:
