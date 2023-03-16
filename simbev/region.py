@@ -38,6 +38,7 @@ class RegionType:
 
     def __init__(self, rs7_type, grid_output, step_size, charging_probabilities):
         self.rs7_type = rs7_type
+        self.rs3_type = _get_rs3_type(rs7_type)
         self.step_size = step_size
         self.charging_probabilities = charging_probabilities
         self.time_series = None
@@ -351,3 +352,15 @@ class Region:
             self.grid_data_frame.to_csv(
                 pathlib.Path(region_directory, self.file_name), index=False
             )
+
+def _get_rs3_type(rs7_type):
+    rs7_to_3_type_dict = {
+        "SR_Metro": "urban",
+        "SR_Gross": "urban",
+        "SR_Mitte": "suburban",
+        "LR_Zentr": "suburban",
+        "LR_Mitte": "suburban",
+        "SR_Klein": "rural",
+        "LR_Klein": "rural",
+    }
+    return rs7_to_3_type_dict[rs7_type]

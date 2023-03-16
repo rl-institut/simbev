@@ -63,9 +63,15 @@ class SimBEV:
 
         self.input_type = config_dict["input_type"]
         self.input_directory = pathlib.Path(config_dict["input_directory"])
-        self.input_data = None
+        self.input_data = {
+            "rural": {},
+            "suburban": {},
+            "urban": {}
+        }
         if self.input_type == "profile":
-            self.input_data = pd.read_csv(self.input_directory)
+            for file_path in self.input_directory.glob("*.gzip"):
+                file_path_parts = file_path.stem.split("_")
+                self.input_data[file_path_parts[-2]][file_path_parts[-1]] = pd.read_parquet(file_path)
         self.scaling = config_dict["scaling"]
         # additional parameters
         self.regions: List[Region] = []
@@ -320,7 +326,8 @@ class SimBEV:
 
                 if self.input_type == "profile":
                     car.driving_profile = get_profile_time_series(
-                        self.start_date, self.end_date, self.step_size, self.input_data
+                        self.start_date, self.end_date, self.step_size,
+                        self.input_data[region.region_type.rs3_type][car_type_name.split("_")[-1]]
                     )
 
                 if self.num_threads == 1:
@@ -338,9 +345,6 @@ class SimBEV:
                         end="",
                         flush=True,
                     )
-
-                # TODO profiles: add profiles to car on creation? or apply profiles during simulation?
-                # idea: create a list of trips that get simulated. code where?
 
                 # if private run, check if private charging infrastructure is available
                 if self.private_only_run and (work_power or home_power):
@@ -468,7 +472,7 @@ class SimBEV:
                     trip = Trip.from_probability(region, car, step, self)
                     trip.execute()
         elif self.input_type == "profile":
-            trips = Trip.from_driving_profile(car)
+            trips = Trip.from_driving_profile(region, car, self)
             for trip in trips:
                 trip.execute()
 

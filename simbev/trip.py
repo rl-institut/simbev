@@ -54,9 +54,9 @@ class Trip:
         Sets car to execute the created trip.
     """
 
-    def __init__(self, region, car, time_step, simbev):
-        self.destination = ""
-        self.distance = 0
+    def __init__(self, region, car, time_step, simbev, destination="", distance=0):
+        self.destination = destination
+        self.distance = distance
         self.speed = 0
 
         self.park_start = time_step
@@ -80,7 +80,25 @@ class Trip:
     def from_driving_profile(cls, region, car, simbev):
         # TODO add this once final profiles exist
         # return list of all driving profiles of car.driving_profile in order
-        pass
+        first_trip = create_trip_from_profile_row(car.driving_profile.iloc[0, :], "home", 0, region, car, simbev)
+        trip_list = [None] * len(car.driving_profile.index)
+        trip_list[0] = first_trip
+
+        previous_trip = first_trip
+        for count, i in enumerate(car.driving_profile.index[1:]):
+            start_step = previous_trip.trip_end
+            trip = create_trip_from_profile_row(car.driving_profile.loc[i, :], previous_trip.destination, start_step, region, car, simbev)
+            previous_trip = trip
+            trip_list[count + 1] = trip
+
+        last_trip_end = previous_trip.trip_end
+        if last_trip_end < region.last_time_step:
+            trip = Trip(region, car, last_trip_end, simbev)
+            trip.park_time = region.last_time_step - trip.park_start
+            trip.fit_trip_to_timerange()
+            trip._set_timestamps()
+            trip_list.append(trip)
+        return trip_list
 
     @classmethod
     def from_probability(cls, region, car, time_step, simbev):
@@ -338,3 +356,26 @@ class Trip:
         # check if drive happens after simulation end
         if self.drive_start > self.region.last_time_step or not self.drive_found:
             self.park_time = self.region.last_time_step - self.park_start
+
+
+def create_trip_from_profile_row(row, current_location, last_time_step, region, car, simbev):
+    drive_start = int(row.time_step)
+    drive_time = max((row.arrival_time - row.departure_time) / simbev.step_size, 1)
+    drive_time = math.ceil(drive_time)
+    destination = row.location
+    distance = row.distance
+    location = current_location
+    park_start = last_time_step
+    if drive_start <= park_start:
+        drive_start = park_start + 1
+    park_time = drive_start - park_start
+    trip = Trip(region, car, park_start, simbev, destination, distance)
+    trip.location = location
+    trip.park_time = park_time
+    trip.drive_start = drive_start
+    trip.drive_time = drive_time
+    trip.drive_found = True
+    trip.trip_end = trip.drive_start + trip.drive_time
+    trip.fit_trip_to_timerange()
+    trip._set_timestamps()
+    return trip
