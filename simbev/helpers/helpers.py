@@ -192,6 +192,7 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
             "distance_private",
             "distance_leisure",
             "distance_hpc",
+            "distance_cumulated",
             "charge_count",
             "hpc_count",
             "charge_max_length",
@@ -269,6 +270,7 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
         analysis_mid_dict["by_destination"]["average_distance"][destination] = round(
             df[destination].loc[df[destination] != (-1)].mean(), 4
         )
+
     # save json-file
     with open(
         Path(directory, "analysis_mid_{}.json".format(region_id)), "w"

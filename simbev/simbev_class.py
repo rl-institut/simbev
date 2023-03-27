@@ -498,6 +498,7 @@ class SimBEV:
             "distance_private",
             "distance_leisure",
             "distance_hpc",
+            "distance_cumulated",
             "charge_count",
             "hpc_count",
             "charge_max_length",
@@ -526,6 +527,9 @@ class SimBEV:
             Returns grid-timeseries for all regions.
         """
 
+        start_date = self.start_date
+        number_of_days = self.end_date - start_date
+        number_of_days = number_of_days.days - 6  # deduction of 7 day cutoff
         if self.output_options["analyze"]:
             analysis_collection = None
             for data in self.analysis_data_list:
@@ -542,7 +546,12 @@ class SimBEV:
 
             # get share of private and public charging events and save in .json.
 
-            array_to_numeric = ["public_count", "private_count"]
+            array_to_numeric = [
+                "public_count",
+                "private_count",
+                "distance_cumulated",
+                "drive_count",
+            ]
             for item in array_to_numeric:
                 analysis_collection[item] = pd.to_numeric(
                     analysis_collection[[item]].squeeze()
@@ -563,6 +572,20 @@ class SimBEV:
                         analysis_collection[["private_count"]].sum().iloc[0]
                         + analysis_collection[["public_count"]].sum().iloc[0]
                     ),
+                    4,
+                ),
+                "trips_a_day": analysis_collection[["drive_count"]].sum().iloc[0]
+                / len(analysis_collection)
+                / number_of_days,
+                "average_distance_per_trip:": round(
+                    analysis_collection[["distance_cumulated"]].sum().iloc[0]
+                    / analysis_collection[["drive_count"]].sum().iloc[0],
+                    4,
+                ),
+                "average_distance_per_day": round(
+                    analysis_collection[["distance_cumulated"]].sum().iloc[0]
+                    / len(analysis_collection)
+                    / number_of_days,
                     4,
                 ),
             }

@@ -174,8 +174,8 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
     min_consumption = abs(drive_events["energy"].max())
     avg_consumption = round(abs(drive_events["energy"].mean()), 4)
     # mid analysis
-    avg_time = round(drive_events["event_time"].mean(), 4)
     avg_distance = round(drive_events["distance"].mean(), 4)
+    distance_cumulated = round(drive_events["distance"].sum(), 4)
     distance_home = round(
         drive_events["distance"].loc[drive_events["destination"] == "home"].mean(), 4
     )
@@ -223,6 +223,7 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
             distance_private,
             distance_leisure,
             distance_hpc,
+            distance_cumulated,
         ]
     )
 
