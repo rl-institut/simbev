@@ -153,7 +153,7 @@ class Region:
         self.region_type = region_type
         self.number = region_counter
 
-        self.last_time_step = len(self.region_type.time_series.index)
+        self.last_time_step = len(self.region_type.time_series.index) - 1
 
         self.car_dict = {}
 

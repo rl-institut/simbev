@@ -1,5 +1,11 @@
 import math
 from simbev.helpers.errors import SoCError
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from simbev.car import Car
+    from simbev.region import Region
+    from simbev.simbev_class import SimBEV
 
 
 class Trip:
@@ -54,7 +60,7 @@ class Trip:
         Sets car to execute the created trip.
     """
 
-    def __init__(self, region, car, time_step, simbev, destination="", distance=0):
+    def __init__(self, region: "Region", car: "Car", time_step, simbev: "SimBEV", destination="", distance=0):
         self.destination = destination
         self.distance = distance
         self.speed = 0
@@ -77,9 +83,18 @@ class Trip:
         self.step_size = simbev.step_size
 
     @classmethod
-    def from_driving_profile(cls, region, car, simbev):
-        # TODO add this once final profiles exist
-        # return list of all driving profiles of car.driving_profile in order
+    def from_driving_profile(cls, region: "Region", car: "Car", simbev: "SimBEV"):
+        """Generate a list of `Trip` objects based on the driving profile of a car.
+
+        Args:
+            region: A `Region` object representing the geographic region in which the `Car` operates.
+            car: A `Car` object for which to generate the list of `Trip` objects.
+            simbev: A `SimBEV` object representing the EV simulation parameters.
+
+        Returns:
+            A list of `Trip` objects representing the trips taken by the `Car` as defined in its driving profile.
+
+        """
         first_trip = create_trip_from_profile_row(car.driving_profile.iloc[0, :], "home", 0, region, car, simbev)
         trip_list = [None] * len(car.driving_profile.index)
         trip_list[0] = first_trip
@@ -101,7 +116,19 @@ class Trip:
         return trip_list
 
     @classmethod
-    def from_probability(cls, region, car, time_step, simbev):
+    def from_probability(cls, region: "Region", car: "Car", time_step: int, simbev: "SimBEV"):
+        """Generate a `Trip` object based on the probability of a car trip.
+
+        Args:
+            region: A `Region` object representing the geographic region in which the `Car` operates.
+            car: A `Car` object for which to generate the `Trip`.
+            time_step: An integer representing the time step at which to start the `Trip`.
+            simbev: A `SimBEV` object representing the EV simulation parameters.
+
+        Returns:
+            A `Trip` object representing the trip taken by the `Car` based on the probability of a trip occurring.
+
+        """
         trip = cls(region, car, time_step, simbev)
         trip.create()
         return trip
@@ -180,8 +207,6 @@ class Trip:
                 charging_capacity = self.simbev.get_charging_capacity(
                     location="hpc", distance=self.distance
                 )
-                # TODO check
-                max_charging_time = self.region.last_time_step - self.park_start
                 self.car.charge(
                     self,
                     charging_capacity,
@@ -350,12 +375,28 @@ class Trip:
         """
         # check if trip ends after simulation end
         if self.trip_end > self.region.last_time_step:
-            self.trip_end = self.region.last_time_step
+            self.trip_end = self.region.last_time_step + 1
             self.drive_time = self.trip_end - self.drive_start
 
         # check if drive happens after simulation end
         if self.drive_start > self.region.last_time_step or not self.drive_found:
-            self.park_time = self.region.last_time_step - self.park_start
+            self.park_time = self.region.last_time_step - self.park_start + 1
+            self.drive_found = False
+
+    def delay(self, time_steps: int):
+        max_delay = self.park_time - 1
+        delay = min(max_delay, time_steps)
+        # remove possible delay time from parking
+        self.park_start += time_steps
+        if self.park_start > self.region.last_time_step:
+            return False
+        self.park_time -= delay
+        # add remaining delay (anything not caught by parking) to drive times
+        self.drive_start = self.park_start + self.park_time
+        self.trip_end = self.drive_start + self.drive_time
+        self.fit_trip_to_timerange()
+        self._set_timestamps()
+        return True
 
 
 def create_trip_from_profile_row(row, current_location, last_time_step, region, car, simbev):

@@ -473,8 +473,16 @@ class SimBEV:
                     trip.execute()
         elif self.input_type == "profile":
             trips = Trip.from_driving_profile(region, car, self)
+            previous_trip = Trip(region, car, 0, self)
+            previous_trip.trip_end = 0
+            trip_possible = True
             for trip in trips:
-                trip.execute()
+                delay = max(previous_trip.trip_end - trip.park_start, 0) # TODO maybe add +1 to first term
+                if delay:
+                    trip_possible = trip.delay(delay)
+                if trip_possible:
+                    trip.execute()
+                    previous_trip = trip
 
     def set_user_group(self, work_parking, home_parking, work_capacity, home_capacity):
         """Assigns specific user-group to vehicle."""
