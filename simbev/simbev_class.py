@@ -35,7 +35,8 @@ class SimBEV:
         self.step_size = config_dict["step_size"]
         self.soc_min = config_dict["soc_min"]
         self.charging_threshold = config_dict["charging_threshold"]
-        self.rng = np.random.default_rng(config_dict["rng_seed"])
+        self.rng_seed = config_dict["rng_seed"]
+        self.rng = self.get_rng()
         self.eta_cp = config_dict["eta_cp"]
         self.start_date_input = config_dict["start_date"]
         self.start_date = self.start_date_input - datetime.timedelta(days=7)
@@ -206,6 +207,9 @@ class SimBEV:
                 scaling_factors,
             )
             self.regions.append(new_region)
+    
+    def get_rng(self):
+        return np.random.default_rng(self.rng_seed)
 
     def run_multi(self):
         """Runs Simulation for multiprocessing"""
