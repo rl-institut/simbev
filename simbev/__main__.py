@@ -19,7 +19,14 @@ def main():
         nargs="?",
         help="Set the config path.",
     )
-    parser.add_argument("-r", "--repeat", nargs="?", default=1, type=int, help="Decide how often the simulation will be run.")
+    parser.add_argument(
+        "-r",
+        "--repeat",
+        nargs="?",
+        default=1,
+        type=int,
+        help="Decide how often the simulation will be run.",
+    )
     p_args = parser.parse_args()
 
     config_path = pathlib.Path(p_args.config_path)
@@ -31,7 +38,9 @@ def main():
             simbev_copy = deepcopy(simbev_obj)
             simbev_copy.rng_seed += i
             simbev_copy.rng = simbev_copy.get_rng()
-            simbev_copy.save_directory = pathlib.Path(simbev_copy.save_directory, f"iteration_{i}")
+            simbev_copy.save_directory = pathlib.Path(
+                simbev_copy.save_directory, f"iteration_{i}"
+            )
             simbev_list[i] = simbev_copy
     else:
         simbev_list = [simbev_obj]

@@ -207,7 +207,7 @@ class SimBEV:
                 scaling_factors,
             )
             self.regions.append(new_region)
-    
+
     def get_rng(self):
         return np.random.default_rng(self.rng_seed)
 
