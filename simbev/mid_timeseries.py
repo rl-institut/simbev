@@ -211,8 +211,8 @@ def get_timeseries(
 def get_empty_timeseries(start_date, end_date, step_size):
     end_date += datetime.timedelta(days=1)
     date_range = pd.date_range(
-            start_date, end_date, freq=f"{step_size}min", inclusive="left"
-        )
+        start_date, end_date, freq=f"{step_size}min", inclusive="left"
+    )
     return pd.DataFrame([0] * len(date_range), index=date_range)
 
 
@@ -242,11 +242,11 @@ def get_profile_time_series(start_date, end_date, step_size, df):
         start_date = pd.to_datetime(start_date)
     if not isinstance(end_date, pd.Timestamp):
         end_date = pd.to_datetime(end_date)
-    
+
     df["time_step"] = 0
     # Create an empty DataFrame to hold the time series
     time_series = pd.DataFrame(columns=df.columns)
-    ids = df['id'].unique()
+    ids = df["id"].unique()
     # Loop through each week between the start and end dates
     week_start = start_date
     time_step = 0
@@ -257,21 +257,30 @@ def get_profile_time_series(start_date, end_date, step_size, df):
         random_id = random.choice(ids)
 
         # Get the week data for the chosen ID
-        week_data = df[df['id'] == random_id]
+        week_data = df[df["id"] == random_id]
 
         # Determine the end date for the current week
         num_days = 7 - week_start.weekday()
-        week_end = week_start + pd.Timedelta(days= num_days - 1)
+        week_end = week_start + pd.Timedelta(days=num_days - 1)
 
         # If the week end date is beyond the end date of the time series, adjust it accordingly
         if week_end > end_date:
             week_end = end_date
 
         # Get the data for this week that falls within the desired date range
-        week_data_filtered = week_data[(week_data['day'] >= (week_start.weekday())) & (week_data['day'] <= (week_end.weekday()))].copy()
+        week_data_filtered = week_data[
+            (week_data["day"] >= (week_start.weekday()))
+            & (week_data["day"] <= (week_end.weekday()))
+        ].copy()
         if not week_data_filtered.empty:
-            week_data_filtered["time_step"] = time_step + (week_data_filtered["departure_time"] / step_size) + (week_data_filtered['day'] - week_start.weekday()) * steps_per_day
-            week_data_filtered["time_step"] = week_data_filtered["time_step"].apply(np.floor)
+            week_data_filtered["time_step"] = (
+                time_step
+                + (week_data_filtered["departure_time"] / step_size)
+                + (week_data_filtered["day"] - week_start.weekday()) * steps_per_day
+            )
+            week_data_filtered["time_step"] = week_data_filtered["time_step"].apply(
+                np.floor
+            )
 
             # Append the filtered week data to the time series
             time_series = pd.concat([time_series, week_data_filtered])

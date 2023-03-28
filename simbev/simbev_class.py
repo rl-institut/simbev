@@ -63,15 +63,13 @@ class SimBEV:
 
         self.input_type = config_dict["input_type"]
         self.input_directory = pathlib.Path(config_dict["input_directory"])
-        self.input_data = {
-            "rural": {},
-            "suburban": {},
-            "urban": {}
-        }
+        self.input_data = {"rural": {}, "suburban": {}, "urban": {}}
         if self.input_type == "profile":
             for file_path in self.input_directory.glob("*.gzip"):
                 file_path_parts = file_path.stem.split("_")
-                self.input_data[file_path_parts[-2]][file_path_parts[-1]] = pd.read_parquet(file_path)
+                self.input_data[file_path_parts[-2]][
+                    file_path_parts[-1]
+                ] = pd.read_parquet(file_path)
         self.scaling = config_dict["scaling"]
         # additional parameters
         self.regions: List[Region] = []
@@ -177,9 +175,7 @@ class SimBEV:
             self.charging_probabilities,
         )
 
-        rs7_region.create_timeseries(
-            self
-        )
+        rs7_region.create_timeseries(self)
         if self.input_type == "probability":
             rs7_region.get_probabilities(self.input_directory)
 
@@ -326,8 +322,12 @@ class SimBEV:
 
                 if self.input_type == "profile":
                     car.driving_profile = get_profile_time_series(
-                        self.start_date, self.end_date, self.step_size,
-                        self.input_data[region.region_type.rs3_type][car_type_name.split("_")[-1]]
+                        self.start_date,
+                        self.end_date,
+                        self.step_size,
+                        self.input_data[region.region_type.rs3_type][
+                            car_type_name.split("_")[-1]
+                        ],
                     )
 
                 if self.num_threads == 1:
@@ -477,7 +477,9 @@ class SimBEV:
             previous_trip.trip_end = 0
             trip_possible = True
             for trip in trips:
-                delay = max(previous_trip.trip_end - trip.park_start, 0) # TODO maybe add +1 to first term
+                delay = max(
+                    previous_trip.trip_end - trip.park_start, 0
+                )  # TODO maybe add +1 to first term
                 if delay:
                     trip_possible = trip.delay(delay)
                 if trip_possible:

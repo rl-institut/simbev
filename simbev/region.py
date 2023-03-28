@@ -62,13 +62,19 @@ class RegionType:
         if not self.time_series:
             if simbev.input_type == "probability":
                 self.time_series = get_timeseries(
-                    simbev.start_date, simbev.end_date, self.rs7_type, simbev.step_size, simbev.input_directory
+                    simbev.start_date,
+                    simbev.end_date,
+                    self.rs7_type,
+                    simbev.step_size,
+                    simbev.input_directory,
                 )
                 self.trip_starts = self.time_series.sum(axis=1)
                 self.trip_starts = self.trip_starts / self.trip_starts.max()
             else:
                 self.time_series = get_empty_timeseries(
-                    simbev.start_date, simbev.end_date, simbev.step_size,
+                    simbev.start_date,
+                    simbev.end_date,
+                    simbev.step_size,
                 )
 
     def get_probabilities(self, data_directory):
@@ -352,6 +358,7 @@ class Region:
             self.grid_data_frame.to_csv(
                 pathlib.Path(region_directory, self.file_name), index=False
             )
+
 
 def _get_rs3_type(rs7_type):
     rs7_to_3_type_dict = {

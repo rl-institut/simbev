@@ -60,7 +60,15 @@ class Trip:
         Sets car to execute the created trip.
     """
 
-    def __init__(self, region: "Region", car: "Car", time_step, simbev: "SimBEV", destination="", distance=0):
+    def __init__(
+        self,
+        region: "Region",
+        car: "Car",
+        time_step,
+        simbev: "SimBEV",
+        destination="",
+        distance=0,
+    ):
         self.destination = destination
         self.distance = distance
         self.speed = 0
@@ -95,14 +103,23 @@ class Trip:
             A list of `Trip` objects representing the trips taken by the `Car` as defined in its driving profile.
 
         """
-        first_trip = create_trip_from_profile_row(car.driving_profile.iloc[0, :], "home", 0, region, car, simbev)
+        first_trip = create_trip_from_profile_row(
+            car.driving_profile.iloc[0, :], "home", 0, region, car, simbev
+        )
         trip_list = [None] * len(car.driving_profile.index)
         trip_list[0] = first_trip
 
         previous_trip = first_trip
         for count, i in enumerate(car.driving_profile.index[1:]):
             start_step = previous_trip.trip_end
-            trip = create_trip_from_profile_row(car.driving_profile.loc[i, :], previous_trip.destination, start_step, region, car, simbev)
+            trip = create_trip_from_profile_row(
+                car.driving_profile.loc[i, :],
+                previous_trip.destination,
+                start_step,
+                region,
+                car,
+                simbev,
+            )
             previous_trip = trip
             trip_list[count + 1] = trip
 
@@ -116,7 +133,9 @@ class Trip:
         return trip_list
 
     @classmethod
-    def from_probability(cls, region: "Region", car: "Car", time_step: int, simbev: "SimBEV"):
+    def from_probability(
+        cls, region: "Region", car: "Car", time_step: int, simbev: "SimBEV"
+    ):
         """Generate a `Trip` object based on the probability of a car trip.
 
         Args:
@@ -399,7 +418,9 @@ class Trip:
         return True
 
 
-def create_trip_from_profile_row(row, current_location, last_time_step, region, car, simbev):
+def create_trip_from_profile_row(
+    row, current_location, last_time_step, region, car, simbev
+):
     drive_start = int(row.time_step)
     drive_time = max((row.arrival_time - row.departure_time) / simbev.step_size, 1)
     drive_time = math.ceil(drive_time)
