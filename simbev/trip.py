@@ -124,7 +124,7 @@ class Trip:
         """
         Executes created trip. Charging/parking and driving
         """
-        if self.distance <= self.simbev.distance_threshold_extra_urban:
+        if self.distance > self.simbev.distance_threshold_extra_urban:
             self.extra_urban = True
 
         if self.location == "home" and self.car.home_detached and self.car.home_parking:
