@@ -35,6 +35,8 @@ class SimBEV:
         self.step_size = config_dict["step_size"]
         self.soc_min = config_dict["soc_min"]
         self.charging_threshold = config_dict["charging_threshold"]
+        self.distance_threshold_extra_urban = config_dict["distance_threshold_extra_urban"]
+        self.consumption_increase_highway = config_dict["consumption_increase_highway"]
         self.rng_seed = config_dict["rng_seed"]
         self.rng = self.get_rng()
         self.eta_cp = config_dict["eta_cp"]
@@ -138,6 +140,7 @@ class SimBEV:
                 energy_min,
                 charging_curve,
                 consumption,
+                self.consumption_increase_highway,
                 output,
                 self.attractivity,
                 analyze_mid=True,
@@ -723,6 +726,8 @@ class SimBEV:
             "step_size": cfg.getint("basic", "stepsize", fallback=15),
             "soc_min": cfg.getfloat("basic", "soc_min", fallback=0.2),
             "charging_threshold": cfg.getfloat("basic", "charging_threshold"),
+            "distance_threshold_extra_urban": cfg.getfloat("basic", "distance_threshold_extra_urban"),
+            "consumption_increase_highway": cfg.getfloat("basic", "consumption_increase_highway"),
             "rng_seed": cfg["sim_params"].getint("seed", None),
             "eta_cp": cfg.getfloat("basic", "eta_cp"),
             "start_date": start_date,
