@@ -482,7 +482,7 @@ class Car:
                     charging_time,
                     nominal_charging_capacity=power,
                     charging_power=avg_power,
-                    extra_urban=trip.extra_urban
+                    extra_urban=trip.extra_urban,
                 )
             else:
                 # update trip properties
@@ -735,6 +735,7 @@ class Car:
                 duration,
                 distance=distance,
                 destination=destination,
+                extra_urban=extra_urban
             )
             self.status = destination
             return True
@@ -762,7 +763,10 @@ class Car:
             Returns remaining range of vehicle.
         """
         return (
-            self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption/(1+self.car_type.consumption_increase_highway)
+            self.usable_soc
+            * self.car_type.battery_capacity
+            / self.car_type.consumption
+            / (1 + self.car_type.consumption_increase_highway)
         )
 
     @property
@@ -782,7 +786,10 @@ class Car:
         # eta used to prevent rounding errors. reduces effective range by 100m
         eta = 0.1
         return max(
-            self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption/(1+self.car_type.consumption_increase_highway)
+            self.usable_soc
+            * self.car_type.battery_capacity
+            / self.car_type.consumption
+            / (1 + self.car_type.consumption_increase_highway)
             - eta,
             0,
         )
