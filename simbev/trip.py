@@ -77,7 +77,7 @@ class Trip:
         self.park_time = 0
         self.drive_start = 0
         self.drive_time = 0
-        self.trip_end = region.last_time_step
+        self.trip_end = region.last_time_step + 1
         self.park_timestamp = None
         self.drive_timestamp = None
         self.drive_found = False
@@ -124,7 +124,7 @@ class Trip:
             trip_list[count + 1] = trip
 
         last_trip_end = previous_trip.trip_end
-        if last_trip_end < region.last_time_step:
+        if last_trip_end <= region.last_time_step:
             trip = Trip(region, car, last_trip_end, simbev)
             trip.park_time = region.last_time_step - trip.park_start
             trip.fit_trip_to_timerange()
@@ -325,8 +325,8 @@ class Trip:
             hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
             sum_hpc_drivetime += hpc_drive_time
 
-            if self.drive_start + hpc_drive_time >= self.region.last_time_step:
-                new_drive_time = self.region.last_time_step - self.drive_start
+            if self.drive_start + hpc_drive_time > self.region.last_time_step:
+                new_drive_time = self.region.last_time_step - self.drive_start + 1
                 if new_drive_time > 0:
                     new_distance = hpc_distance * new_drive_time / hpc_drive_time
                     self.car.drive(
@@ -337,7 +337,7 @@ class Trip:
                         "hpc",
                         self.extra_urban,
                     )
-                self.trip_end = self.region.last_time_step
+                self.trip_end = self.region.last_time_step + 1
                 return
 
             self.car.drive(
@@ -370,7 +370,7 @@ class Trip:
             # set necessary parameters for next loop or the following drive
             remaining_distance -= hpc_distance
             self.drive_start = self.park_start + charging_time
-            if self.drive_start >= self.region.last_time_step:
+            if self.drive_start > self.region.last_time_step:
                 self.drive_found = False
                 self.trip_end = self.region.last_time_step
                 return

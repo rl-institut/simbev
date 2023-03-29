@@ -465,7 +465,7 @@ class SimBEV:
             # create first trip
             trip = Trip.from_probability(region, car, 0, self)
             # iterate through all time steps
-            for step in range(len(region.region_type.time_series.index)):
+            for step in range(region.last_time_step + 1):
                 # check if current trip is done
                 if step >= trip.trip_end:
                     # find next trip
