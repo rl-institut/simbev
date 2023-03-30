@@ -67,6 +67,7 @@ class Trip:
         self.park_timestamp = None
         self.drive_timestamp = None
         self.drive_found = False
+        self.extra_urban = False
 
         self.location = car.status
         self.region = region
@@ -123,6 +124,9 @@ class Trip:
         """
         Executes created trip. Charging/parking and driving
         """
+        if self.distance > self.simbev.distance_threshold_extra_urban:
+            self.extra_urban = True
+
         if self.location == "home" and self.car.home_detached and self.car.home_parking:
             if (self.charge_decision("home_detached") and self.car.home_detached) or (
                 self.charge_decision("home_apartment") and not self.car.home_detached
@@ -196,6 +200,7 @@ class Trip:
                 self.drive_timestamp,
                 self.drive_time,
                 self.destination,
+                self.extra_urban,
             )
 
             # call hpc events if trip cant be completed
@@ -222,18 +227,27 @@ class Trip:
         remaining_distance = self.distance
         sum_hpc_drivetime = 0
 
+        remaining_range = (
+            self.car.remaining_range_highway
+            if self.extra_urban
+            else self.car.remaining_range
+        )
+
         # check if next drive needs charging to be completed
-        while (
-            remaining_distance > self.car.remaining_range
-            and self.car.car_type.label == "BEV"
-        ):
+        while remaining_distance > remaining_range and self.car.car_type.label == "BEV":
+            precise_remaining_range = (
+                self.car.precise_remaining_range_highway
+                if self.extra_urban
+                else self.car.precise_remaining_range
+            )
+
             # get time and distance until next hpc station
             hpc_distance = (
                 self.rng.uniform(
                     self.simbev.hpc_data["distance_min"],
                     self.simbev.hpc_data["distance_max"],
                 )
-                * self.car.precise_remaining_range
+                * precise_remaining_range
             )
             hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
             sum_hpc_drivetime += hpc_drive_time
@@ -248,6 +262,7 @@ class Trip:
                         self.drive_timestamp,
                         new_drive_time,
                         "hpc",
+                        self.extra_urban,
                     )
                 self.trip_end = self.region.last_time_step
                 return
@@ -258,6 +273,7 @@ class Trip:
                 self.drive_timestamp,
                 hpc_drive_time,
                 "hpc",
+                self.extra_urban,
             )
 
             # get parameters for charging at hpc station
@@ -294,6 +310,7 @@ class Trip:
             self.drive_timestamp,
             last_drive_time,
             self.destination,
+            self.extra_urban,
         )
         # update trip end to start next parking at correct time stamp
         self.trip_end = self.drive_start + last_drive_time

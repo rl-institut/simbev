@@ -53,6 +53,7 @@ class CarType:
     charging_curve: interp1d
     # TODO consumption based on speed instead of constant
     consumption: float
+    consumption_factor_highway: float
     output: bool
     attractivity: pd.DataFrame
     analyze_mid: bool = False
@@ -352,6 +353,7 @@ class Car:
         destination="",
         nominal_charging_capacity=0,
         charging_power=0,
+        extra_urban=False,
     ):
         """Records newest energy and activity
 
@@ -375,7 +377,7 @@ class Car:
             self.output["location"].append(self.status)
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
             self.output["charging_use_case"].append(
-                self._get_charging_usecase(nominal_charging_capacity)
+                self._get_charging_usecase(nominal_charging_capacity, extra_urban)
             )
             self.output["soc_start"].append(
                 round(
@@ -480,6 +482,7 @@ class Car:
                     charging_time,
                     nominal_charging_capacity=power,
                     charging_power=avg_power,
+                    extra_urban=trip.extra_urban,
                 )
             else:
                 # update trip properties
@@ -647,7 +650,7 @@ class Car:
             power_array = power_array[charging_section_counter - 1 :]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
-            charging_use_case = self._get_charging_usecase(power)
+            charging_use_case = self._get_charging_usecase(power, trip.extra_urban)
             use_case = self._get_usecase(power)
 
             if use_case == "hpc" and trip.car.status == "hpc":
@@ -673,7 +676,9 @@ class Car:
 
         return time_steps, chargepower_avgerage, power, soc_end
 
-    def drive(self, distance, start_time, timestamp, duration, destination):
+    def drive(
+        self, distance, start_time, timestamp, duration, destination, extra_urban
+    ):
         """Method for driving.
 
         Parameters
@@ -698,9 +703,18 @@ class Car:
             raise ValueError(
                 f"Drive duration of vehicle {self.file_name} is {duration} at {timestamp}"
             )
-        soc_delta = (
-            self.car_type.consumption * distance / self.car_type.battery_capacity
-        )
+        if extra_urban:
+            soc_delta = (
+                self.car_type.consumption
+                * distance
+                / self.car_type.battery_capacity
+                * self.car_type.consumption_factor_highway
+            )
+        else:
+            soc_delta = (
+                self.car_type.consumption * distance / self.car_type.battery_capacity
+            )
+
         if soc_delta >= self.usable_soc and self.car_type.label == "BEV":
             return False
         else:
@@ -721,6 +735,7 @@ class Car:
                 duration,
                 distance=distance,
                 destination=destination,
+                extra_urban=extra_urban
             )
             self.status = destination
             return True
@@ -739,12 +754,42 @@ class Car:
         )
 
     @property
+    def precise_remaining_range_highway(self):
+        """Calculation of precise remaining range of vehicle.
+
+        Returns
+        -------
+        float
+            Returns remaining range of vehicle.
+        """
+        return (
+            self.usable_soc
+            * self.car_type.battery_capacity
+            / self.car_type.consumption
+            / self.car_type.consumption_factor_highway
+        )
+
+    @property
     def remaining_range(self):
         """Returns remaining range of vehicle."""
         # eta used to prevent rounding errors. reduces effective range by 100m
         eta = 0.1
         return max(
             self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption
+            - eta,
+            0,
+        )
+
+    @property
+    def remaining_range_highway(self):
+        """Returns remaining range of vehicle."""
+        # eta used to prevent rounding errors. reduces effective range by 100m
+        eta = 0.1
+        return max(
+            self.usable_soc
+            * self.car_type.battery_capacity
+            / self.car_type.consumption
+            / self.car_type.consumption_factor_highway
             - eta,
             0,
         )
@@ -816,7 +861,7 @@ class Car:
             return "public"
 
     # TODO maybe solve this in charging (Jakob)
-    def _get_charging_usecase(self, power):
+    def _get_charging_usecase(self, power, extra_urban):
         """Determines use-case of parking-event.
 
         Parameters
@@ -838,7 +883,7 @@ class Car:
         elif self.home_parking and self.status == "home" and not self.home_detached:
             return "home_apartment"
         # TODO: decide on status an requirement for hpc
-        elif self.status == "hpc":
+        elif self.status == "hpc" and extra_urban:
             return "highway_fast"
         elif power >= 150:
             return "urban_fast"
