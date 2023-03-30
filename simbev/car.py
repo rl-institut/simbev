@@ -53,7 +53,7 @@ class CarType:
     charging_curve: interp1d
     # TODO consumption based on speed instead of constant
     consumption: float
-    consumption_increase_highway: float
+    consumption_factor_highway: float
     output: bool
     attractivity: pd.DataFrame
     analyze_mid: bool = False
@@ -708,7 +708,7 @@ class Car:
                 self.car_type.consumption
                 * distance
                 / self.car_type.battery_capacity
-                * (1 + self.car_type.consumption_increase_highway)
+                * self.car_type.consumption_factor_highway
             )
         else:
             soc_delta = (
@@ -766,7 +766,7 @@ class Car:
             self.usable_soc
             * self.car_type.battery_capacity
             / self.car_type.consumption
-            / (1 + self.car_type.consumption_increase_highway)
+            / self.car_type.consumption_factor_highway
         )
 
     @property
@@ -789,7 +789,7 @@ class Car:
             self.usable_soc
             * self.car_type.battery_capacity
             / self.car_type.consumption
-            / (1 + self.car_type.consumption_increase_highway)
+            / self.car_type.consumption_factor_highway
             - eta,
             0,
         )
