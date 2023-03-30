@@ -226,17 +226,21 @@ class Trip:
         """Creates hpc-event."""
         remaining_distance = self.distance
         sum_hpc_drivetime = 0
-        if self.extra_urban:
-            remaining_range = self.car.remaining_range_highway
-        else:
-            remaining_range = self.car.remaining_range
+
+        remaining_range = (
+            self.car.remaining_range_highway
+            if self.extra_urban
+            else self.car.remaining_range
+        )
 
         # check if next drive needs charging to be completed
         while remaining_distance > remaining_range and self.car.car_type.label == "BEV":
-            if self.extra_urban:
-                precise_remaining_range = self.car.precise_remaining_range_highway
-            else:
-                precise_remaining_range = self.car.precise_remaining_range
+            precise_remaining_range = (
+                self.car.precise_remaining_range_highway
+                if self.extra_urban
+                else self.car.precise_remaining_range
+            )
+
             # get time and distance until next hpc station
             hpc_distance = (
                 self.rng.uniform(
