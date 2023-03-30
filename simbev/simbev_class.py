@@ -39,6 +39,7 @@ class SimBEV:
             "distance_threshold_extra_urban"
         ]
         self.consumption_factor_highway = config_dict["consumption_factor_highway"]
+        self.occupation_time_max = config_dict["occupation_time_max"]
         self.rng_seed = config_dict["rng_seed"]
         self.rng = self.get_rng()
         self.eta_cp = config_dict["eta_cp"]
@@ -753,6 +754,7 @@ class SimBEV:
                 "sim_params", "private_only_run", fallback=False
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
+            "occupation_time_max": cfg.getint("basic", "occupation_time_max")
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
