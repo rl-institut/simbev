@@ -374,7 +374,7 @@ class Trip:
             self.drive_start = self.park_start + charging_time
             if self.drive_start > self.region.last_time_step:
                 self.drive_found = False
-                self.trip_end = self.region.last_time_step
+                self.trip_end = self.region.last_time_step + 1
                 return
             self._set_timestamps()
 
