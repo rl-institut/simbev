@@ -112,6 +112,8 @@ class Trip:
         previous_trip = first_trip
         for count, i in enumerate(car.driving_profile.index[1:]):
             start_step = previous_trip.trip_end
+            if start_step > region.last_time_step:
+                continue
             trip = create_trip_from_profile_row(
                 car.driving_profile.loc[i, :],
                 previous_trip.destination,
