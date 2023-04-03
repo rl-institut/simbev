@@ -477,14 +477,15 @@ class SimBEV:
             previous_trip.trip_end = 0
             trip_possible = True
             for trip in trips:
-                delay = max(
-                    previous_trip.trip_end - trip.park_start, 0
-                )  # TODO maybe add +1 to first term
-                if delay:
-                    trip_possible = trip.delay(delay)
-                if trip_possible:
-                    trip.execute()
-                    previous_trip = trip
+                if trip is not None:
+                    delay = max(
+                        previous_trip.trip_end - trip.park_start, 0
+                    )  # TODO maybe add +1 to first term
+                    if delay:
+                        trip_possible = trip.delay(delay)
+                    if trip_possible:
+                        trip.execute()
+                        previous_trip = trip
 
     def set_user_group(self, work_parking, home_parking, work_capacity, home_capacity):
         """Assigns specific user-group to vehicle."""
