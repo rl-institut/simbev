@@ -379,10 +379,10 @@ class Car:
             self.output["location"].append(self.status)
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
             if charging_use_case is None:
-                charging_use_case = self._get_charging_usecase(nominal_charging_capacity, extra_urban)
-            self.output["charging_use_case"].append(
-                charging_use_case
-            )
+                charging_use_case = self._get_charging_usecase(
+                    nominal_charging_capacity, extra_urban
+                )
+            self.output["charging_use_case"].append(charging_use_case)
             self.output["soc_start"].append(
                 round(
                     np.float32(
