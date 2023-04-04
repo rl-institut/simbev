@@ -238,16 +238,16 @@ class Trip:
                 )
             elif self.charging_use_case in ["retail", "street"]:
                 station_capacity = self.simbev.get_charging_capacity(
-                        self.location, self.distance
-                    )
+                    self.location, self.distance
+                )
                 self.car.charge(
-                        self,
-                        station_capacity,
-                        "slow",
-                        step_size=self.simbev.step_size,
-                        max_charging_time=self.park_time,
-                        charging_use_case=self.charging_use_case,
-                    )
+                    self,
+                    station_capacity,
+                    "slow",
+                    step_size=self.simbev.step_size,
+                    max_charging_time=self.park_time,
+                    charging_use_case=self.charging_use_case,
+                )
             elif self.location == "shopping":
                 if self.charge_decision("retail"):
                     station_capacity = self.simbev.get_charging_capacity(
