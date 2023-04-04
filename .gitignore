@@ -1,7 +1,7 @@
 results/
 scenarios/
 data/probability/*/
-data/profiles/*/
+data/profile/*/
 *.pyc
 .pytest_cache
 .vscode

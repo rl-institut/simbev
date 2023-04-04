@@ -5,6 +5,7 @@ import numpy as np
 from simbev.region import Region, RegionType
 from simbev.car import CarType, Car, UserGroup
 from simbev.trip import Trip
+from simbev.mid_timeseries import get_profile_time_series
 import simbev.plot as plot
 from simbev.helpers.errors import SoCError
 import multiprocessing as mp
@@ -62,6 +63,13 @@ class SimBEV:
 
         self.input_type = config_dict["input_type"]
         self.input_directory = pathlib.Path(config_dict["input_directory"])
+        self.input_data = {"rural": {}, "suburban": {}, "urban": {}}
+        if self.input_type == "profile":
+            for file_path in self.input_directory.glob("*.gzip"):
+                file_path_parts = file_path.stem.split("_")
+                self.input_data[file_path_parts[-2]][
+                    file_path_parts[-1]
+                ] = pd.read_parquet(file_path)
         self.scaling = config_dict["scaling"]
         # additional parameters
         self.regions: List[Region] = []
@@ -77,9 +85,6 @@ class SimBEV:
         self.save_directory = pathlib.Path(
             config_dict["scenario_path"], "results", save_directory_name
         )
-        self.data_directory = pathlib.Path(
-            "data", "probability"
-        )  # TODO change based on simulation mode or via config?
         self.file_name_all = "grid_time_series_all_regions.csv"
         self.file_name_analysis_all = "analysis_all_regions.csv"
         self.file_name_analysis_all_json = "analysis_all_regions.json"
@@ -169,14 +174,11 @@ class SimBEV:
             self.step_size,
             self.charging_probabilities,
         )
-        rs7_region.create_timeseries(
-            self.start_date, self.end_date, self.step_size, self.data_directory
-        )
+
+        rs7_region.create_timeseries(self)
         if self.input_type == "probability":
-            rs7_region.get_probabilities(self.data_directory)
-        else:
-            pass
-            # TODO profiles check if anything is necessary to do here
+            rs7_region.get_probabilities(self.input_directory)
+
         self.created_region_types[region_type] = rs7_region
 
     def _add_regions_from_dataframe(self):
@@ -318,6 +320,16 @@ class SimBEV:
                     soc_init,
                 )
 
+                if self.input_type == "profile":
+                    car.driving_profile = get_profile_time_series(
+                        self.start_date,
+                        self.end_date,
+                        self.step_size,
+                        self.input_data[region.region_type.rs3_type][
+                            car_type_name.split("_")[-1]
+                        ],
+                    )
+
                 if self.num_threads == 1:
                     print(
                         "\r{}% {} {} / {}".format(
@@ -334,12 +346,8 @@ class SimBEV:
                         flush=True,
                     )
 
-                # TODO profiles: add profiles to car on creation? or apply profiles during simulation?
-                # idea: create a list of trips that get simulated. code where?
-
                 # if private run, check if private charging infrastructure is available
                 if self.private_only_run and (work_power or home_power):
-                    # TODO catch error, then run again
                     try:
                         private_car = copy.copy(car)
                         private_car.private_only = True
@@ -453,15 +461,31 @@ class SimBEV:
         region : Region
             Includes all properties of current region.
         """
-        # create first trip
-        trip = Trip(region, car, 0, self)
-        # iterate through all time steps
-        for step in range(len(region.region_type.trip_starts.index)):
-            # check if current trip is done
-            if step >= trip.trip_end:
-                # find next trip
-                trip = Trip(region, car, step, self)
-                trip.execute()
+        if self.input_type == "probability":
+            # create first trip
+            trip = Trip.from_probability(region, car, 0, self)
+            # iterate through all time steps
+            for step in range(region.last_time_step + 1):
+                # check if current trip is done
+                if step >= trip.trip_end:
+                    # find next trip
+                    trip = Trip.from_probability(region, car, step, self)
+                    trip.execute()
+        elif self.input_type == "profile":
+            trips = Trip.from_driving_profile(region, car, self)
+            previous_trip = Trip(region, car, 0, self)
+            previous_trip.trip_end = 0
+            trip_possible = True
+            for trip in trips:
+                if trip is not None:
+                    delay = max(
+                        previous_trip.trip_end - trip.park_start, 0
+                    )  # TODO maybe add +1 to first term
+                    if delay:
+                        trip_possible = trip.delay(delay)
+                    if trip_possible:
+                        trip.execute()
+                        previous_trip = trip
 
     def set_user_group(self, work_parking, home_parking, work_capacity, home_capacity):
         """Assigns specific user-group to vehicle."""
@@ -754,7 +778,7 @@ class SimBEV:
                 "sim_params", "private_only_run", fallback=False
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
-            "occupation_time_max": cfg.getint("basic", "occupation_time_max")
+            "occupation_time_max": cfg.getint("basic", "occupation_time_max"),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,

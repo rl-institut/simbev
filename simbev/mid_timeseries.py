@@ -1,6 +1,6 @@
 import pandas as pd
-
-# import numpy as np
+import numpy as np
+import random
 import math
 import datetime
 from pathlib import Path
@@ -177,7 +177,7 @@ def get_timeseries(
                 else:
                     current_season[2] = current_season[2] - weekdays_left
         # add full weeks to the series
-        for i in range(0, current_season[1]):
+        for _ in range(0, current_season[1]):
             temp = pd.concat([temp, data_df], ignore_index=True)
         # add leftover partial week at the end of series
         temp = pd.concat(
@@ -206,3 +206,90 @@ def get_timeseries(
         "home",
     ]
     return pd_result
+
+
+def get_empty_timeseries(start_date, end_date, step_size):
+    end_date += datetime.timedelta(days=1)
+    date_range = pd.date_range(
+        start_date, end_date, freq=f"{step_size}min", inclusive="left"
+    )
+    return pd.DataFrame([0] * len(date_range), index=date_range)
+
+
+def get_profile_time_series(start_date, end_date, step_size, df):
+    """
+    Returns a time series starting from the start date up until the end date filled with
+    week data chosen at random from the input DataFrame for each week.
+
+    Parameters
+    ----------
+    start_date : str or datetime
+        The start date of the time series in yyyy-mm-dd format.
+    end_date : str or datetime
+        The end date of the time series in yyyy-mm-dd format.
+    step_size : int
+        Step size of the simulation in minutes.
+    df : pandas DataFrame
+        The input DataFrame containing week data, where each entry with the same ID belongs to the same week.
+
+    Returns
+    -------
+    pandas DataFrame
+        The resulting time series.
+    """
+    # Convert start and end dates to datetime if needed
+    if not isinstance(start_date, pd.Timestamp):
+        start_date = pd.to_datetime(start_date)
+    if not isinstance(end_date, pd.Timestamp):
+        end_date = pd.to_datetime(end_date)
+
+    df["time_step"] = 0
+    # Create an empty DataFrame to hold the time series
+    time_series = pd.DataFrame(columns=df.columns)
+    ids = df["id"].unique()
+    # Loop through each week between the start and end dates
+    week_start = start_date
+    time_step = 0
+    steps_per_day = 1440 / step_size
+    while week_start <= end_date:
+        # Select a random ID from the input DataFrame
+
+        random_id = random.choice(ids)
+
+        # Get the week data for the chosen ID
+        week_data = df[df["id"] == random_id]
+
+        # Determine the end date for the current week
+        num_days = 7 - week_start.weekday()
+        week_end = week_start + pd.Timedelta(days=num_days - 1)
+
+        # If the week end date is beyond the end date of the time series, adjust it accordingly
+        if week_end > end_date:
+            week_end = end_date
+
+        # Get the data for this week that falls within the desired date range
+        week_data_filtered = week_data[
+            (week_data["day"] >= (week_start.weekday()))
+            & (week_data["day"] <= (week_end.weekday()))
+        ].copy()
+        if not week_data_filtered.empty:
+            week_data_filtered["time_step"] = (
+                time_step
+                + (week_data_filtered["departure_time"] / step_size)
+                + (week_data_filtered["day"] - week_start.weekday()) * steps_per_day
+            )
+            week_data_filtered["time_step"] = week_data_filtered["time_step"].apply(
+                np.floor
+            )
+
+            # Append the filtered week data to the time series
+            time_series = pd.concat([time_series, week_data_filtered])
+
+        # Move to the next week
+        week_start = week_end + pd.Timedelta(days=1)
+
+        time_step += num_days * steps_per_day
+
+        time_series = time_series.reset_index(drop=True)
+
+    return time_series

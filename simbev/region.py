@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import pathlib
-from simbev.mid_timeseries import get_timeseries
+from simbev.mid_timeseries import get_timeseries, get_empty_timeseries
 import simbev.helpers.helpers as helpers
 
 
@@ -38,6 +38,7 @@ class RegionType:
 
     def __init__(self, rs7_type, grid_output, step_size, charging_probabilities):
         self.rs7_type = rs7_type
+        self.rs3_type = _get_rs3_type(rs7_type)
         self.step_size = step_size
         self.charging_probabilities = charging_probabilities
         self.time_series = None
@@ -45,10 +46,10 @@ class RegionType:
         self.probabilities = {}
         self.output = grid_output
 
-    def create_timeseries(self, start_date, end_date, step_size, data_directory):
+    def create_timeseries(self, simbev):
         """Creating timeseries for vehicle.
 
-        Parameters
+        Parameters .start_date, self.end_date, self.step_size, self.input_directory
         ----------
         start_date : date
             Start-date of simulation.
@@ -59,11 +60,22 @@ class RegionType:
         """
 
         if not self.time_series:
-            self.time_series = get_timeseries(
-                start_date, end_date, self.rs7_type, step_size, data_directory
-            )
-            self.trip_starts = self.time_series.sum(axis=1)
-            self.trip_starts = self.trip_starts / self.trip_starts.max()
+            if simbev.input_type == "probability":
+                self.time_series = get_timeseries(
+                    simbev.start_date,
+                    simbev.end_date,
+                    self.rs7_type,
+                    simbev.step_size,
+                    simbev.input_directory,
+                )
+                self.trip_starts = self.time_series.sum(axis=1)
+                self.trip_starts = self.trip_starts / self.trip_starts.max()
+            else:
+                self.time_series = get_empty_timeseries(
+                    simbev.start_date,
+                    simbev.end_date,
+                    simbev.step_size,
+                )
 
     def get_probabilities(self, data_directory):
         """Unites probabilities for trip.
@@ -147,7 +159,7 @@ class Region:
         self.region_type = region_type
         self.number = region_counter
 
-        self.last_time_step = len(self.region_type.trip_starts.index)
+        self.last_time_step = len(self.region_type.time_series.index) - 1
 
         self.car_dict = {}
 
@@ -346,3 +358,16 @@ class Region:
             self.grid_data_frame.to_csv(
                 pathlib.Path(region_directory, self.file_name), index=False
             )
+
+
+def _get_rs3_type(rs7_type):
+    rs7_to_3_type_dict = {
+        "SR_Metro": "urban",
+        "SR_Gross": "urban",
+        "SR_Mitte": "suburban",
+        "LR_Zentr": "suburban",
+        "LR_Mitte": "suburban",
+        "SR_Klein": "rural",
+        "LR_Klein": "rural",
+    }
+    return rs7_to_3_type_dict[rs7_type]
