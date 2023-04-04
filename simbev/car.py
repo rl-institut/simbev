@@ -355,6 +355,7 @@ class Car:
         nominal_charging_capacity=0,
         charging_power=0,
         extra_urban=False,
+        charging_use_case=None,
     ):
         """Records newest energy and activity
 
@@ -377,8 +378,10 @@ class Car:
             self.output["event_time"].append(np.int32(event_time))
             self.output["location"].append(self.status)
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
+            if charging_use_case is None:
+                charging_use_case = self._get_charging_usecase(nominal_charging_capacity, extra_urban)
             self.output["charging_use_case"].append(
-                self._get_charging_usecase(nominal_charging_capacity, extra_urban)
+                charging_use_case
             )
             self.output["soc_start"].append(
                 round(
@@ -423,6 +426,7 @@ class Car:
         step_size=None,
         long_distance=None,
         max_charging_time=None,
+        charging_use_case=None,
     ):
         """Function for charging.
 
@@ -496,6 +500,7 @@ class Car:
                     trip.park_time,
                     nominal_charging_capacity=power,
                     charging_power=avg_power,
+                    charging_use_case=charging_use_case,
                 )
             return charging_time
         else:

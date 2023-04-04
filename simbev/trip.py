@@ -89,6 +89,7 @@ class Trip:
         self.simbev = simbev
         self.rng = simbev.rng
         self.step_size = simbev.step_size
+        self.charging_use_case = None
 
     @classmethod
     def from_driving_profile(cls, region: "Region", car: "Car", simbev: "SimBEV"):
@@ -235,6 +236,18 @@ class Trip:
                     self.step_size,
                     max_charging_time=self.park_time,
                 )
+            elif self.charging_use_case in ["retail", "street"]:
+                station_capacity = self.simbev.get_charging_capacity(
+                        self.location, self.distance
+                    )
+                self.car.charge(
+                        self,
+                        station_capacity,
+                        "slow",
+                        step_size=self.simbev.step_size,
+                        max_charging_time=self.park_time,
+                        charging_use_case=self.charging_use_case,
+                    )
             elif self.location == "shopping":
                 if self.charge_decision("retail"):
                     station_capacity = self.simbev.get_charging_capacity(
@@ -246,6 +259,7 @@ class Trip:
                         "slow",
                         step_size=self.simbev.step_size,
                         max_charging_time=self.park_time,
+                        charging_use_case="retail",
                     )
                 else:
                     self.car.park(self)
@@ -260,6 +274,7 @@ class Trip:
                     "slow",
                     step_size=self.simbev.step_size,
                     max_charging_time=self.park_time,
+                    charging_use_case="street",
                 )
 
             else:
@@ -440,6 +455,7 @@ def create_trip_from_profile_row(
     trip.drive_time = drive_time
     trip.drive_found = True
     trip.trip_end = trip.drive_start + trip.drive_time
+    trip.charging_use_case = row.charging_use_case
     trip.fit_trip_to_timerange()
     trip._set_timestamps()
     return trip
