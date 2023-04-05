@@ -464,6 +464,7 @@ class Car:
                 trip.park_time,
                 nominal_charging_capacity=power,
                 charging_power=avg_power,
+                charging_use_case=charging_use_case,
             )
 
         elif charging_type == "fast":
@@ -473,6 +474,16 @@ class Car:
                         self.car_type.name
                     )
                 )
+            if power == 0:
+                self._update_activity(
+                    trip.park_timestamp,
+                    trip.park_start,
+                    trip.park_time,
+                    nominal_charging_capacity=power,
+                    charging_power=0,
+                    charging_use_case=charging_use_case,
+                )
+                pass
             soc_end = trip.rng.uniform(
                 trip.simbev.hpc_data["soc_end_min"], trip.simbev.hpc_data["soc_end_max"]
             )
@@ -488,6 +499,7 @@ class Car:
                     nominal_charging_capacity=power,
                     charging_power=avg_power,
                     extra_urban=trip.extra_urban,
+                    charging_use_case="highway_fast",
                 )
             else:
                 # update trip properties
@@ -500,7 +512,7 @@ class Car:
                     trip.park_time,
                     nominal_charging_capacity=power,
                     charging_power=avg_power,
-                    charging_use_case=charging_use_case,
+                    charging_use_case="urban_fast",
                 )
             return charging_time
         else:

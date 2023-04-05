@@ -368,7 +368,7 @@ class Trip:
 
             # get parameters for charging at hpc station
             charging_capacity = self.simbev.get_charging_capacity(
-                location=self.car.status, use_case=self.charging_use_case, distance=self.distance
+                location=self.car.status, use_case="hpc", distance=self.distance
             )
             self.park_start = self.drive_start + hpc_drive_time
             self.park_timestamp = self.region.region_type.time_series.index[
@@ -382,6 +382,7 @@ class Trip:
                 self.step_size,
                 long_distance=True,
                 max_charging_time=max_charging_time,
+                charging_use_case="highway_fast"
             )
 
             # set necessary parameters for next loop or the following drive
