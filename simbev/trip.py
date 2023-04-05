@@ -227,7 +227,7 @@ class Trip:
             ):
                 # get parameters for charging at hpc station
                 charging_capacity = self.simbev.get_charging_capacity(
-                    location="hpc", distance=self.distance
+                    location="hpc", use_case="hpc", distance=self.distance
                 )
                 self.car.charge(
                     self,
@@ -238,7 +238,7 @@ class Trip:
                 )
             elif self.charging_use_case in ["retail", "street"]:
                 station_capacity = self.simbev.get_charging_capacity(
-                    self.location, self.distance
+                    self.location, self.charging_use_case, self.distance
                 )
                 self.car.charge(
                     self,
@@ -251,7 +251,7 @@ class Trip:
             elif self.location == "shopping":
                 if self.charge_decision("retail"):
                     station_capacity = self.simbev.get_charging_capacity(
-                        self.location, self.distance
+                        self.location, "retail", self.distance
                     )
                     self.car.charge(
                         self,
@@ -266,7 +266,7 @@ class Trip:
 
             elif self.charge_decision("street"):
                 station_capacity = self.simbev.get_charging_capacity(
-                    self.location, self.distance
+                    self.location, "street", self.distance
                 )
                 self.car.charge(
                     self,
@@ -368,7 +368,7 @@ class Trip:
 
             # get parameters for charging at hpc station
             charging_capacity = self.simbev.get_charging_capacity(
-                location=self.car.status, distance=self.distance
+                location=self.car.status, use_case=self.charging_use_case, distance=self.distance
             )
             self.park_start = self.drive_start + hpc_drive_time
             self.park_timestamp = self.region.region_type.time_series.index[

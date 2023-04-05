@@ -23,6 +23,7 @@ class SimBEV:
         # parameters from data_dict
         self.region_data = data_dict["regions"]
         self.charging_probabilities = data_dict["charging_probabilities"]
+        self.power_by_usecase = "use_case" in self.charging_probabilities
         self.tech_data = data_dict["tech_data"]
         self.energy_min = data_dict["energy_min"]
         self.home_parking = data_dict["private_probabilities"].loc["home", :]
@@ -390,7 +391,7 @@ class SimBEV:
         print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
         return region.grid_data_frame, region.analyze_array
 
-    def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
+    def get_charging_capacity(self, location=None, use_case=None, distance=None, distance_limit=50):
         """Determines charging capacity for specific charging event
 
         Parameters
@@ -408,7 +409,26 @@ class SimBEV:
             Returns charging capacity.
         """
 
-        # TODO: check if this destination is used for fast charging
+        if self.power_by_usecase:
+            if use_case == "hpc":
+                if distance > distance_limit:
+                    use_case = "highway_fast"
+                else:
+                    use_case = "urban_fast"
+                probability = self.charging_probabilities["use_case"]
+                probability = probability.loc[use_case, :]
+                probability = probability.squeeze()
+                return float(
+                    helpers.get_column_by_random_number(probability, self.rng.random())
+                )
+            elif use_case:
+                probability = self.charging_probabilities["use_case"]
+                probability = probability.loc[use_case, :]
+                probability = probability.squeeze()
+                return float(
+                    helpers.get_column_by_random_number(probability, self.rng.random())
+                )
+
         if "hpc" in location:
             if distance > distance_limit:
                 location = "ex-urban"
@@ -680,14 +700,16 @@ class SimBEV:
 
         # read chargepoint probabilities
         charging_probabilities = {}
-        for charging_type in ["slow", "fast"]:
-            df = pd.read_csv(
-                pathlib.Path(
-                    scenario_path, cfg["charging_probabilities"][charging_type]
-                ),
-                index_col=0,
-            )
-            charging_probabilities[charging_type] = df
+        for charging_type in ["slow", "fast", "use_case"]:
+            file_path = cfg.get("charging_probabilities", charging_type, fallback=None)
+            if file_path is not None:
+                df = pd.read_csv(
+                    pathlib.Path(
+                        scenario_path, file_path
+                    ),
+                    index_col=0,
+                )
+                charging_probabilities[charging_type] = df
 
         home_work_private = pd.read_csv(
             pathlib.Path(
