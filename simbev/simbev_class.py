@@ -12,6 +12,7 @@ import multiprocessing as mp
 import pathlib
 import datetime
 import math
+import traceback
 import configparser as cp
 import json
 import copy
@@ -236,8 +237,7 @@ class SimBEV:
         else:
             pool = mp.Pool(processes=self.num_threads)
 
-            for region in self.regions:
-                pool.apply_async(self.run, (region,), callback=self._log_grid_data)
+            pool.map_async(self.run, self.regions, callback=self._log_grid_data)
             pool.close()
             pool.join()
         grid_time_series_all_regions = helpers.timeitlog(
@@ -260,135 +260,140 @@ class SimBEV:
             Returns grid-data for current region.
         """
 
-        if self.num_threads == 1:
-            print(
-                f"===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) ====="
-            )
-        else:
-            print(
-                f"Starting Region {region.id} ({region.number + 1}/{len(self.regions)})"
-            )
-        region_directory = pathlib.Path(self.save_directory, str(region.id))
-        region_directory.mkdir(parents=True, exist_ok=True)
+        try:
+            if self.num_threads == 1:
+                print(
+                    f"===== Region: {region.id} ({region.number + 1}/{len(self.regions)}) ====="
+                )
+            else:
+                print(
+                    f"Starting Region {region.id} ({region.number + 1}/{len(self.regions)})"
+                )
+            region_directory = pathlib.Path(self.save_directory, str(region.id))
+            region_directory.mkdir(parents=True, exist_ok=True)
 
-        cars_simulated = 0
-        exception_count = 0
-        for car_type_name, car_count in region.car_dict.items():
-            for car_number in range(car_count):
-                # Create new car
-                car_type = self.car_types[car_type_name]
-                # create new car objects
-                # TODO: parking parameters that change by region
-                work_parking = (
-                    self.work_parking[region.region_type.rs7_type] >= self.rng.random()
-                )
-                home_parking = (
-                    self.home_parking[region.region_type.rs7_type] >= self.rng.random()
-                )
-                work_power = (
-                    self.get_charging_capacity("work") if work_parking else None
-                )
-                home_power = (
-                    self.get_charging_capacity("home") if home_parking else None
-                )
-                user_group_id = self.set_user_group(
-                    work_parking, home_parking, work_power, home_power
-                )
-                # todo decide if car is at home in detached house or apartment building
+            cars_simulated = 0
+            exception_count = 0
+            for car_type_name, car_count in region.car_dict.items():
+                for car_number in range(car_count):
+                    # Create new car
+                    car_type = self.car_types[car_type_name]
+                    # create new car objects
+                    # TODO: parking parameters that change by region
+                    work_parking = (
+                        self.work_parking[region.region_type.rs7_type] >= self.rng.random()
+                    )
+                    home_parking = (
+                        self.home_parking[region.region_type.rs7_type] >= self.rng.random()
+                    )
+                    work_power = (
+                        self.get_charging_capacity("work") if work_parking else None
+                    )
+                    home_power = (
+                        self.get_charging_capacity("home") if home_parking else None
+                    )
+                    user_group_id = self.set_user_group(
+                        work_parking, home_parking, work_power, home_power
+                    )
+                    # todo decide if car is at home in detached house or apartment building
 
-                # SOC init value for the first monday
-                # formula from Kilian, TODO maybe not needed anymore
-                soc_init = (
-                    self.rng.random() ** (1 / 3) * 0.8 + 0.2
-                    if self.rng.random() < 0.12
-                    else 1
-                )
-                home_detached = (
-                    self.rng.random() <= self.probability_detached_home[region.id]
-                )
-
-                car = Car(
-                    car_type,
-                    self.user_groups[user_group_id],
-                    car_number,
-                    work_parking,
-                    home_parking,
-                    work_power,
-                    home_power,
-                    region,
-                    home_detached,
-                    soc_init,
-                )
-
-                if self.input_type == "profile":
-                    car.driving_profile = get_profile_time_series(
-                        self.start_date,
-                        self.end_date,
-                        self.step_size,
-                        self.input_data[region.region_type.rs3_type][
-                            car_type_name.split("_")[-1]
-                        ],
+                    # SOC init value for the first monday
+                    # formula from Kilian, TODO maybe not needed anymore
+                    soc_init = (
+                        self.rng.random() ** (1 / 3) * 0.8 + 0.2
+                        if self.rng.random() < 0.12
+                        else 1
+                    )
+                    home_detached = (
+                        self.rng.random() <= self.probability_detached_home[region.id]
                     )
 
-                if self.num_threads == 1:
-                    print(
-                        "\r{}% {} {} / {}".format(
-                            round(
-                                (cars_simulated + car_number + 1)
-                                * 100
-                                / region.car_amount
-                            ),
-                            car.car_type.name,
-                            (car.number + 1),
-                            region.car_dict[car.car_type.name],
-                        ),
-                        end="",
-                        flush=True,
+                    car = Car(
+                        car_type,
+                        self.user_groups[user_group_id],
+                        car_number,
+                        work_parking,
+                        home_parking,
+                        work_power,
+                        home_power,
+                        region,
+                        home_detached,
+                        soc_init,
                     )
 
-                # if private run, check if private charging infrastructure is available
-                if self.private_only_run and (work_power or home_power):
-                    try:
-                        private_car = copy.copy(car)
-                        private_car.private_only = True
-                        self.simulate_car(private_car, region)
-                        car = private_car
-                    except SoCError:
-                        exception_count += 1
-                        self.simulate_car(car, region)
-                else:
-                    self.simulate_car(car, region)
-
-                # export vehicle csv
-                if self.output_options["analyze"]:
-                    car_array = car.export(region_directory, self)
-                    if region.analyze_array is None:
-                        region.analyze_array = car_array
-                    else:
-                        region.analyze_array = np.vstack(
-                            (region.analyze_array, car_array)
+                    if self.input_type == "profile":
+                        car.driving_profile = get_profile_time_series(
+                            self.start_date,
+                            self.end_date,
+                            self.step_size,
+                            self.input_data[region.region_type.rs3_type][
+                                car_type_name.split("_")[-1]
+                            ],
                         )
-                else:
-                    car.export(region_directory, self)
-            cars_simulated += car_count
-        if self.private_only_run:
-            print(
-                "\nNumber of cars that couldn't run private only: {}/{}".format(
-                    exception_count, cars_simulated
-                )
-            )
 
-        region.export_grid_timeseries(region_directory)
-        if self.output_options["analyze"]:
-            helpers.export_analysis(
-                region.analyze_array,
-                region_directory,
-                self.start_date_output,
-                self.end_date,
-                region.id,
-            )
-        print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
-        return region.grid_data_frame, region.analyze_array
+                    if self.num_threads == 1:
+                        print(
+                            "\r{}% {} {} / {}".format(
+                                round(
+                                    (cars_simulated + car_number + 1)
+                                    * 100
+                                    / region.car_amount
+                                ),
+                                car.car_type.name,
+                                (car.number + 1),
+                                region.car_dict[car.car_type.name],
+                            ),
+                            end="",
+                            flush=True,
+                        )
+
+                    # if private run, check if private charging infrastructure is available
+                    if self.private_only_run and (work_power or home_power):
+                        try:
+                            private_car = copy.copy(car)
+                            private_car.private_only = True
+                            self.simulate_car(private_car, region)
+                            car = private_car
+                        except SoCError:
+                            exception_count += 1
+                            self.simulate_car(car, region)
+                    else:
+                        self.simulate_car(car, region)
+
+                    # export vehicle csv
+                    if self.output_options["analyze"]:
+                        car_array = car.export(region_directory, self)
+                        if region.analyze_array is None:
+                            region.analyze_array = car_array
+                        else:
+                            region.analyze_array = np.vstack(
+                                (region.analyze_array, car_array)
+                            )
+                    else:
+                        car.export(region_directory, self)
+                cars_simulated += car_count
+            if self.private_only_run:
+                print(
+                    "\nNumber of cars that couldn't run private only: {}/{}".format(
+                        exception_count, cars_simulated
+                    )
+                )
+
+            region.export_grid_timeseries(region_directory)
+            if self.output_options["analyze"]:
+                helpers.export_analysis(
+                    region.analyze_array,
+                    region_directory,
+                    self.start_date_output,
+                    self.end_date,
+                    region.id,
+                )
+            print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
+            return region.grid_data_frame, region.analyze_array
+        except Exception as e:
+            print('\n{}: {}'.format(type(e).__name__, e))
+            print("EXCEPTION TRACE  PRINT:\n{}".format("".join(traceback.format_exception(type(e), e, e.__traceback__))))
+
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         """Determines charging capacity for specific charging event
