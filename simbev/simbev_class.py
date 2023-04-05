@@ -251,7 +251,7 @@ class SimBEV:
             pool.close()
             pool.join()
         if self.terminated:
-            raise RuntimeError(
+            raise SystemExit(
                 "Exception occured during multiprocessing, simulation stopped. See above for further information."
             )
         grid_time_series_all_regions = helpers.timeitlog(
@@ -407,13 +407,17 @@ class SimBEV:
             print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
             return region.grid_data_frame, region.analyze_array
         except Exception as e:
-            print("\n{}: {}".format(type(e).__name__, e))
-            print(
-                "EXCEPTION TRACE  PRINT:\n{}".format(
-                    "".join(traceback.format_exception(type(e), e, e.__traceback__))
+            if self.num_threads > 1:
+                print("\n{}: {}".format(type(e).__name__, e))
+                print(
+                    "EXCEPTION TRACE  PRINT:\n{}".format(
+                        "".join(traceback.format_exception(type(e), e, e.__traceback__))
+                    )
                 )
-            )
-            return None, None
+                
+                return None, None
+            else:
+                raise e
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         """Determines charging capacity for specific charging event
