@@ -391,7 +391,7 @@ class SimBEV:
         print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
         return region.grid_data_frame, region.analyze_array
 
-    def get_charging_capacity(self, location=None, use_case=None, distance=None, distance_limit=50):
+    def get_charging_capacity(self, location=None, use_case=None, distance=None):
         """Determines charging capacity for specific charging event
 
         Parameters
@@ -411,7 +411,7 @@ class SimBEV:
 
         if self.power_by_usecase:
             if use_case == "hpc":
-                if distance > distance_limit:
+                if distance > self.distance_threshold_extra_urban:
                     use_case = "highway_fast"
                 else:
                     use_case = "urban_fast"
@@ -430,7 +430,7 @@ class SimBEV:
                 )
 
         if "hpc" in location:
-            if distance > distance_limit:
+            if distance > self.distance_threshold_extra_urban:
                 location = "ex-urban"
             else:
                 location = "urban"

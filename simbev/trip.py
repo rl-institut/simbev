@@ -386,6 +386,11 @@ class Trip:
 
             # set necessary parameters for next loop or the following drive
             remaining_distance -= hpc_distance
+            remaining_range = (
+                self.car.remaining_range_highway
+                if self.extra_urban
+                else self.car.remaining_range
+            )
             self.drive_start = self.park_start + charging_time
             if self.drive_start > self.region.last_time_step:
                 self.drive_found = False
