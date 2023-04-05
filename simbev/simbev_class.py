@@ -79,6 +79,7 @@ class SimBEV:
         self.user_groups = {}
         self.grid_data_list = []
         self.analysis_data_list = []
+        self.terminated = False
 
         self.name = name
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -237,9 +238,22 @@ class SimBEV:
         else:
             pool = mp.Pool(processes=self.num_threads)
 
-            pool.map_async(self.run, self.regions, callback=self._log_grid_data)
+            # define local callback function for error handling and data logging
+            def callback(result):
+                if result[0] is None:
+                    self.terminated = True
+                    pool.terminate()
+
+                self._log_grid_data(result)
+
+            for region in self.regions:
+                pool.apply_async(self.run, (region,), callback=callback)
             pool.close()
             pool.join()
+        if self.terminated:
+            raise RuntimeError(
+                "Exception occured during multiprocessing, simulation stopped. See above for further information."
+            )
         grid_time_series_all_regions = helpers.timeitlog(
             self.output_options["timing"], self.save_directory
         )(self.export_grid_timeseries_all_regions)()
@@ -281,10 +295,12 @@ class SimBEV:
                     # create new car objects
                     # TODO: parking parameters that change by region
                     work_parking = (
-                        self.work_parking[region.region_type.rs7_type] >= self.rng.random()
+                        self.work_parking[region.region_type.rs7_type]
+                        >= self.rng.random()
                     )
                     home_parking = (
-                        self.home_parking[region.region_type.rs7_type] >= self.rng.random()
+                        self.home_parking[region.region_type.rs7_type]
+                        >= self.rng.random()
                     )
                     work_power = (
                         self.get_charging_capacity("work") if work_parking else None
@@ -391,9 +407,13 @@ class SimBEV:
             print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
             return region.grid_data_frame, region.analyze_array
         except Exception as e:
-            print('\n{}: {}'.format(type(e).__name__, e))
-            print("EXCEPTION TRACE  PRINT:\n{}".format("".join(traceback.format_exception(type(e), e, e.__traceback__))))
-
+            print("\n{}: {}".format(type(e).__name__, e))
+            print(
+                "EXCEPTION TRACE  PRINT:\n{}".format(
+                    "".join(traceback.format_exception(type(e), e, e.__traceback__))
+                )
+            )
+            return None, None
 
     def get_charging_capacity(self, location=None, distance=None, distance_limit=50):
         """Determines charging capacity for specific charging event
