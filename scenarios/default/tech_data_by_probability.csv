@@ -1,4 +1,4 @@
-type,probability_AC_3.7kW,probability_AC_11kW,probability_AC_22kW,probability_DC_50kW,probability_DC_150kW,probability_DC_350kW,battery_capacity,energy_consumption
+type,slow_3.7,slow_11,slow_22,fast_50,fast_150,fast_350,battery_capacity,energy_consumption
 bev_mini,0.02,0.82,0.16,0.33,0.62,0.04,60,0.1397
 bev_medium,0,0.68,0.32,0.35,0.61,0.04,90,0.1746
 bev_luxury,0.04,0.72,0.24,0.03,0.85,0.12,110,0.2096
