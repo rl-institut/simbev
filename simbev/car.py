@@ -380,7 +380,7 @@ class Car:
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
             if charging_use_case is None:
                 charging_use_case = self._get_charging_usecase(
-                    nominal_charging_capacity, extra_urban
+                    nominal_charging_capacity, extra_urban, charging_use_case
                 )
             self.output["charging_use_case"].append(charging_use_case)
             self.output["soc_start"].append(
@@ -656,7 +656,7 @@ class Car:
             power_array = power_array[charging_section_counter - 1 :]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
-            charging_use_case = self._get_charging_usecase(power, trip.extra_urban)
+            charging_use_case = self._get_charging_usecase(power, trip.extra_urban, trip.charging_use_case)
             use_case = self._get_usecase(power)
 
             if use_case == "hpc" and trip.car.status == "hpc":
@@ -867,7 +867,7 @@ class Car:
             return "public"
 
     # TODO maybe solve this in charging (Jakob)
-    def _get_charging_usecase(self, power, extra_urban):
+    def _get_charging_usecase(self, power, extra_urban, charging_use_case):
         """Determines use-case of parking-event.
 
         Parameters
@@ -891,9 +891,9 @@ class Car:
         # TODO: decide on status an requirement for hpc
         elif self.status == "hpc" and extra_urban:
             return "highway_fast"
-        elif power >= 150:
+        elif power >= 150 or self.status == "hpc":
             return "urban_fast"
-        elif self.status == "shopping":
+        elif self.status == "shopping" or charging_use_case == "retail":
             return "retail"
         else:
             return "street"
