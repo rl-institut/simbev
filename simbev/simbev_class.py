@@ -40,6 +40,7 @@ class SimBEV:
         self.distance_threshold_extra_urban = config_dict[
             "distance_threshold_extra_urban"
         ]
+        self.fast_charge_threshold = config_dict["fast_charge_threshold"]
         self.consumption_factor_highway = config_dict["consumption_factor_highway"]
         self.occupation_time_max = config_dict["occupation_time_max"]
         self.rng_seed = config_dict["rng_seed"]
@@ -334,8 +335,8 @@ class SimBEV:
                         self.rng.random()
                         ).split("_")[-1])
                         car_type = self.car_types["{}_{}_{}".format(car_type_name, charging_capacity_slow, charging_capacity_fast)]
-                    
-                    
+
+
                     # create new car objects
                     # TODO: parking parameters that change by region
                     work_parking = (
@@ -850,6 +851,7 @@ class SimBEV:
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
             "occupation_time_max": cfg.getint("basic", "occupation_time_max"),
+            "fast_charge_threshold": cfg.getfloat("basic", "dc_power_threshold", fallback=50.),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
