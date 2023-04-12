@@ -591,6 +591,11 @@ class Car:
 
         soc_start = self.soc
 
+        if power >= trip.simbev.fast_charge_threshold:
+            charging_type = "fast"
+            if self.car_type.charging_capacity[charging_type] == 0:
+                return trip.park_time, 0, 0, soc_start
+
         # check if min charging energy is charged
         if (
             (soc_end - soc_start) * self.car_type.battery_capacity
