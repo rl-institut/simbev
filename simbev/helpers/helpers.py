@@ -84,6 +84,7 @@ def export_metadata(simbev, config):
         "charge_prob_fast": simbev.charging_probabilities["fast"].to_dict(
             orient="index"
         ),
+        # TODO maybe add charging probability by usecase here
         "car_sum": cars.sum().to_dict(),
         "car_amounts": cars.to_dict(orient="index"),
     }

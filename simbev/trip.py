@@ -227,7 +227,7 @@ class Trip:
             ):
                 # get parameters for charging at hpc station
                 charging_capacity = self.simbev.get_charging_capacity(
-                    location="hpc", distance=self.distance
+                    location="hpc", use_case="hpc", distance=self.distance
                 )
                 self.car.charge(
                     self,
@@ -238,7 +238,7 @@ class Trip:
                 )
             elif self.charging_use_case in ["retail", "street"]:
                 station_capacity = self.simbev.get_charging_capacity(
-                    self.location, self.distance
+                    self.location, self.charging_use_case, self.distance
                 )
                 self.car.charge(
                     self,
@@ -251,7 +251,7 @@ class Trip:
             elif self.location == "shopping":
                 if self.charge_decision("retail"):
                     station_capacity = self.simbev.get_charging_capacity(
-                        self.location, self.distance
+                        self.location, "retail", self.distance
                     )
                     self.car.charge(
                         self,
@@ -266,7 +266,7 @@ class Trip:
 
             elif self.charge_decision("street"):
                 station_capacity = self.simbev.get_charging_capacity(
-                    self.location, self.distance
+                    self.location, "street", self.distance
                 )
                 self.car.charge(
                     self,
@@ -368,7 +368,7 @@ class Trip:
 
             # get parameters for charging at hpc station
             charging_capacity = self.simbev.get_charging_capacity(
-                location=self.car.status, distance=self.distance
+                location=self.car.status, use_case="hpc", distance=self.distance
             )
             self.park_start = self.drive_start + hpc_drive_time
             self.park_timestamp = self.region.region_type.time_series.index[
@@ -382,10 +382,16 @@ class Trip:
                 self.step_size,
                 long_distance=True,
                 max_charging_time=max_charging_time,
+                charging_use_case="highway_fast"
             )
 
             # set necessary parameters for next loop or the following drive
             remaining_distance -= hpc_distance
+            remaining_range = (
+                self.car.remaining_range_highway
+                if self.extra_urban
+                else self.car.remaining_range
+            )
             self.drive_start = self.park_start + charging_time
             if self.drive_start > self.region.last_time_step:
                 self.drive_found = False
