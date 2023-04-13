@@ -204,7 +204,7 @@ class Trip:
         if self.distance > self.simbev.distance_threshold_extra_urban:
             self.extra_urban = True
 
-        if self.location == "home" and self.car.home_detached and self.car.home_parking:
+        if self.location == "home" and self.car.home_parking:
             if (self.charge_decision("home_detached") and self.car.home_detached) or (
                 self.charge_decision("home_apartment") and not self.car.home_detached
             ):
