@@ -244,12 +244,20 @@ class Trip:
                     station_capacity = self.simbev.get_charging_capacity(
                         self.location, "retail", self.distance
                     )
+
+                    frac_park_start, whole_park_start = math.modf(self.park_start / 96)
+                    frac_park_end, whole_park_end = math.modf((self.park_start + self.park_time) / 96)
+                    if whole_park_start < whole_park_end:
+                        max_parking_time = int((whole_park_start + 1) * 96 - self.park_start)
+                    else:
+                        max_parking_time = self.park_time
+
                     self.car.charge(
                         self,
                         station_capacity,
                         "slow",
                         step_size=self.simbev.step_size,
-                        max_charging_time=self.park_time,
+                        max_charging_time=max_parking_time,
                         charging_use_case="retail",
                     )
                 else:
