@@ -899,8 +899,10 @@ class Car:
         """
         if self.status == "driving":
             return ""
-        #elif charging_use_case:
-        #    return charging_use_case
+        elif (self.status == "hpc" and extra_urban) or charging_use_case == "highway_fast":
+            return "highway_fast"
+        elif power >= 150 or self.status == "hpc" or charging_use_case == "urban_fast":
+            return "urban_fast"
         elif self.work_parking and self.status == "work":
             return "work"
         elif self.home_parking and self.status == "home" and self.home_detached:
@@ -908,10 +910,6 @@ class Car:
         elif self.home_parking and self.status == "home" and not self.home_detached:
             return "home_apartment"
         # TODO: decide on status an requirement for hpc
-        elif (self.status == "hpc" and extra_urban) or charging_use_case == "highway_fast":
-            return "highway_fast"
-        elif power >= 150 or self.status == "hpc" or charging_use_case == "urban_fast":
-            return "urban_fast"
         elif self.status == "shopping" or charging_use_case == "retail":
             return "retail"
         else:
