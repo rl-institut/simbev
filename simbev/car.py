@@ -380,7 +380,7 @@ class Car:
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
             if charging_use_case is None:
                 charging_use_case = self._get_charging_usecase(
-                    nominal_charging_capacity, extra_urban, charging_use_case
+                    nominal_charging_capacity, extra_urban
                 )
             self.output["charging_use_case"].append(charging_use_case)
             self.output["soc_start"].append(
@@ -884,7 +884,7 @@ class Car:
             return "public"
 
     # TODO maybe solve this in charging (Jakob)
-    def _get_charging_usecase(self, power, extra_urban, charging_use_case):
+    def _get_charging_usecase(self, power, extra_urban, charging_use_case=None):
         """Determines use-case of parking-event.
 
         Parameters
