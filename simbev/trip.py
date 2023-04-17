@@ -265,7 +265,6 @@ class Trip:
                     else:
                         max_parking_time = self.park_time
 
-
                     self.car.charge(
                         self,
                         station_capacity,
