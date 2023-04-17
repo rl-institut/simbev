@@ -3,6 +3,7 @@ import numpy as np
 import pathlib
 from simbev.mid_timeseries import get_timeseries, get_empty_timeseries
 import simbev.helpers.helpers as helpers
+import math
 
 
 class RegionType:
@@ -223,6 +224,11 @@ class Region:
             if code in self.header_grid_ts:
                 column = self.header_grid_ts.index(code)
                 if i == 0:
+                    if use_case == "retail":
+                        frac_park_start, whole_park_start = math.modf(timestep_start / 96)
+                        frac_park_end, whole_park_end = math.modf(park_ts_end / 96)
+                        if whole_park_start < whole_park_end:
+                            park_ts_end = int((whole_park_start+1)*96)
                     self.grid_time_series[
                         timestep_start:park_ts_end, column
                     ] += np.float32(1 * self.scaling[car_type])
