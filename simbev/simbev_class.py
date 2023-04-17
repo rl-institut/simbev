@@ -312,6 +312,7 @@ class SimBEV:
 
             cars_simulated = 0
             exception_count = 0
+            public_count = 0
             for car_type_name, car_count in region.car_dict.items():
                 for car_number in range(car_count):
                     # Create new car
@@ -418,6 +419,7 @@ class SimBEV:
                             exception_count += 1
                             self.simulate_car(car, region)
                     else:
+                        public_count += 1
                         self.simulate_car(car, region)
 
                     # export vehicle csv
@@ -434,8 +436,8 @@ class SimBEV:
                 cars_simulated += car_count
             if self.private_only_run:
                 print(
-                    "\nNumber of cars that couldn't run private only: {}/{}".format(
-                        exception_count, cars_simulated
+                    "\nNumber of cars that couldn't run private only: {}/{}\nCars without private charging: {}".format(
+                        exception_count, cars_simulated - public_count, public_count
                     )
                 )
 
