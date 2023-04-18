@@ -380,7 +380,7 @@ class Car:
             self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
             if charging_use_case is None:
                 charging_use_case = self._get_charging_usecase(
-                    nominal_charging_capacity, extra_urban, charging_use_case
+                    nominal_charging_capacity, extra_urban
                 )
             self.output["charging_use_case"].append(charging_use_case)
             self.output["soc_start"].append(
@@ -590,6 +590,11 @@ class Car:
         """
 
         soc_start = self.soc
+
+        if power >= trip.simbev.fast_charge_threshold:
+            charging_type = "fast"
+            if self.car_type.charging_capacity[charging_type] == 0:
+                return trip.park_time, 0, 0, soc_start
 
         # check if min charging energy is charged
         if (
@@ -879,7 +884,7 @@ class Car:
             return "public"
 
     # TODO maybe solve this in charging (Jakob)
-    def _get_charging_usecase(self, power, extra_urban, charging_use_case):
+    def _get_charging_usecase(self, power, extra_urban, charging_use_case=None):
         """Determines use-case of parking-event.
 
         Parameters
@@ -894,6 +899,8 @@ class Car:
         """
         if self.status == "driving":
             return ""
+        elif charging_use_case:
+            return charging_use_case
         elif self.work_parking and self.status == "work":
             return "work"
         elif self.home_parking and self.status == "home" and self.home_detached:
@@ -901,11 +908,11 @@ class Car:
         elif self.home_parking and self.status == "home" and not self.home_detached:
             return "home_apartment"
         # TODO: decide on status an requirement for hpc
-        elif (self.status == "hpc" and extra_urban) or charging_use_case == "highway_fast":
+        elif self.status == "hpc" and extra_urban:
             return "highway_fast"
-        elif power >= 150 or self.status == "hpc" or charging_use_case == "urban_fast":
+        elif power >= 150 or self.status == "hpc":
             return "urban_fast"
-        elif self.status == "shopping" or charging_use_case == "retail":
+        elif self.status == "shopping":
             return "retail"
         else:
             return "street"

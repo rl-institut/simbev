@@ -41,6 +41,7 @@ class SimBEV:
         self.distance_threshold_extra_urban = config_dict[
             "distance_threshold_extra_urban"
         ]
+        self.fast_charge_threshold = config_dict["fast_charge_threshold"]
         self.consumption_factor_highway = config_dict["consumption_factor_highway"]
         self.occupation_time_max = config_dict["occupation_time_max"]
         self.rng_seed = config_dict["rng_seed"]
@@ -120,47 +121,69 @@ class SimBEV:
         for car_type_name in self.tech_data.index:
             bat_cap = self.tech_data.at[car_type_name, "battery_capacity"]
             consumption = self.tech_data.at[car_type_name, "energy_consumption"]
-            charging_capacity_slow = self.tech_data.at[
-                car_type_name, "max_charging_capacity_slow"
-            ]
-            charging_capacity_fast = self.tech_data.at[
-                car_type_name, "max_charging_capacity_fast"
-            ]
-            charging_capacity = {
-                "slow": charging_capacity_slow,
-                "fast": charging_capacity_fast,
-            }
+
             charging_curve = helpers.interpolate_charging_curve(
                 self.charging_curve_points["key"].tolist(),
                 self.charging_curve_points[car_type_name].tolist(),
             )
+
+            output = self.output_options["analyze"] or self.output_options["car"]
 
             if "bev" in car_type_name:
                 energy_min = self.energy_min["bev"].to_dict()
             else:
                 energy_min = self.energy_min["phev"].to_dict()
 
-            output = self.output_options["analyze"] or self.output_options["car"]
+            if "max_charging_capacity_slow" in self.tech_data.columns:
+                charging_capacity_slow = self.tech_data.at[
+                    car_type_name, "max_charging_capacity_slow"
+                ]
+                charging_capacity_fast = self.tech_data.at[
+                    car_type_name, "max_charging_capacity_fast"
+                ]
 
-            car_type = CarType(
-                car_type_name,
-                bat_cap,
-                charging_capacity,
-                self.soc_min,
-                self.charging_threshold,
-                energy_min,
-                charging_curve,
-                consumption,
-                self.consumption_factor_highway,
-                output,
-                self.attractivity,
-                analyze_mid=True,
-            )
-            if "bev" in car_type.name:
-                car_type.label = "BEV"
+                car_types_tuples = [
+                    (charging_capacity_slow, charging_capacity_fast)
+                ]
             else:
-                car_type.label = "PHEV"
-            self.car_types[car_type_name] = car_type
+                # tech data by probability
+                slow_cols = [col for col in self.tech_data.columns if 'slow' in col]
+                fast_cols = [col for col in self.tech_data.columns if 'fast' in col]
+
+                car_types_tuples = []
+                for slow_col in slow_cols:
+                    slow = float(slow_col.split("_")[-1])
+                    for fast_col in fast_cols:
+                        fast = float(fast_col.split("_")[-1])
+                        car_types_tuples.append((slow, fast))
+
+            for slow, fast in car_types_tuples:
+                charging_capacity = {
+                    "slow": slow,
+                    "fast": fast,
+                }
+                car_type = CarType(
+                    car_type_name,
+                    bat_cap,
+                    charging_capacity,
+                    self.soc_min,
+                    self.charging_threshold,
+                    energy_min,
+                    charging_curve,
+                    consumption,
+                    self.consumption_factor_highway,
+                    output,
+                    self.attractivity,
+                    analyze_mid=True,
+                )
+                if "bev" in car_type.name:
+                    car_type.label = "BEV"
+                else:
+                    car_type.label = "PHEV"
+                if len(car_types_tuples) == 1:
+                    self.car_types[car_type_name] = car_type
+                else:
+                    self.car_types["{}_{}_{}".format(car_type_name, slow, fast)] = car_type
 
     def _create_region_type(self, region_type):
         """Creates region-types with all necessary properties.
@@ -292,16 +315,36 @@ class SimBEV:
             for car_type_name, car_count in region.car_dict.items():
                 for car_number in range(car_count):
                     # Create new car
-                    car_type = self.car_types[car_type_name]
+                    if "max_charging_capacity_slow" in self.tech_data.columns:
+                        car_type = self.car_types[car_type_name]
+                    else:
+                        # tech data by probability
+                        slow_cols = [col for col in self.tech_data.columns if 'slow' in col]
+                        fast_cols = [col for col in self.tech_data.columns if 'fast' in col]
+
+                        charging_capacity_slow = float(helpers.get_column_by_random_number(
+                            self.tech_data.loc[
+                            car_type_name, slow_cols
+                        ],
+                        self.rng.random()
+                        ).split("_")[-1])
+
+                        charging_capacity_fast = float(helpers.get_column_by_random_number(
+                            self.tech_data.loc[
+                            car_type_name, fast_cols
+                        ],
+                        self.rng.random()
+                        ).split("_")[-1])
+                        car_type = self.car_types["{}_{}_{}".format(car_type_name, charging_capacity_slow, charging_capacity_fast)]
+
+
                     # create new car objects
                     # TODO: parking parameters that change by region
                     work_parking = (
-                        self.work_parking[region.region_type.rs7_type]
-                        >= self.rng.random()
+                        self.work_parking[region.region_type.rs7_type] >= self.rng.random()
                     )
                     home_parking = (
-                        self.home_parking[region.region_type.rs7_type]
-                        >= self.rng.random()
+                        self.home_parking[region.region_type.rs7_type] >= self.rng.random()
                     )
                     work_power = (
                         self.get_charging_capacity("work") if work_parking else None
@@ -415,7 +458,7 @@ class SimBEV:
                         "".join(traceback.format_exception(type(e), e, e.__traceback__))
                     )
                 )
-                
+
                 return None, None
             else:
                 raise e
@@ -830,6 +873,7 @@ class SimBEV:
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
             "occupation_time_max": cfg.getint("basic", "occupation_time_max"),
+            "fast_charge_threshold": cfg.getfloat("basic", "dc_power_threshold", fallback=50.),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
