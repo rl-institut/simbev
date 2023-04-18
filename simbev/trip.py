@@ -380,7 +380,7 @@ class Trip:
                 charging_capacity,
                 "fast",
                 self.step_size,
-                long_distance=True,
+                long_distance=self.extra_urban,
                 max_charging_time=max_charging_time,
                 charging_use_case="highway_fast"
             )
