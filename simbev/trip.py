@@ -257,10 +257,14 @@ class Trip:
 
                     frac_park_start, whole_park_start = math.modf(self.park_start / 96)
                     frac_park_end, whole_park_end = math.modf((self.park_start + self.park_time) / 96)
+
                     if whole_park_start < whole_park_end:
-                        max_parking_time = int((whole_park_start + 1) * 96 - self.park_start)
+                        max_parking_end = int(self.rng.uniform(self.park_start+1, int((whole_park_start + 1) * 96)))
+
+                        max_parking_time = max_parking_end - self.park_start
                     else:
                         max_parking_time = self.park_time
+
 
                     self.car.charge(
                         self,
@@ -389,7 +393,7 @@ class Trip:
                 charging_capacity,
                 "fast",
                 self.step_size,
-                long_distance=True,
+                long_distance=self.extra_urban,
                 max_charging_time=max_charging_time,
                 charging_use_case="highway_fast"
             )
