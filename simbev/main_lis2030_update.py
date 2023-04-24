@@ -57,10 +57,10 @@ def wrapper(simbev_obj):
             config_path = pathlib.Path(scenario_dict["scenario_paths"][scenario] + "/configs/default.cfg")
 
             # change config for run
-            simbev_obj, cfg = SimBEV.from_config(config_path)
-
-            path_parent = simbev_obj.save_directory.parent
-            folder_name = simbev_obj.save_directory.name
+            simbev_obj_base, cfg = SimBEV.from_config(config_path)
+            simbev_obj = copy.deepcopy(simbev_obj_base)
+            path_parent = simbev_obj_base.save_directory.parent
+            folder_name = simbev_obj_base.save_directory.name
             simbev_obj.save_directory = pathlib.Path(
                 path_parent, str(year), folder_name + "_scenario_" + str(scenario)
             )
@@ -71,6 +71,11 @@ def wrapper(simbev_obj):
             simbev_obj.tech_data = tech_data
             simbev_obj.home_parking = home_work_private.loc["home", :]
             simbev_obj.work_parking = home_work_private.loc["work", :]
+            #simbev_obj.probability_detached_home = home_work_private.loc["probability_detached_home", :]
+
+
+            #setup simbev_obj
+            SimBEV.setup_simbev_object()
 
             # run simulation with optional timing
             helpers.timeitlog(simbev_obj.output_options["timing"], simbev_obj.save_directory)(
