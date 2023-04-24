@@ -95,7 +95,7 @@ class SimBEV:
 
         self.step_size_str = str(self.step_size) + "min"
 
-        # run setup functions
+    def setup_simbev_object(self):
         self._create_user_groups()
         self._create_car_types()
         self._add_regions_from_dataframe()
@@ -365,7 +365,7 @@ class SimBEV:
                         else 1
                     )
                     home_detached = (
-                        self.rng.random() <= self.probability_detached_home[region.id]
+                        self.rng.random() <= self.probability_detached_home[region.region_type.rs7_type]
                     )
 
                     car = Car(
