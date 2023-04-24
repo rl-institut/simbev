@@ -383,7 +383,7 @@ class SimBEV:
                         else 1
                     )
                     home_detached = (
-                        self.rng.random() <= self.probability_detached_home[region.id]
+                        self.rng.random() <= self.probability_detached_home[region.region_type.rs7_type]
                     )
 
                     car = Car(
