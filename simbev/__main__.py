@@ -46,6 +46,8 @@ def main():
         simbev_list = [simbev_obj]
 
     for simbev in simbev_list:
+        # setup simbev object
+        SimBEV.setup_simbev_object(simbev)
         # run simulation with optional timing
         helpers.timeitlog(simbev.output_options["timing"], simbev_obj.save_directory)(
             simbev.run_multi
