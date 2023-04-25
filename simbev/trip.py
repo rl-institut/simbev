@@ -245,16 +245,17 @@ class Trip:
                         self.location, "retail", self.distance
                     )
 
-                    frac_park_start, whole_park_start = math.modf(self.park_start / 96)
-                    frac_park_end, whole_park_end = math.modf((self.park_start + self.park_time) / 96)
+                    frac_park_start, whole_park_start = math.modf(self.park_start / (60 * 24 / self.step_size))
+                    frac_park_end, whole_park_end = math.modf((self.park_start + self.park_time)
+                                                              / (60 * 24 / self.step_size))
 
                     if whole_park_start < whole_park_end:
-                        max_parking_end = int(self.rng.uniform(self.park_start+1, int((whole_park_start + 1) * 96)))
+                        max_parking_end = int(self.rng.uniform(self.park_start+1, int((whole_park_start + 1)
+                                                                                      * (60 * 24 / self.step_size))))
 
                         max_parking_time = max_parking_end - self.park_start
                     else:
                         max_parking_time = self.park_time
-
 
                     self.car.charge(
                         self,
