@@ -95,7 +95,7 @@ class SimBEV:
 
         self.step_size_str = str(self.step_size) + "min"
 
-    def setup_simbev_object(self):
+    def setup(self):
         # run setup functions
         self._create_user_groups()
         self._create_car_types()
