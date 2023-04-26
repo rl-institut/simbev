@@ -75,7 +75,7 @@ def wrapper(simbev_obj):
 
 
             #setup simbev_obj
-            SimBEV.setup_simbev_object()
+            simbev_obj.setup()
 
             # run simulation with optional timing
             helpers.timeitlog(simbev_obj.output_options["timing"], simbev_obj.save_directory)(
