@@ -412,6 +412,7 @@ class SimBEV:
                     if self.private_only_run and (work_power or home_power):
                         try:
                             private_car = copy.copy(car)
+                            private_car.output = copy.deepcopy(car.output)
                             private_car.private_only = True
                             self.simulate_car(private_car, region)
                             car = private_car
