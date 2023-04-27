@@ -850,10 +850,10 @@ class SimBEV:
             "soc_min": cfg.getfloat("basic", "soc_min", fallback=0.2),
             "charging_threshold": cfg.getfloat("basic", "charging_threshold"),
             "distance_threshold_extra_urban": cfg.getfloat(
-                "basic", "distance_threshold_extra_urban"
+                "basic", "distance_threshold_extra_urban", fallback=75
             ),
             "consumption_factor_highway": cfg.getfloat(
-                "basic", "consumption_factor_highway"
+                "basic", "consumption_factor_highway", fallback=1.
             ),
             "rng_seed": cfg["sim_params"].getint("seed", None),
             "eta_cp": cfg.getfloat("basic", "eta_cp"),
@@ -874,7 +874,7 @@ class SimBEV:
                 "sim_params", "private_only_run", fallback=False
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
-            "occupation_time_max": cfg.getint("basic", "occupation_time_max"),
+            "occupation_time_max": cfg.getint("basic", "occupation_time_max", fallback=24),
             "fast_charge_threshold": cfg.getfloat("basic", "dc_power_threshold", fallback=50.),
         }
         data_dict = {

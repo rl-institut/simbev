@@ -122,6 +122,7 @@ class Trip:
                 region,
                 car,
                 simbev,
+                car.driving_profile.loc[i-1, "charging_use_case"],
             )
             previous_trip = trip
             trip_list[count + 1] = trip
@@ -130,6 +131,7 @@ class Trip:
         if last_trip_end <= region.last_time_step:
             trip = Trip(region, car, last_trip_end, simbev)
             trip.park_time = region.last_time_step - trip.park_start
+            trip.location = previous_trip.destination
             trip.fit_trip_to_timerange()
             trip._set_timestamps()
             trip_list.append(trip)
@@ -442,7 +444,7 @@ class Trip:
 
 
 def create_trip_from_profile_row(
-    row, current_location, last_time_step, region, car, simbev
+    row, current_location, last_time_step, region, car, simbev, charging_use_case=None,
 ):
     drive_start = int(row.time_step)
     drive_time = max((row.arrival_time - row.departure_time) / simbev.step_size, 1)
@@ -461,7 +463,7 @@ def create_trip_from_profile_row(
     trip.drive_time = drive_time
     trip.drive_found = True
     trip.trip_end = trip.drive_start + trip.drive_time
-    trip.charging_use_case = row.charging_use_case
+    trip.charging_use_case = charging_use_case
     trip.fit_trip_to_timerange()
     trip._set_timestamps()
     return trip
