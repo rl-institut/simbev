@@ -933,18 +933,6 @@ class Car:
         """
 
         for charge_event in self.grid_timeseries_list:
-            if charge_event["time"] == 0:
-                charge_event["park_ts_end"] = (
-                    charge_event["park_ts_end"]
-                    if (charge_event["park_ts_end"] - charge_event["start"])
-                    * simbev.step_size
-                    / 60
-                    <= simbev.occupation_time_max
-                    else int(
-                        charge_event["start"]
-                        + simbev.occupation_time_max * 60 / simbev.step_size
-                    )
-                )
             self.region.update_grid_timeseries(
                 charge_event["charging_use_case"],
                 charge_event["chargepower_timestep"],

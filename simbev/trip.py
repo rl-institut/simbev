@@ -277,7 +277,7 @@ class Trip:
                     station_capacity,
                     "slow",
                     step_size=self.simbev.step_size,
-                    max_charging_time=self.park_time,
+                    max_charging_time=self.simbev.occupation_time_max,
                     charging_use_case="street",
                 )
 
