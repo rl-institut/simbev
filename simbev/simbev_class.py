@@ -874,7 +874,7 @@ class SimBEV:
                 "sim_params", "private_only_run", fallback=False
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
-            "occupation_time_max": cfg.getint("basic", "occupation_time_max"),
+            "occupation_time_max": cfg.getint("basic", "occupation_time_street_max"),
             "fast_charge_threshold": cfg.getfloat("basic", "dc_power_threshold", fallback=50.),
         }
         data_dict = {
