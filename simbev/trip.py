@@ -286,7 +286,7 @@ class Trip:
 
             # call hpc events if trip cant be completed
             if not trip_completed:
-                if self.car.private_only:
+                if self.car.private_only and not self.extra_urban:
                     raise SoCError(
                         f"Vehicle {self.car.file_name} dropped below the minimum SoC "
                         f"while trying to charge private only."
