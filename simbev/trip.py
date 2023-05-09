@@ -269,17 +269,22 @@ class Trip:
                     self.car.park(self)
 
             elif self.charge_decision("street"):
-                station_capacity = self.simbev.get_charging_capacity(
-                    self.location, "street", self.distance
-                )
-                self.car.charge(
-                    self,
-                    station_capacity,
-                    "slow",
-                    step_size=self.simbev.step_size,
-                    max_charging_time=self.simbev.occupation_time_max,
-                    charging_use_case="street",
-                )
+                # TODO get attractivity factor for interrupting the charging (here 0.5) from config
+                # factor 0 would always park instead of charge when parking time is too long
+                if not self.parking_time_within_occupation_max and 0.5 < self.rng.random():
+                    self.car.park(self)
+                else:
+                    station_capacity = self.simbev.get_charging_capacity(
+                        self.location, "street", self.distance
+                    )
+                    self.car.charge(
+                        self,
+                        station_capacity,
+                        "slow",
+                        step_size=self.simbev.step_size,
+                        max_charging_time=self.simbev.occupation_time_max,
+                        charging_use_case="street",
+                    )
 
             else:
                 self.car.park(self)
@@ -305,6 +310,11 @@ class Trip:
                         f"while trying to charge private only."
                     )
                 self._create_fast_charge_events()
+
+    @property
+    def parking_time_within_occupation_max(self) -> bool:
+        parking_time = self.park_time * self.simbev.step_size / 60
+        return parking_time <= self.simbev.occupation_time_max
 
     def _set_timestamps(self):
         """
