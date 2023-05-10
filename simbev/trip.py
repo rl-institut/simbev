@@ -196,6 +196,31 @@ class Trip:
         self.fit_trip_to_timerange()
         self._set_timestamps()
 
+    def get_max_parking_time(self, use_case):
+        frac_park_start, whole_park_start = math.modf(self.park_start / (60 * 24 / self.step_size))
+        _, whole_park_end = math.modf((self.park_start + self.park_time)
+                                      / (60 * 24 / self.step_size))
+
+        if use_case == "retail":
+            if whole_park_start < whole_park_end:
+
+                max_parking_end = int(self.rng.uniform(self.park_start + 1, int((whole_park_start + 1)
+                                                                                * (60 * 24 / self.step_size)))) \
+                    if (frac_park_start * 60 * 24 / self.step_size >= 60 * self.simbev.threshold_retail_limitation /
+                        self.step_size) else int(self.rng.uniform(60 * 21 / self.step_size, int((whole_park_start + 1)
+                                                                            * (60 * 24 / self.step_size))))
+                max_parking_time = max_parking_end - self.park_start
+            else:
+                max_parking_time = self.park_time
+            return max_parking_time
+
+        elif use_case == "street":
+            max_parking_time = int(12 * 60 / self.step_size) if (frac_park_start * 60 * 24 /
+                                                                 self.step_size >= 60 *
+                                                                 self.simbev.threshold_street_limit / self.step_size) \
+                else self.simbev.occupation_time_max
+            return max_parking_time
+
     def charge_decision(self, key):
         return self.car.user_group.attractivity[key] >= self.rng.random()
 
@@ -225,7 +250,6 @@ class Trip:
                 and self.charge_decision("urban_fast")
                 and self.park_time
                 <= (self.simbev.hpc_data["park_time_max"] / self.step_size)
-                and self.car.car_type.label != "PHEV"
             ):
                 # get parameters for charging at hpc station
                 charging_capacity = self.simbev.get_charging_capacity(
@@ -235,7 +259,8 @@ class Trip:
                     self,
                     charging_capacity,
                     "fast",
-                    self.step_size,
+                    "urban_fast",
+                    step_size=self.simbev.step_size,
                     max_charging_time=self.park_time,
                 )
 
@@ -244,27 +269,9 @@ class Trip:
                     station_capacity = self.simbev.get_charging_capacity(
                         self.location, "retail", self.distance
                     )
-
-                    frac_park_start, whole_park_start = math.modf(self.park_start / (60 * 24 / self.step_size))
-                    frac_park_end, whole_park_end = math.modf((self.park_start + self.park_time)
-                                                              / (60 * 24 / self.step_size))
-
-                    if whole_park_start < whole_park_end:
-                        max_parking_end = int(self.rng.uniform(self.park_start+1, int((whole_park_start + 1)
-                                                                                      * (60 * 24 / self.step_size))))
-
-                        max_parking_time = max_parking_end - self.park_start
-                    else:
-                        max_parking_time = self.park_time
-
-                    self.car.charge(
-                        self,
-                        station_capacity,
-                        "slow",
-                        step_size=self.simbev.step_size,
-                        max_charging_time=max_parking_time,
-                        charging_use_case="retail",
-                    )
+                    # todo exponentialfunktion
+                    max_parking_time = self.get_max_parking_time("retail")
+                    self.car.charge_public(self, station_capacity, max_parking_time, "retail")
                 else:
                     self.car.park(self)
 
@@ -272,14 +279,8 @@ class Trip:
                 station_capacity = self.simbev.get_charging_capacity(
                     self.location, "street", self.distance
                 )
-                self.car.charge(
-                    self,
-                    station_capacity,
-                    "slow",
-                    step_size=self.simbev.step_size,
-                    max_charging_time=self.simbev.occupation_time_max,
-                    charging_use_case="street",
-                )
+                max_parking_time = self.get_max_parking_time("street")
+                self.car.charge_public(self, station_capacity, max_parking_time, "street")
 
             else:
                 self.car.park(self)
@@ -379,14 +380,20 @@ class Trip:
                 self.park_start
             ]
             max_charging_time = self.region.last_time_step - self.park_start
+
+            if self.extra_urban:
+                charging_use_case = "highway_fast"
+            else:
+                charging_use_case = "urban_fast"
+
             charging_time = self.car.charge(
                 self,
                 charging_capacity,
                 "fast",
+                charging_use_case,
                 self.step_size,
                 long_distance=self.extra_urban,
                 max_charging_time=max_charging_time,
-                charging_use_case="highway_fast"
             )
 
             # set necessary parameters for next loop or the following drive
