@@ -689,7 +689,7 @@ class Car:
             use_case = self._get_usecase(power)
 
             if charging_use_case == "urban_fast" or charging_use_case == "highway_fast":
-                park_timestep_end = trip.park_start + time_steps
+                park_timestep_end = trip.park_start + time_steps + 1
 
             else:
                 park_timestep_end = trip.park_start + max_charging_time

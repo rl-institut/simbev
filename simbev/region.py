@@ -224,12 +224,6 @@ class Region:
             if code in self.header_grid_ts:
                 column = self.header_grid_ts.index(code)
                 if i == 0:
-                    #if use_case == "retail":
-                    #    frac_park_start, whole_park_start = math.modf(timestep_start /
-                    #                                                  (24 * 60 / self.region_type.step_size))
-                    #    frac_park_end, whole_park_end = math.modf(park_ts_end / (24 * 60 / self.region_type.step_size))
-                    #    if whole_park_start < whole_park_end:
-                    #        park_ts_end = int((whole_park_start + 1) * (24 * 60 / self.region_type.step_size))
                     self.grid_time_series[
                         timestep_start:park_ts_end, column
                     ] += np.float32(1 * self.scaling[car_type])

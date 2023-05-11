@@ -206,8 +206,9 @@ class Trip:
 
                 max_parking_end = int(self.rng.uniform(self.park_start + 1, int((whole_park_start + 1)
                                                                                 * (60 * 24 / self.step_size)))) \
-                    if (frac_park_start * 60 * 24 / self.step_size >= 60 * self.simbev.threshold_retail_limitation /
-                        self.step_size) else int(self.rng.uniform(60 * 21 / self.step_size, int((whole_park_start + 1)
+                    if ((frac_park_start * 60 * 24 / self.step_size) >= (60 * self.simbev.threshold_retail_limitation /
+                        self.step_size)) else int(self.rng.uniform((whole_park_start*60*24/self.step_size + 60 * 21 /
+                                                                    self.step_size), int((whole_park_start + 1)
                                                                             * (60 * 24 / self.step_size))))
                 max_parking_time = max_parking_end - self.park_start
             else:
