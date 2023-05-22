@@ -266,7 +266,8 @@ class Trip:
                 )
 
             elif self.location == "shopping" or self.charging_use_case == "retail":
-                if self.charge_decision("retail"):
+                if self.charge_decision("retail") and not (self.simbev.maximum_park_time_flag 
+                                                           and self.park_time > self.simbev.maximum_park_time):
                     station_capacity = self.simbev.get_charging_capacity(
                         self.location, "retail", self.distance
                     )
@@ -276,7 +277,9 @@ class Trip:
                 else:
                     self.car.park(self)
 
-            elif self.charge_decision("street"):
+            elif self.charge_decision("street") and not (self.simbev.maximum_park_time_flag 
+                                                        and self.park_time > self.simbev.maximum_park_time):
+                # TODO the time check should check for park_time until the street_night_threshold
                 station_capacity = self.simbev.get_charging_capacity(
                     self.location, "street", self.distance
                 )

@@ -63,6 +63,8 @@ class SimBEV:
         ]
         self.energy_min = data_dict["energy_min"]
         self.private_only_run = config_dict["private_only_run"]
+        self.maximum_park_time_flag = config_dict["maximum_park_time_flag"]
+        self.maximum_park_time = self.hours_to_time_steps(config_dict["maximum_park_time"])
 
         self.num_threads = config_dict["num_threads"]
         self.output_options = config_dict["output_options"]
@@ -891,6 +893,8 @@ class SimBEV:
             "fast_charge_threshold": cfg.getfloat("basic", "dc_power_threshold", fallback=50.),
             "threshold_retail_limit": cfg.getfloat("basic", "threshold_retail_limitation", fallback=21),
             "threshold_street_night_limit":  cfg.getfloat("basic", "threshold_street_night_limitation", fallback=21),
+            "maximum_park_time_flag": cfg.getboolean("basic", "maximum_park_time_flag", fallback=False),
+            "maximum_park_time": cfg.getboolean("basic", "maximum_park_time", fallback=10),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
