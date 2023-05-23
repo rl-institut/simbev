@@ -466,12 +466,12 @@ class Car:
             )
 
         elif charging_type == "fast":
-            if self.car_type.charging_capacity["fast"] == 0:
-                raise ValueError(
-                    "Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
-                        self.car_type.name
-                    )
-                )
+            # if self.car_type.charging_capacity["fast"] == 0:
+            #     raise ValueError(
+            #         "Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
+            #             self.car_type.name
+            #         )
+            #     )
             avg_power = 0
 
             if power != 0:
@@ -555,7 +555,7 @@ class Car:
             raise ValueError("Work charging attempted but power is None!")
 
     def charge_public(self, trip, station_capacity, max_parking_time, use_case):
-        if station_capacity > 50:
+        if station_capacity > trip.simbev.fast_charge_threshold:
             self.charge(
                 trip,
                 station_capacity,
@@ -603,10 +603,11 @@ class Car:
 
         soc_start = self.soc
 
-        if power >= trip.simbev.fast_charge_threshold:
+        if power >= trip.simbev.fast_charge_threshold: # TODO doubled? also happens in charge_public
             charging_type = "fast"
-            if self.car_type.charging_capacity[charging_type] == 0:
-                return trip.park_time, 0, 0, soc_start
+
+        if self.car_type.charging_capacity[charging_type] == 0:
+            return trip.park_time, 0, 0, soc_start
 
         # check if min charging energy is charged
         if (

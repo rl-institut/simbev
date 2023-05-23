@@ -46,7 +46,6 @@ class SimBEV:
         self.threshold_street_limit = config_dict["threshold_street_night_limit"]
         self.fast_charge_threshold = config_dict["fast_charge_threshold"]
         self.consumption_factor_highway = config_dict["consumption_factor_highway"]
-        self.occupation_time_max = config_dict["occupation_time_max"]
         self.rng_seed = config_dict["rng_seed"]
         self.rng = self.get_rng()
         self.eta_cp = config_dict["eta_cp"]
@@ -514,8 +513,7 @@ class SimBEV:
                 except KeyError:
                     if not self.charging_probability_warning_flag:
                         self.charging_probability_warning_flag = True
-                        warnings.warn(f"Warning: charging probability for {use_case} could not be found in input files!"
-                                      f"Using location data instead.")
+                        warnings.warn("Warning: charging probability for {} could not be found in input files! Using location data instead.".format(use_case))
                     pass
 
         if "hpc" in location:
@@ -889,12 +887,11 @@ class SimBEV:
                 "sim_params", "private_only_run", fallback=False
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
-            "occupation_time_max": cfg.getint("basic", "occupation_time_street_max", fallback=12),
             "fast_charge_threshold": cfg.getfloat("basic", "dc_power_threshold", fallback=50.),
             "threshold_retail_limit": cfg.getfloat("basic", "threshold_retail_limitation", fallback=21),
             "threshold_street_night_limit":  cfg.getfloat("basic", "threshold_street_night_limitation", fallback=21),
             "maximum_park_time_flag": cfg.getboolean("basic", "maximum_park_time_flag", fallback=False),
-            "maximum_park_time": cfg.getboolean("basic", "maximum_park_time", fallback=10),
+            "maximum_park_time": cfg.getint("basic", "maximum_park_time", fallback=10),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
