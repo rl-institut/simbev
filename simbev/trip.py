@@ -198,7 +198,7 @@ class Trip:
 
     def get_max_parking_time(self, use_case):
         frac_park_start, whole_park_start = math.modf(self.park_start / (60 * 24 / self.step_size))
-        _, whole_park_end = math.modf((self.park_start + self.park_time)
+        frac_park_end, whole_park_end = math.modf((self.park_start + self.park_time)
                                       / (60 * 24 / self.step_size))
 
         if use_case == "retail":
@@ -217,9 +217,10 @@ class Trip:
 
         elif use_case == "street":
             # TODO put 12 in config
-            max_parking_time = int(12 * 60 / self.step_size) if (frac_park_start * 60 * 24 /
+            max_parking_time = int(12 * 60 / self.step_size) if ((frac_park_start * 60 * 24 /
                                                                  self.step_size >= 60 *
-                                                                 self.simbev.threshold_street_limit / self.step_size) \
+                                                                 self.simbev.threshold_street_limit / self.step_size) or ((frac_park_end * 60 * 24 >= 60 *
+                                                                 self.simbev.threshold_street_limit or whole_park_end > whole_park_start) and frac_park_start * 60 * 24 >= self.simbev.threshold_street_limit * 60 / self.step_size - self.simbev.maximum_park_time))\
                 else self.simbev.maximum_park_time
             return max_parking_time
 
@@ -469,7 +470,7 @@ class Trip:
         if threshold_time_steps > park_start_steps_from_midnight:
             return threshold_time_steps - park_start_steps_from_midnight
         else:
-            return threshold_time_steps - park_start_steps_from_midnight + (24 * 60 / self.simbev.step_size)
+            return 0
 
 
 def create_trip_from_profile_row(
