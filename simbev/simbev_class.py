@@ -43,7 +43,15 @@ class SimBEV:
             "distance_threshold_extra_urban"
         ]
         self.threshold_retail_limitation = config_dict["threshold_retail_limit"]
+        self.threshold_retail_limitation_steps = self.hours_to_time_steps(self.threshold_retail_limitation)
         self.threshold_street_limit = config_dict["threshold_street_night_limit"]
+        self.threshold_street_limit_steps = self.hours_to_time_steps(self.threshold_street_limit)
+        self.lower_maximum_park_time_street_night = config_dict["lower_maximum_park_time_street_night"]
+        self.upper_maximum_park_time_street_night = config_dict["upper_maximum_park_time_street_night"]
+        if self.lower_maximum_park_time_street_night > self.upper_maximum_park_time_street_night:
+            print("Warning: Lower maximum park time can't be bigger than upper maximum park time. Both will be set to the upper time.")
+            self.lower_maximum_park_time_street_night = self.upper_maximum_park_time_street_night
+
         self.fast_charge_threshold = config_dict["fast_charge_threshold"]
         self.consumption_factor_highway = config_dict["consumption_factor_highway"]
         self.rng_seed = config_dict["rng_seed"]
@@ -556,7 +564,8 @@ class SimBEV:
         int
             Returns timesteps.
         """
-        return math.ceil(t * 60 / self.step_size)
+        # TODO check if this leads to errors with machine inaccuracies. maybe round is better
+        return math.ceil(60 / self.step_size * t)
 
     def simulate_car(self, car, region):
         """Simulates driving profiles for a car.
@@ -892,6 +901,8 @@ class SimBEV:
             "threshold_street_night_limit":  cfg.getfloat("basic", "threshold_street_night_limitation", fallback=21),
             "maximum_park_time_flag": cfg.getboolean("basic", "maximum_park_time_flag", fallback=False),
             "maximum_park_time": cfg.getint("basic", "maximum_park_time", fallback=10),
+            "lower_maximum_park_time_street_night": cfg.getint("basic", "lower_maximum_park_time_street_night", fallback=8),
+            "upper_maximum_park_time_street_night": cfg.getint("basic", "upper_maximum_park_time_street_night", fallback=12),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,

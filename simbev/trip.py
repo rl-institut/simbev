@@ -200,29 +200,37 @@ class Trip:
         frac_park_start, whole_park_start = math.modf(self.park_start / (60 * 24 / self.step_size))
         frac_park_end, whole_park_end = math.modf((self.park_start + self.park_time)
                                       / (60 * 24 / self.step_size))
+        whole_park_start_steps = self.simbev.hours_to_time_steps(whole_park_start * 24)
+        frac_park_start_steps = self.simbev.hours_to_time_steps(frac_park_start * 24)
+        frac_park_end_steps = self.simbev.hours_to_time_steps(frac_park_end * 24)
 
         if use_case == "retail":
-            if whole_park_start < whole_park_end:
-
-                max_parking_end = int(self.rng.uniform(self.park_start + 1, int((whole_park_start + 1)
-                                                                                * (60 * 24 / self.step_size)))) \
-                    if ((frac_park_start * 60 * 24 / self.step_size) >= (60 * self.simbev.threshold_retail_limitation /
-                        self.step_size)) else int(self.rng.uniform((whole_park_start*60*24/self.step_size + 60 * 21 /
-                                                                    self.step_size), int((whole_park_start + 1)
-                                                                            * (60 * 24 / self.step_size))))
-                max_parking_time = max_parking_end - self.park_start
+            if whole_park_end > whole_park_start:
+                # TODO normal instead of uniform?
+                # if parking starts after the retail threshold time
+                if ((frac_park_start_steps) >= (self.simbev.threshold_retail_limitation_steps)):
+                    # put the park end somewhere between the start and midnight
+                    max_parking_end = int(self.rng.uniform(self.park_start + 1,
+                                                           self.simbev.hours_to_time_steps((whole_park_start + 1) * 24)))
+                else:
+                    # otherwise end somewhere between threshold and midnight
+                    max_parking_end = int(self.rng.uniform((whole_park_start_steps + self.simbev.threshold_retail_limitation_steps),
+                                                           self.simbev.hours_to_time_steps((whole_park_start + 1) * 24)))
+                return max_parking_end - self.park_start
             else:
-                max_parking_time = self.park_time
-            return max_parking_time
+                return self.park_time
 
         elif use_case == "street":
-            # TODO put 12 in config
-            max_parking_time = int(9 * 60 / self.step_size + self.simbev.maximum_park_time) if (((frac_park_start * 60 * 24 /
-                                                                 self.step_size) >= (60 *
-                                                                 self.simbev.threshold_street_limit / self.step_size)) or (((frac_park_end * 60 * 24 >= 60 *
-                                                                 self.simbev.threshold_street_limit) or (whole_park_end > whole_park_start)) and (frac_park_start * 60 * 24) >= (self.simbev.threshold_street_limit * 60 / self.step_size - self.simbev.maximum_park_time)))\
-                else self.simbev.maximum_park_time
-            return max_parking_time
+            # parking starts or ends after threshold or ends the next day
+            if ((frac_park_start_steps >= self.simbev.threshold_street_limit_steps)
+                or (((frac_park_end_steps >= self.simbev.threshold_street_limit_steps) or (whole_park_end > whole_park_start)) 
+                    and (frac_park_start_steps) >= (self.simbev.threshold_street_limit_steps - self.simbev.maximum_park_time)
+                    )):
+                # TODO normal instead of uniform?
+                return int(self.rng.uniform(self.simbev.hours_to_time_steps(self.simbev.lower_maximum_park_time_street_night) + self.park_time_until_threshold,
+                                            self.simbev.hours_to_time_steps(self.simbev.upper_maximum_park_time_street_night) + self.park_time_until_threshold))
+            else:
+                return self.simbev.maximum_park_time
 
     def charge_decision(self, key):
         return self.car.user_group.attractivity[key] >= self.rng.random()
