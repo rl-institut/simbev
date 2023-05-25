@@ -693,7 +693,8 @@ class Car:
                 park_timestep_end = trip.park_start + time_steps + 1
 
             else:
-                park_timestep_end = trip.park_start + max_charging_time
+                park_timestep_end = trip.park_start + max_charging_time if max_charging_time < trip.park_time \
+                    else trip.park_start + trip.park_time
 
             grid_dict = {
                 "charging_use_case": charging_use_case,

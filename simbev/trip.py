@@ -217,10 +217,10 @@ class Trip:
 
         elif use_case == "street":
             # TODO put 12 in config
-            max_parking_time = int(12 * 60 / self.step_size) if ((frac_park_start * 60 * 24 /
-                                                                 self.step_size >= 60 *
-                                                                 self.simbev.threshold_street_limit / self.step_size) or ((frac_park_end * 60 * 24 >= 60 *
-                                                                 self.simbev.threshold_street_limit or whole_park_end > whole_park_start) and frac_park_start * 60 * 24 >= self.simbev.threshold_street_limit * 60 / self.step_size - self.simbev.maximum_park_time))\
+            max_parking_time = int(9 * 60 / self.step_size + self.simbev.maximum_park_time) if (((frac_park_start * 60 * 24 /
+                                                                 self.step_size) >= (60 *
+                                                                 self.simbev.threshold_street_limit / self.step_size)) or (((frac_park_end * 60 * 24 >= 60 *
+                                                                 self.simbev.threshold_street_limit) or (whole_park_end > whole_park_start)) and (frac_park_start * 60 * 24) >= (self.simbev.threshold_street_limit * 60 / self.step_size - self.simbev.maximum_park_time)))\
                 else self.simbev.maximum_park_time
             return max_parking_time
 
