@@ -70,6 +70,9 @@ class SimBEV:
         ]
         self.energy_min = data_dict["energy_min"]
         self.private_only_run = config_dict["private_only_run"]
+        self.home_night_charging_flag = config_dict["home_night_charging_flag"]
+        self.night_departure_standard_deviation = config_dict["night_departure_standard_deviation"]
+        self.night_departure_time = config_dict["night_departure_time"]
         self.maximum_park_time_flag = config_dict["maximum_park_time_flag"]
         self.maximum_park_time = self.hours_to_time_steps(config_dict["maximum_park_time"])
 
@@ -903,6 +906,9 @@ class SimBEV:
             "maximum_park_time": cfg.getint("basic", "maximum_park_time", fallback=10),
             "lower_maximum_park_time_street_night": cfg.getint("basic", "lower_maximum_park_time_street_night", fallback=8),
             "upper_maximum_park_time_street_night": cfg.getint("basic", "upper_maximum_park_time_street_night", fallback=12),
+            "home_night_charging_flag": cfg.getboolean("basic", "home_night_charging_flag", fallback=False),
+            "night_departure_standard_deviation": cfg.getfloat("basic", "night_departure_standard_deviation", fallback=1.0),
+            "night_departure_time": cfg.getfloat("basic", "night_departure_time", fallback=9.0),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
