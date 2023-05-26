@@ -16,6 +16,7 @@ import traceback
 import configparser as cp
 import json
 import copy
+import warnings
 
 
 class SimBEV:
@@ -41,9 +42,18 @@ class SimBEV:
         self.distance_threshold_extra_urban = config_dict[
             "distance_threshold_extra_urban"
         ]
+        self.threshold_retail_limitation = config_dict["threshold_retail_limit"]
+        self.threshold_retail_limitation_steps = self.hours_to_time_steps(self.threshold_retail_limitation)
+        self.threshold_street_limit = config_dict["threshold_street_night_limit"]
+        self.threshold_street_limit_steps = self.hours_to_time_steps(self.threshold_street_limit)
+        self.lower_maximum_park_time_street_night = config_dict["lower_maximum_park_time_street_night"]
+        self.upper_maximum_park_time_street_night = config_dict["upper_maximum_park_time_street_night"]
+        if self.lower_maximum_park_time_street_night > self.upper_maximum_park_time_street_night:
+            print("Warning: Lower maximum park time can't be bigger than upper maximum park time. Both will be set to the upper time.")
+            self.lower_maximum_park_time_street_night = self.upper_maximum_park_time_street_night
+
         self.fast_charge_threshold = config_dict["fast_charge_threshold"]
         self.consumption_factor_highway = config_dict["consumption_factor_highway"]
-        self.occupation_time_max = config_dict["occupation_time_max"]
         self.rng_seed = config_dict["rng_seed"]
         self.rng = self.get_rng()
         self.eta_cp = config_dict["eta_cp"]
@@ -60,6 +70,8 @@ class SimBEV:
         ]
         self.energy_min = data_dict["energy_min"]
         self.private_only_run = config_dict["private_only_run"]
+        self.maximum_park_time_flag = config_dict["maximum_park_time_flag"]
+        self.maximum_park_time = self.hours_to_time_steps(config_dict["maximum_park_time"])
 
         self.num_threads = config_dict["num_threads"]
         self.output_options = config_dict["output_options"]
@@ -82,6 +94,7 @@ class SimBEV:
         self.grid_data_list = []
         self.analysis_data_list = []
         self.terminated = False
+        self.charging_probability_warning_flag = False
 
         self.name = name
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -349,15 +362,14 @@ class SimBEV:
                         self.home_parking[region.region_type.rs7_type] >= self.rng.random()
                     )
                     work_power = (
-                        self.get_charging_capacity("work") if work_parking else None
+                        self.get_charging_capacity("work", use_case="work") if work_parking else None
                     )
                     home_power = (
-                        self.get_charging_capacity("home") if home_parking else None
+                        self.get_charging_capacity("home", use_case="home") if home_parking else None
                     )
                     user_group_id = self.set_user_group(
                         work_parking, home_parking, work_power, home_power
                     )
-                    # todo decide if car is at home in detached house or apartment building
 
                     # SOC init value for the first monday
                     # formula from Kilian, TODO maybe not needed anymore
@@ -498,12 +510,19 @@ class SimBEV:
                     helpers.get_column_by_random_number(probability, self.rng.random())
                 )
             elif use_case:
+                # todo check if use-case exitis in probability
                 probability = self.charging_probabilities["use_case"]
-                probability = probability.loc[use_case, :]
-                probability = probability.squeeze()
-                return float(
-                    helpers.get_column_by_random_number(probability, self.rng.random())
-                )
+                try:
+                    probability = probability.loc[use_case, :]
+                    probability = probability.squeeze()
+                    return float(
+                        helpers.get_column_by_random_number(probability, self.rng.random())
+                    )
+                except KeyError:
+                    if not self.charging_probability_warning_flag:
+                        self.charging_probability_warning_flag = True
+                        warnings.warn("Warning: charging probability for {} could not be found in input files! Using location data instead.".format(use_case))
+                    pass
 
         if "hpc" in location:
             if distance > self.distance_threshold_extra_urban:
@@ -545,7 +564,8 @@ class SimBEV:
         int
             Returns timesteps.
         """
-        return math.ceil(t * 60 / self.step_size)
+        # TODO check if this leads to errors with machine inaccuracies. maybe round is better
+        return math.ceil(60 / self.step_size * t)
 
     def simulate_car(self, car, region):
         """Simulates driving profiles for a car.
@@ -876,8 +896,13 @@ class SimBEV:
                 "sim_params", "private_only_run", fallback=False
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
-            "occupation_time_max": cfg.getint("basic", "occupation_time_max", fallback=24),
             "fast_charge_threshold": cfg.getfloat("basic", "dc_power_threshold", fallback=50.),
+            "threshold_retail_limit": cfg.getfloat("basic", "threshold_retail_limitation", fallback=21),
+            "threshold_street_night_limit":  cfg.getfloat("basic", "threshold_street_night_limitation", fallback=21),
+            "maximum_park_time_flag": cfg.getboolean("basic", "maximum_park_time_flag", fallback=False),
+            "maximum_park_time": cfg.getint("basic", "maximum_park_time", fallback=10),
+            "lower_maximum_park_time_street_night": cfg.getint("basic", "lower_maximum_park_time_street_night", fallback=8),
+            "upper_maximum_park_time_street_night": cfg.getint("basic", "upper_maximum_park_time_street_night", fallback=12),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
