@@ -236,7 +236,10 @@ class Trip:
                     # return departure time plus steps until midnight from previous parking event
                     return self.simbev.hours_to_time_steps(departure_time) + (self.simbev.hours_to_time_steps(24) - frac_park_start_steps)
                 else:
-                    return self.simbev.maximum_park_time # TODO maybe find better method here
+                    if frac_park_start_steps < self.simbev.threshold_street_limit_steps:
+                        return self.simbev.maximum_park_time
+                    else:
+                        return 0
             else:
                 return self.simbev.maximum_park_time
 
