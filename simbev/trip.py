@@ -226,20 +226,23 @@ class Trip:
                 return self.park_time
 
         elif use_case == "street":
-            # parking starts or ends after threshold or ends the next day
-            if ((frac_park_start_steps >= self.simbev.threshold_street_limit_steps)
-                or (((frac_park_end_steps >= self.simbev.threshold_street_limit_steps) or (whole_park_end > whole_park_start)) 
-                    and (frac_park_start_steps) >= (self.simbev.threshold_street_limit_steps - self.simbev.maximum_park_time)
-                    )):
-                if self.location == "home" or not self.simbev.home_night_charging_flag:
-                    departure_time = self.rng.normal(self.simbev.night_departure_time, self.simbev.night_departure_standard_deviation)
-                    # return departure time plus steps until midnight from previous parking event
-                    return self.simbev.hours_to_time_steps(departure_time) + (self.simbev.hours_to_time_steps(24) - frac_park_start_steps)
-                else:
-                    if frac_park_start_steps < self.simbev.threshold_street_limit_steps:
-                        return self.simbev.maximum_park_time
+            if self.simbev.street_night_charging_flag:
+                # parking starts or ends after threshold or ends the next day
+                if ((frac_park_start_steps >= self.simbev.threshold_street_limit_steps)
+                    or (((frac_park_end_steps >= self.simbev.threshold_street_limit_steps) or (whole_park_end > whole_park_start)) 
+                        and (frac_park_start_steps) >= (self.simbev.threshold_street_limit_steps - self.simbev.maximum_park_time)
+                        )):
+                    if self.location == "home" or not self.simbev.home_night_charging_flag:
+                        departure_time = self.rng.normal(self.simbev.night_departure_time, self.simbev.night_departure_standard_deviation)
+                        # return departure time plus steps until midnight from previous parking event
+                        return self.simbev.hours_to_time_steps(departure_time) + (self.simbev.hours_to_time_steps(24) - frac_park_start_steps)
                     else:
-                        return 0
+                        if frac_park_start_steps < self.simbev.threshold_street_limit_steps:
+                            return self.simbev.maximum_park_time
+                        else:
+                            return 0
+                else:
+                    return self.simbev.maximum_park_time
             else:
                 return self.simbev.maximum_park_time
 
