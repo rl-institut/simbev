@@ -303,7 +303,7 @@ class Trip:
 
             elif self.charge_decision("street") and not (
                 self.simbev.maximum_park_time_flag 
-                and min(self.park_time, self.park_time_until_threshold) > self.simbev.maximum_park_time):
+                and (min(self.park_time, self.park_time_until_threshold) > self.simbev.maximum_park_time and not self.simbev.street_night_charging_flag)):
                 # TODO the time check should check for park_time until the street_night_threshold
                 station_capacity = self.simbev.get_charging_capacity(
                     self.location, "street", self.distance
