@@ -237,14 +237,14 @@ class Trip:
                         # return departure time plus steps until midnight from previous parking event
                         return self.simbev.hours_to_time_steps(departure_time) + (self.simbev.hours_to_time_steps(24) - frac_park_start_steps)
                     else:
-                        if frac_park_start_steps < self.simbev.threshold_street_limit_steps:
-                            return self.simbev.maximum_park_time
-                        else:
-                            return 0
+                        return 0
                 else:
                     return self.simbev.maximum_park_time
             else:
-                return self.simbev.maximum_park_time
+                if self.park_time <= self.simbev.maximum_park_time:
+                    return self.simbev.maximum_park_time
+                else:
+                    return 0
 
     def charge_decision(self, key):
         return self.car.user_group.attractivity[key] >= self.rng.random()
@@ -303,7 +303,7 @@ class Trip:
 
             elif self.charge_decision("street") and not (
                 self.simbev.maximum_park_time_flag 
-                and (min(self.park_time, self.park_time_until_threshold) > self.simbev.maximum_park_time and not self.simbev.street_night_charging_flag)):
+                and min(self.park_time, self.park_time_until_threshold) > self.simbev.maximum_park_time):
                 # TODO the time check should check for park_time until the street_night_threshold
                 station_capacity = self.simbev.get_charging_capacity(
                     self.location, "street", self.distance
