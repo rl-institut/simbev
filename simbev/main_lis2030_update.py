@@ -9,9 +9,9 @@ import copy
 scenario_dict = {
 
     "multi_scenario_run": True,
-    "years": [2025, 2030, 2035],
+    "years": [2025, 2026, 2027, 2028, 2029, 2030, 2035],
     "run_up_path": "lis_2030_update_input/run_up",
-    "scenarios": ["reference"], #, "low_availability", "high_availability", "digital_offers", "parking_management", "hpc"],
+    "scenarios": ["high_availability"], #,"low_availability", "high_availability"], "digital_offers", "parking_management", "hpc"],
     "scenario_paths": {"reference": "lis_2030_update_input/scenarios/1_reference",
                        "low_availability": "lis_2030_update_input/scenarios/2_low_availability",
                        "high_availability": "lis_2030_update_input/scenarios/3_high_availability",
@@ -75,7 +75,7 @@ def wrapper(simbev_obj):
 
 
             #setup simbev_obj
-            simbev_obj.setup()
+            simbev_obj.setup_simbev_object()
 
             # run simulation with optional timing
             helpers.timeitlog(simbev_obj.output_options["timing"], simbev_obj.save_directory)(
