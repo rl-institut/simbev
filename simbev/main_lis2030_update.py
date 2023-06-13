@@ -7,11 +7,11 @@ import pandas as pd
 import copy
 
 scenario_dict = {
-
+    "scaling": 250,
     "multi_scenario_run": True,
-    "years": [2025, 2026, 2027, 2028, 2029, 2030, 2035],
+    "years": [2035],
     "run_up_path": "lis_2030_update_input/run_up",
-    "scenarios": ["high_availability"], #,"low_availability", "high_availability"], "digital_offers", "parking_management", "hpc"],
+    "scenarios": ["parking_management","low_availability", "high_availability", "digital_offers", "parking_management", "hpc"],
     "scenario_paths": {"reference": "lis_2030_update_input/scenarios/1_reference",
                        "low_availability": "lis_2030_update_input/scenarios/2_low_availability",
                        "high_availability": "lis_2030_update_input/scenarios/3_high_availability",
@@ -43,7 +43,7 @@ def wrapper(simbev_obj):
             index_col=0,
         )
 
-        for scenario in scenario_dict["scenarios"]:
+        for s_id, scenario in enumerate(scenario_dict["scenarios"]):
 
             home_work_private_path = pathlib.Path(scenario_dict["scenario_paths"][scenario])
             home_work_private = pd.read_csv(
@@ -62,7 +62,7 @@ def wrapper(simbev_obj):
             path_parent = simbev_obj_base.save_directory.parent
             folder_name = simbev_obj_base.save_directory.name
             simbev_obj.save_directory = pathlib.Path(
-                path_parent, str(year), folder_name + "_scenario_" + str(scenario)
+                path_parent, str(year), str(s_id+1) + "_" + folder_name + "_scenario_" + str(scenario)
             )
             print(simbev_obj.save_directory)
 
@@ -71,6 +71,7 @@ def wrapper(simbev_obj):
             simbev_obj.tech_data = tech_data
             simbev_obj.home_parking = home_work_private.loc["home", :]
             simbev_obj.work_parking = home_work_private.loc["work", :]
+            simbev_obj.scaling = scenario_dict["scaling"]
             #simbev_obj.probability_detached_home = home_work_private.loc["probability_detached_home", :]
 
 
