@@ -253,7 +253,7 @@ class Region:
 
         Returns
         -------
-        int
+        str
             Destination of trip.
         """
         random_number = rng.random()
