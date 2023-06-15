@@ -206,31 +206,45 @@ class Trip:
 
         if use_case == "retail":
             if whole_park_end > whole_park_start:
-                # TODO normal instead of uniform?
                 # if parking starts after the retail threshold time
                 if ((frac_park_start_steps) >= (self.simbev.threshold_retail_limitation_steps)):
                     # put the park end somewhere between the start and midnight
-                    max_parking_end = int(self.rng.uniform(self.park_start + 1,
-                                                           self.simbev.hours_to_time_steps((whole_park_start + 1) * 24)))
+                    upper_bound = self.simbev.hours_to_time_steps((whole_park_start + 1) * 24)
+                    lower_bound = self.park_start + 1
+                    mean = (upper_bound + lower_bound) / 2
+                    sigma = (mean - (lower_bound)) / 3
+                    max_parking_end = int(self.rng.normal(mean, sigma))
                 else:
                     # otherwise end somewhere between threshold and midnight
-                    max_parking_end = int(self.rng.uniform((whole_park_start_steps + self.simbev.threshold_retail_limitation_steps),
-                                                           self.simbev.hours_to_time_steps((whole_park_start + 1) * 24)))
+                    upper_bound = self.simbev.hours_to_time_steps((whole_park_start + 1) * 24)
+                    lower_bound = whole_park_start_steps + self.simbev.threshold_retail_limitation_steps
+                    mean = (upper_bound + lower_bound) / 2
+                    sigma = (mean - (lower_bound)) / 3
+                    max_parking_end = int(self.rng.normal(mean, sigma))
                 return max_parking_end - self.park_start
             else:
                 return self.park_time
 
         elif use_case == "street":
-            # parking starts or ends after threshold or ends the next day
-            if ((frac_park_start_steps >= self.simbev.threshold_street_limit_steps)
-                or (((frac_park_end_steps >= self.simbev.threshold_street_limit_steps) or (whole_park_end > whole_park_start)) 
-                    and (frac_park_start_steps) >= (self.simbev.threshold_street_limit_steps - self.simbev.maximum_park_time)
-                    )):
-                # TODO normal instead of uniform?
-                return int(self.rng.uniform(self.simbev.hours_to_time_steps(self.simbev.lower_maximum_park_time_street_night) + self.park_time_until_threshold,
-                                            self.simbev.hours_to_time_steps(self.simbev.upper_maximum_park_time_street_night) + self.park_time_until_threshold))
+            if self.simbev.street_night_charging_flag:
+                # parking starts or ends after threshold or ends the next day
+                if ((frac_park_start_steps >= self.simbev.threshold_street_limit_steps)
+                    or (((frac_park_end_steps >= self.simbev.threshold_street_limit_steps) or (whole_park_end > whole_park_start)) 
+                        and (frac_park_start_steps) >= (self.simbev.threshold_street_limit_steps - self.simbev.maximum_park_time)
+                        )):
+                    if self.location == "home" or not self.simbev.home_night_charging_flag:
+                        departure_time = self.rng.normal(self.simbev.night_departure_time, self.simbev.night_departure_standard_deviation)
+                        # return departure time plus steps until midnight from previous parking event
+                        return self.simbev.hours_to_time_steps(departure_time) + (self.simbev.hours_to_time_steps(24) - frac_park_start_steps)
+                    else:
+                        return 0
+                else:
+                    return self.simbev.maximum_park_time
             else:
-                return self.simbev.maximum_park_time
+                if self.park_time <= self.simbev.maximum_park_time:
+                    return self.simbev.maximum_park_time
+                else:
+                    return 0
 
     def charge_decision(self, key):
         return self.car.user_group.attractivity[key] >= self.rng.random()
