@@ -243,7 +243,10 @@ class Trip:
                     else:
                         return 0
                 else:
-                    return self.simbev.maximum_park_time
+                    if self.park_time <= self.simbev.maximum_park_time:
+                        return self.simbev.maximum_park_time
+                    else:
+                        return 0
             else:
                 if self.park_time <= self.simbev.maximum_park_time:
                     return self.simbev.maximum_park_time
