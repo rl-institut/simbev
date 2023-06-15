@@ -72,6 +72,7 @@ def wrapper(simbev_obj):
             simbev_obj.home_parking = home_work_private.loc["home", :]
             simbev_obj.work_parking = home_work_private.loc["work", :]
             simbev_obj.scaling = scenario_dict["scaling"]
+            #todo: print pfade der angepassten files als test
             #simbev_obj.probability_detached_home = home_work_private.loc["probability_detached_home", :]
 
 
