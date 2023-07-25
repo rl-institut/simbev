@@ -37,7 +37,8 @@ class RegionType:
         Probabilities for start of a trip by datetime.
     """
 
-    def __init__(self, rs7_type, grid_output, step_size, charging_probabilities):
+    def __init__(self, rs7_type, output,
+                 step_size, charging_probabilities):
         self.rs7_type = rs7_type
         self.rs3_type = _get_rs3_type(rs7_type)
         self.step_size = step_size
@@ -45,7 +46,10 @@ class RegionType:
         self.time_series = None
         self.trip_starts = None
         self.probabilities = {}
-        self.output = grid_output
+        self.output = output["grid"]
+        self.additional_output_charging_share = output["additional_output_charging_share"]
+        self.additional_output_car_type_share = output["additional_output_car_type_share"]
+        self.additional_output_dict = {}
 
     def create_timeseries(self, simbev):
         """Creating timeseries for vehicle.
@@ -188,6 +192,7 @@ class Region:
     def update_grid_timeseries(
         self,
         use_case,
+        location,
         chargepower,
         power_lis,
         timestep_start,
@@ -240,6 +245,16 @@ class Region:
             self.grid_time_series[timestep_start:timestep_end, column] += np.float32(
                 chargepower * self.scaling[car_type]
             )
+
+        if self.region_type.additional_output_charging_share:
+            key_counter = "counter_charging_events{}_{}".format(use_case, location)
+            key_column = "cars_charging_events{}_{}".format(use_case, location)
+            if key_counter not in self.region_type.additional_output_dict:
+                self.region_type.additional_output_dict[key_counter] = 0
+            self.region_type.additional_output_dict[key_counter] += 1
+
+        if self.region_type.additional_output_car_type_share:
+            key_column = "cars_charging_events{}_{}".format(use_case, location)
 
     def get_purpose(self, rng, time_step):
         """Determinants purpose of trip.

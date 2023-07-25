@@ -698,6 +698,7 @@ class Car:
 
             grid_dict = {
                 "charging_use_case": charging_use_case,
+                "location": trip.location,
                 "chargepower_timestep": np.float32(chargepower_timestep),
                 "power": np.float32(power),
                 "start": trip.park_start + charging_time_step,
@@ -918,6 +919,7 @@ class Car:
         for charge_event in self.grid_timeseries_list:
             self.region.update_grid_timeseries(
                 charge_event["charging_use_case"],
+                charge_event["location"],
                 charge_event["chargepower_timestep"],
                 charge_event["power"],
                 charge_event["start"],

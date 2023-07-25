@@ -214,7 +214,7 @@ class SimBEV:
 
         rs7_region = RegionType(
             region_type,
-            self.output_options["grid"],
+            self.output_options,
             self.step_size,
             self.charging_probabilities,
         )
@@ -862,6 +862,9 @@ class SimBEV:
         )
         timing_output = cfg.getboolean("output", "timing", fallback=False)
         analyze = cfg.getboolean("output", "analyze", fallback=False)
+        additional_output_charging_share = cfg.getboolean("output", "additional_output_charging_share", fallback=False)
+        additional_output_car_type_share = cfg.getboolean("output", "additional_output_car_type_share", fallback=False)
+
         output_options = {
             "car": car_output,
             "grid": grid_output,
@@ -869,6 +872,8 @@ class SimBEV:
             "collective_plot": collective_plot,
             "timing": timing_output,
             "analyze": analyze,
+            "additional_output_charging_share": additional_output_charging_share,
+            "additional_output_car_type_share": additional_output_car_type_share
         }
 
         cfg_dict = {
