@@ -97,6 +97,7 @@ class SimBEV:
         self.user_groups = {}
         self.grid_data_list = []
         self.analysis_data_list = []
+        self.additional_output = {}
         self.terminated = False
         self.charging_probability_warning_flag = False
 
@@ -109,6 +110,7 @@ class SimBEV:
         self.file_name_all = "grid_time_series_all_regions.csv"
         self.file_name_analysis_all = "analysis_all_regions.csv"
         self.file_name_analysis_all_json = "analysis_all_regions.json"
+        self.file_name_additional_output_json = "additional_output_for_nll.json"
 
         self.step_size_str = str(self.step_size) + "min"
 
@@ -749,6 +751,14 @@ class SimBEV:
             ) as outfile:
                 json.dump(share_dict, outfile, indent=4, sort_keys=False)
 
+        if self.output_options['additional_output_charging_share']:
+
+            with open(
+                pathlib.Path(self.save_directory, self.file_name_additional_output_json), "w"
+            ) as outfile:
+                json.dump(dict(sorted(self.additional_output.items())), outfile, indent=4, sort_keys=False)
+        print("cfsdfs")
+
         if self.output_options["grid"]:
             grid_ts_collection = None
             for data in self.grid_data_list:
@@ -763,6 +773,8 @@ class SimBEV:
                 pathlib.Path(self.save_directory, self.file_name_all), index=False
             )
             return grid_ts_collection
+
+
 
     @classmethod
     def from_config(cls, config_path):

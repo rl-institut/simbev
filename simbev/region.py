@@ -247,14 +247,37 @@ class Region:
             )
 
         if self.region_type.additional_output_charging_share:
-            key_counter = "counter_charging_events{}_{}".format(use_case, location)
-            key_column = "cars_charging_events{}_{}".format(use_case, location)
+            key_counter = "counter_charging_events_{}_{}".format(use_case, location)
+            key_column = "cars_charging_events_{}_{}".format(use_case, location)
+
+            # track charging-events by use case and location
             if key_counter not in self.region_type.additional_output_dict:
                 self.region_type.additional_output_dict[key_counter] = 0
+
             self.region_type.additional_output_dict[key_counter] += 1
 
+            # track charging_events by uc and location in grid-time-series
+            if key_column not in self.header_grid_ts:
+                self.header_grid_ts.append(key_column)
+                self.grid_time_series = np.append(self.grid_time_series, np.zeros((self.grid_time_series.shape[0], 1)),
+                                                  axis=1)
+            column = self.header_grid_ts.index(key_column)
+            if i == 0:
+                self.grid_time_series[
+                    timestep_start:park_ts_end, column
+                ] += np.float32(1 * self.scaling[car_type])
+        # track charging events in grid time series by car_type
         if self.region_type.additional_output_car_type_share:
-            key_column = "cars_charging_events{}_{}".format(use_case, location)
+            tech_type = 'bev' if 'bev' in car_type else 'phev'
+            key_column = "cars_charging_events_{}".format(tech_type)
+            if key_column not in self.header_grid_ts:
+                self.header_grid_ts.append(key_column)
+                self.grid_time_series = np.append(self.grid_time_series, np.zeros((self.grid_time_series.shape[0],1)), axis=1)
+            column = self.header_grid_ts.index(key_column)
+            if i == 0:
+                self.grid_time_series[
+                    timestep_start:park_ts_end, column
+                ] += np.float32(1 * self.scaling[car_type])
 
     def get_purpose(self, rng, time_step):
         """Determinants purpose of trip.

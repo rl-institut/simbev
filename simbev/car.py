@@ -928,6 +928,15 @@ class Car:
                 charge_event["park_ts_end"],
                 self.car_type.name,
             )
+            if simbev.output_options['additional_output_charging_share']:
+                key_counter = "counter_charging_events_{}_{}".format(charge_event["charging_use_case"],
+                                                                     charge_event["location"])
+                # track charging-events by use case and location
+                if key_counter not in simbev.additional_output:
+                    simbev.additional_output[key_counter] = 0
+
+                simbev.additional_output[key_counter] += 1
+
         if self.car_type.output:
             activity = pd.DataFrame(self.output)
 
