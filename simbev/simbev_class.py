@@ -757,7 +757,6 @@ class SimBEV:
                 pathlib.Path(self.save_directory, self.file_name_additional_output_json), "w"
             ) as outfile:
                 json.dump(dict(sorted(self.additional_output.items())), outfile, indent=4, sort_keys=False)
-        print("cfsdfs")
 
         if self.output_options["grid"]:
             grid_ts_collection = None
