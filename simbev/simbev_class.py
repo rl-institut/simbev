@@ -909,8 +909,8 @@ class SimBEV:
                 "charging_probabilities", "private_parking_work", fallback=0.5
             ),
             "scenario_path": scenario_path,
-            "input_type": cfg["basic"]["input_type"],
-            "input_directory": cfg["basic"]["input_directory"],
+            "input_type": cfg.get("basic", "input_type", fallback="probability"),
+            "input_directory": cfg.get("basic", "input_directory", fallback="data/probability"),
             "num_threads": cfg.getint("sim_params", "num_threads", fallback=1),
             "output_options": output_options,
             "private_only_run": cfg.getboolean(
