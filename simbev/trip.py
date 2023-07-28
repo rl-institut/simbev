@@ -474,10 +474,10 @@ class Trip:
                     if timestep > replacement_day_timestep and not self.car.output["location"][index] == "driving":
                         next_drive_timesteps = timestep
                         break
-                self.real_park_time = self.park_time + next_drive_timesteps
+                self.real_park_time = self.park_time + next_drive_timesteps - replacement_day_timestep
             elif self.simbev.input_type == "profile":
                 next_drive_timesteps = self.car.driving_profile.loc[self.car.driving_profile["time_step"] > replacement_day_timestep]["time_step"].iat[0]
-                self.real_park_time = self.park_time + next_drive_timesteps
+                self.real_park_time = self.park_time + next_drive_timesteps - replacement_day_timestep
             self.drive_found = False
 
     def delay(self, time_steps: int):
