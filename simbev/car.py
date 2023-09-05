@@ -51,7 +51,6 @@ class CarType:
     charging_threshold: float
     energy_min: dict
     charging_curve: interp1d
-    # TODO consumption based on speed instead of constant
     consumption: float
     consumption_factor_highway: float
     output: bool
@@ -322,7 +321,6 @@ class Car:
         self.driving_profile = None
 
         # lists to track output data
-        # TODO: swap to np.array for better performance?
         self.output = {
             "timestamp": [],
             "event_start": [],
@@ -354,7 +352,6 @@ class Car:
         destination="",
         nominal_charging_capacity=0,
         charging_power=0,
-        extra_urban=False,
         charging_use_case=None,
     ):
         """Records newest energy and activity
@@ -403,14 +400,11 @@ class Car:
             self.output["destination"].append(destination)
 
     def park(self, trip):
-        # TODO: delete function because not in use
-
-        """Parking Event.
+        """Parking event, used for standing times without charging.
 
         Parameters
         ----------
         trip : Trip
-            .
         """
         self._update_activity(
             trip.park_timestamp, trip.park_start, trip.park_time, charging_use_case=""
@@ -423,7 +417,6 @@ class Car:
         charging_type,
         charging_use_case,
         step_size=None,
-        long_distance=None,
         max_charging_time=None,
     ):
         """Function for charging.
@@ -438,8 +431,6 @@ class Car:
             Type of charging.
         step_size : int
             Step-size of simulation.
-        long_distance : bool
-            Indicates if trip is a long distance drive.
         max_charging_time : int
             Maximum possible time spend charging.
         """
@@ -611,8 +602,10 @@ class Car:
         max_charging_time : int
             Maximum possible time spend charging.
         charging_type : str
-            Type of charging.
-        soc_end : int
+            Type of charging ("fast" or "slow")
+        charging_use_case : str
+            Charging use case (relevant for end of charging calculation)
+        soc_end : float
             Soc-target of charging-event.
 
         Returns
@@ -625,7 +618,7 @@ class Car:
 
         if (
             power >= trip.simbev.fast_charge_threshold
-        ):  # TODO doubled? also happens in charge_public
+        ):
             charging_type = "fast"
 
         if self.car_type.charging_capacity[charging_type] == 0:
@@ -702,14 +695,11 @@ class Car:
 
             charged_energy_list.append(round(sum(energy_sections), 4))
 
-            charging_time_array = charging_time_array[charging_section_counter - 1 :]
+            charging_time_array = charging_time_array[charging_section_counter - 1:]
             charging_time_array[0] = time_cutoff
 
-            power_array = power_array[charging_section_counter - 1 :]
+            power_array = power_array[charging_section_counter - 1:]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
-
-            # charging_use_case = self._get_charging_usecase(power, trip.extra_urban, trip.charging_use_case)
-            use_case = self._get_usecase(power)
 
             if charging_use_case == "urban_fast" or charging_use_case == "highway_fast":
                 park_timestep_end = trip.park_start + time_steps + 1

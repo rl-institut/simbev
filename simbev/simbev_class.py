@@ -61,7 +61,8 @@ class SimBEV:
             > self.upper_maximum_park_time_street_night
         ):
             print(
-                "Warning: Lower maximum park time can't be bigger than upper maximum park time. Both will be set to the upper time."
+                """Warning: Lower maximum park time can't be bigger than upper maximum park time.
+                 Both will be set to the upper time."""
             )
             self.lower_maximum_park_time_street_night = (
                 self.upper_maximum_park_time_street_night
@@ -409,13 +410,6 @@ class SimBEV:
                         work_parking, home_parking, work_power, home_power
                     )
 
-                    # SOC init value for the first monday
-                    # formula from Kilian, TODO maybe not needed anymore
-                    soc_init = (
-                        self.rng.random() ** (1 / 3) * 0.8 + 0.2
-                        if self.rng.random() < 0.12
-                        else 1
-                    )
                     home_detached = (
                         self.rng.random()
                         <= self.probability_detached_home[region.region_type.rs7_type]
@@ -431,7 +425,7 @@ class SimBEV:
                         home_power,
                         region,
                         home_detached,
-                        soc_init,
+                        1,
                     )
 
                     if self.input_type == "profile":
@@ -563,7 +557,8 @@ class SimBEV:
                     if not self.charging_probability_warning_flag:
                         self.charging_probability_warning_flag = True
                         warnings.warn(
-                            "Warning: charging probability for {} could not be found in input files! Using location data instead.".format(
+                            """Warning: charging probability for {} could not be found in input files!
+                             Using location data instead.""".format(
                                 use_case
                             )
                         )

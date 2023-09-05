@@ -3,7 +3,6 @@ import numpy as np
 import pathlib
 from simbev.mid_timeseries import get_timeseries, get_empty_timeseries
 import simbev.helpers.helpers as helpers
-import math
 
 
 class RegionType:
@@ -253,7 +252,7 @@ class Region:
 
         Returns
         -------
-        int
+        str
             Destination of trip.
         """
         random_number = rng.random()

@@ -519,7 +519,9 @@ class Trip:
                         break
                 self.real_park_time = self.park_time + next_drive_timesteps - replacement_day_timestep
             elif self.simbev.input_type == "profile":
-                next_drive_timesteps = self.car.driving_profile.loc[self.car.driving_profile["time_step"] > replacement_day_timestep]["time_step"].iat[0]
+                next_drive_timesteps = self.car.driving_profile.loc[
+                    self.car.driving_profile["time_step"] > replacement_day_timestep
+                    ]["time_step"].iat[0]
                 self.real_park_time = self.park_time + next_drive_timesteps - replacement_day_timestep
 
     def delay(self, time_steps: int):
