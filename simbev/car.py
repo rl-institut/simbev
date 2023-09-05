@@ -412,8 +412,9 @@ class Car:
         trip : Trip
             .
         """
-        self._update_activity(trip.park_timestamp, trip.park_start, trip.park_time,
-                              charging_use_case="")
+        self._update_activity(
+            trip.park_timestamp, trip.park_start, trip.park_time, charging_use_case=""
+        )
 
     def charge(
         self,
@@ -424,7 +425,6 @@ class Car:
         step_size=None,
         long_distance=None,
         max_charging_time=None,
-
     ):
         """Function for charging.
 
@@ -452,8 +452,14 @@ class Car:
 
             if power != 0:
                 charging_time, avg_power, power, soc = self.charging_curve(
-                    trip, power, step_size, max_charging_time, charging_type, charging_use_case, soc_end=1
-                    )
+                    trip,
+                    power,
+                    step_size,
+                    max_charging_time,
+                    charging_type,
+                    charging_use_case,
+                    soc_end=1,
+                )
                 self.soc = soc
 
             self._update_activity(
@@ -476,10 +482,17 @@ class Car:
 
             if power != 0:
                 soc_end = trip.rng.uniform(
-                    trip.simbev.hpc_data["soc_end_min"], trip.simbev.hpc_data["soc_end_max"]
+                    trip.simbev.hpc_data["soc_end_min"],
+                    trip.simbev.hpc_data["soc_end_max"],
                 )
                 charging_time, avg_power, power, soc = self.charging_curve(
-                    trip, power, step_size, max_charging_time, charging_type, charging_use_case, soc_end
+                    trip,
+                    power,
+                    step_size,
+                    max_charging_time,
+                    charging_type,
+                    charging_use_case,
+                    soc_end,
                 )
                 self.soc = soc
                 self._update_activity(
@@ -575,7 +588,14 @@ class Car:
             )
 
     def charging_curve(
-        self, trip, power, step_size, max_charging_time, charging_type, charging_use_case, soc_end
+        self,
+        trip,
+        power,
+        step_size,
+        max_charging_time,
+        charging_type,
+        charging_use_case,
+        soc_end,
     ):
         """Implementation of charging curve. The charging-curve is based on a 3rd degree polynomial function.
         The charging-functions is sliced into 10 sections. These sections are fitted into the time-steps.
@@ -603,7 +623,9 @@ class Car:
 
         soc_start = self.soc
 
-        if power >= trip.simbev.fast_charge_threshold: # TODO doubled? also happens in charge_public
+        if (
+            power >= trip.simbev.fast_charge_threshold
+        ):  # TODO doubled? also happens in charge_public
             charging_type = "fast"
 
         if self.car_type.charging_capacity[charging_type] == 0:
@@ -686,15 +708,18 @@ class Car:
             power_array = power_array[charging_section_counter - 1 :]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
-            #charging_use_case = self._get_charging_usecase(power, trip.extra_urban, trip.charging_use_case)
+            # charging_use_case = self._get_charging_usecase(power, trip.extra_urban, trip.charging_use_case)
             use_case = self._get_usecase(power)
 
             if charging_use_case == "urban_fast" or charging_use_case == "highway_fast":
                 park_timestep_end = trip.park_start + time_steps + 1
 
             else:
-                park_timestep_end = trip.park_start + max_charging_time if max_charging_time < trip.park_time \
+                park_timestep_end = (
+                    trip.park_start + max_charging_time
+                    if max_charging_time < trip.park_time
                     else trip.park_start + trip.park_time
+                )
 
             grid_dict = {
                 "charging_use_case": charging_use_case,
@@ -773,7 +798,7 @@ class Car:
                 distance=distance,
                 destination=destination,
                 extra_urban=extra_urban,
-                charging_use_case=""
+                charging_use_case="",
             )
             self.status = destination
             return True

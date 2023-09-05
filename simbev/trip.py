@@ -122,7 +122,7 @@ class Trip:
                 region,
                 car,
                 simbev,
-                car.driving_profile.loc[i-1, "charging_use_case"],
+                car.driving_profile.loc[i - 1, "charging_use_case"],
             )
             previous_trip = trip
             trip_list[count + 1] = trip
@@ -197,9 +197,12 @@ class Trip:
         self._set_timestamps()
 
     def get_max_parking_time(self, use_case):
-        frac_park_start, whole_park_start = math.modf(self.park_start / (60 * 24 / self.step_size))
-        frac_park_end, whole_park_end = math.modf((self.park_start + self.park_time)
-                                      / (60 * 24 / self.step_size))
+        frac_park_start, whole_park_start = math.modf(
+            self.park_start / (60 * 24 / self.step_size)
+        )
+        frac_park_end, whole_park_end = math.modf(
+            (self.park_start + self.park_time) / (60 * 24 / self.step_size)
+        )
         whole_park_start_steps = self.simbev.hours_to_time_steps(whole_park_start * 24)
         frac_park_start_steps = self.simbev.hours_to_time_steps(frac_park_start * 24)
         frac_park_end_steps = self.simbev.hours_to_time_steps(frac_park_end * 24)
@@ -207,17 +210,26 @@ class Trip:
         if use_case == "retail":
             if whole_park_end > whole_park_start:
                 # if parking starts after the retail threshold time
-                if ((frac_park_start_steps) >= (self.simbev.threshold_retail_limitation_steps)):
+                if (frac_park_start_steps) >= (
+                    self.simbev.threshold_retail_limitation_steps
+                ):
                     # put the park end somewhere between the start and midnight
-                    upper_bound = self.simbev.hours_to_time_steps((whole_park_start + 1) * 24)
+                    upper_bound = self.simbev.hours_to_time_steps(
+                        (whole_park_start + 1) * 24
+                    )
                     lower_bound = self.park_start + 1
                     mean = (upper_bound + lower_bound) / 2
                     sigma = (mean - (lower_bound)) / 3
                     max_parking_end = int(self.rng.normal(mean, sigma))
                 else:
                     # otherwise end somewhere between threshold and midnight
-                    upper_bound = self.simbev.hours_to_time_steps((whole_park_start + 1) * 24)
-                    lower_bound = whole_park_start_steps + self.simbev.threshold_retail_limitation_steps
+                    upper_bound = self.simbev.hours_to_time_steps(
+                        (whole_park_start + 1) * 24
+                    )
+                    lower_bound = (
+                        whole_park_start_steps
+                        + self.simbev.threshold_retail_limitation_steps
+                    )
                     mean = (upper_bound + lower_bound) / 2
                     sigma = (mean - (lower_bound)) / 3
                     max_parking_end = int(self.rng.normal(mean, sigma))
@@ -228,14 +240,34 @@ class Trip:
         elif use_case == "street":
             if self.simbev.street_night_charging_flag:
                 # parking starts or ends after threshold or ends the next day
-                if ((frac_park_start_steps >= self.simbev.threshold_street_limit_steps)
-                    or (((frac_park_end_steps >= self.simbev.threshold_street_limit_steps) or (whole_park_end > whole_park_start)) 
-                        and (frac_park_start_steps) >= (self.simbev.threshold_street_limit_steps - self.simbev.maximum_park_time)
-                        )):
-                    if self.location == "home" or not self.simbev.home_night_charging_flag:
-                        departure_time = self.rng.normal(self.simbev.night_departure_time, self.simbev.night_departure_standard_deviation)
+                if (
+                    frac_park_start_steps >= self.simbev.threshold_street_limit_steps
+                ) or (
+                    (
+                        (
+                            frac_park_end_steps
+                            >= self.simbev.threshold_street_limit_steps
+                        )
+                        or (whole_park_end > whole_park_start)
+                    )
+                    and (frac_park_start_steps)
+                    >= (
+                        self.simbev.threshold_street_limit_steps
+                        - self.simbev.maximum_park_time
+                    )
+                ):
+                    if (
+                        self.location == "home"
+                        or not self.simbev.home_night_charging_flag
+                    ):
+                        departure_time = self.rng.normal(
+                            self.simbev.night_departure_time,
+                            self.simbev.night_departure_standard_deviation,
+                        )
                         # return departure time plus steps until midnight from previous parking event
-                        return self.simbev.hours_to_time_steps(departure_time) + (self.simbev.hours_to_time_steps(24) - frac_park_start_steps)
+                        return self.simbev.hours_to_time_steps(departure_time) + (
+                            self.simbev.hours_to_time_steps(24) - frac_park_start_steps
+                        )
                     else:
                         return 0
                 else:
@@ -290,26 +322,34 @@ class Trip:
                 )
 
             elif self.location == "shopping" or self.charging_use_case == "retail":
-                if self.charge_decision("retail") and not (self.simbev.maximum_park_time_flag 
-                                                           and self.park_time > self.simbev.maximum_park_time):
+                if self.charge_decision("retail") and not (
+                    self.simbev.maximum_park_time_flag
+                    and self.park_time > self.simbev.maximum_park_time
+                ):
                     station_capacity = self.simbev.get_charging_capacity(
                         self.location, "retail", self.distance
                     )
                     # todo exponentialfunktion
                     max_parking_time = self.get_max_parking_time("retail")
-                    self.car.charge_public(self, station_capacity, max_parking_time, "retail")
+                    self.car.charge_public(
+                        self, station_capacity, max_parking_time, "retail"
+                    )
                 else:
                     self.car.park(self)
 
             elif self.charge_decision("street") and not (
-                self.simbev.maximum_park_time_flag 
-                and min(self.park_time, self.park_time_until_threshold) > self.simbev.maximum_park_time):
+                self.simbev.maximum_park_time_flag
+                and min(self.park_time, self.park_time_until_threshold)
+                > self.simbev.maximum_park_time
+            ):
                 # TODO the time check should check for park_time until the street_night_threshold
                 station_capacity = self.simbev.get_charging_capacity(
                     self.location, "street", self.distance
                 )
                 max_parking_time = self.get_max_parking_time("street")
-                self.car.charge_public(self, station_capacity, max_parking_time, "street")
+                self.car.charge_public(
+                    self, station_capacity, max_parking_time, "street"
+                )
 
             else:
                 self.car.park(self)
@@ -479,16 +519,20 @@ class Trip:
         self.fit_trip_to_timerange()
         self._set_timestamps()
         return True
-    
+
     @property
     def park_time_until_threshold(self) -> int:
-        '''
+        """
         Returns time steps between park start and next threshold
-        '''
+        """
         # This function currently only works for street, could be improved to work with retail threshold as well
-        park_start_steps_from_midnight = int(self.park_start % (24 * 60 / self.simbev.step_size))
+        park_start_steps_from_midnight = int(
+            self.park_start % (24 * 60 / self.simbev.step_size)
+        )
         # TODO calculate threshold timesteps once in simbev and just use it from there?
-        threshold_time_steps = self.simbev.hours_to_time_steps(self.simbev.threshold_street_limit)
+        threshold_time_steps = self.simbev.hours_to_time_steps(
+            self.simbev.threshold_street_limit
+        )
         if threshold_time_steps > park_start_steps_from_midnight:
             return threshold_time_steps - park_start_steps_from_midnight
         else:
@@ -496,7 +540,13 @@ class Trip:
 
 
 def create_trip_from_profile_row(
-    row, current_location, last_time_step, region, car, simbev, charging_use_case=None,
+    row,
+    current_location,
+    last_time_step,
+    region,
+    car,
+    simbev,
+    charging_use_case=None,
 ):
     drive_start = int(row.time_step)
     drive_time = max((row.arrival_time - row.departure_time) / simbev.step_size, 1)

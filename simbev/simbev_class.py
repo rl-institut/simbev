@@ -43,14 +43,29 @@ class SimBEV:
             "distance_threshold_extra_urban"
         ]
         self.threshold_retail_limitation = config_dict["threshold_retail_limit"]
-        self.threshold_retail_limitation_steps = self.hours_to_time_steps(self.threshold_retail_limitation)
+        self.threshold_retail_limitation_steps = self.hours_to_time_steps(
+            self.threshold_retail_limitation
+        )
         self.threshold_street_limit = config_dict["threshold_street_night_limit"]
-        self.threshold_street_limit_steps = self.hours_to_time_steps(self.threshold_street_limit)
-        self.lower_maximum_park_time_street_night = config_dict["lower_maximum_park_time_street_night"]
-        self.upper_maximum_park_time_street_night = config_dict["upper_maximum_park_time_street_night"]
-        if self.lower_maximum_park_time_street_night > self.upper_maximum_park_time_street_night:
-            print("Warning: Lower maximum park time can't be bigger than upper maximum park time. Both will be set to the upper time.")
-            self.lower_maximum_park_time_street_night = self.upper_maximum_park_time_street_night
+        self.threshold_street_limit_steps = self.hours_to_time_steps(
+            self.threshold_street_limit
+        )
+        self.lower_maximum_park_time_street_night = config_dict[
+            "lower_maximum_park_time_street_night"
+        ]
+        self.upper_maximum_park_time_street_night = config_dict[
+            "upper_maximum_park_time_street_night"
+        ]
+        if (
+            self.lower_maximum_park_time_street_night
+            > self.upper_maximum_park_time_street_night
+        ):
+            print(
+                "Warning: Lower maximum park time can't be bigger than upper maximum park time. Both will be set to the upper time."
+            )
+            self.lower_maximum_park_time_street_night = (
+                self.upper_maximum_park_time_street_night
+            )
 
         self.fast_charge_threshold = config_dict["fast_charge_threshold"]
         self.consumption_factor_highway = config_dict["consumption_factor_highway"]
@@ -72,10 +87,14 @@ class SimBEV:
         self.private_only_run = config_dict["private_only_run"]
         self.street_night_charging_flag = config_dict["street_night_charging_flag"]
         self.home_night_charging_flag = config_dict["home_night_charging_flag"]
-        self.night_departure_standard_deviation = config_dict["night_departure_standard_deviation"]
+        self.night_departure_standard_deviation = config_dict[
+            "night_departure_standard_deviation"
+        ]
         self.night_departure_time = config_dict["night_departure_time"]
         self.maximum_park_time_flag = config_dict["maximum_park_time_flag"]
-        self.maximum_park_time = self.hours_to_time_steps(config_dict["maximum_park_time"])
+        self.maximum_park_time = self.hours_to_time_steps(
+            config_dict["maximum_park_time"]
+        )
 
         self.num_threads = config_dict["num_threads"]
         self.output_options = config_dict["output_options"]
@@ -160,13 +179,11 @@ class SimBEV:
                     car_type_name, "max_charging_capacity_fast"
                 ]
 
-                car_types_tuples = [
-                    (charging_capacity_slow, charging_capacity_fast)
-                ]
+                car_types_tuples = [(charging_capacity_slow, charging_capacity_fast)]
             else:
                 # tech data by probability
-                slow_cols = [col for col in self.tech_data.columns if 'slow' in col]
-                fast_cols = [col for col in self.tech_data.columns if 'fast' in col]
+                slow_cols = [col for col in self.tech_data.columns if "slow" in col]
+                fast_cols = [col for col in self.tech_data.columns if "fast" in col]
 
                 car_types_tuples = []
                 for slow_col in slow_cols:
@@ -201,7 +218,9 @@ class SimBEV:
                 if len(car_types_tuples) == 1:
                     self.car_types[car_type_name] = car_type
                 else:
-                    self.car_types["{}_{}_{}".format(car_type_name, slow, fast)] = car_type
+                    self.car_types[
+                        "{}_{}_{}".format(car_type_name, slow, fast)
+                    ] = car_type
 
     def _create_region_type(self, region_type):
         """Creates region-types with all necessary properties.
@@ -338,38 +357,53 @@ class SimBEV:
                         car_type = self.car_types[car_type_name]
                     else:
                         # tech data by probability
-                        slow_cols = [col for col in self.tech_data.columns if 'slow' in col]
-                        fast_cols = [col for col in self.tech_data.columns if 'fast' in col]
+                        slow_cols = [
+                            col for col in self.tech_data.columns if "slow" in col
+                        ]
+                        fast_cols = [
+                            col for col in self.tech_data.columns if "fast" in col
+                        ]
 
-                        charging_capacity_slow = float(helpers.get_column_by_random_number(
-                            self.tech_data.loc[
-                            car_type_name, slow_cols
-                        ],
-                        self.rng.random()
-                        ).split("_")[-1])
+                        charging_capacity_slow = float(
+                            helpers.get_column_by_random_number(
+                                self.tech_data.loc[car_type_name, slow_cols],
+                                self.rng.random(),
+                            ).split("_")[-1]
+                        )
 
-                        charging_capacity_fast = float(helpers.get_column_by_random_number(
-                            self.tech_data.loc[
-                            car_type_name, fast_cols
-                        ],
-                        self.rng.random()
-                        ).split("_")[-1])
-                        car_type = self.car_types["{}_{}_{}".format(car_type_name, charging_capacity_slow, charging_capacity_fast)]
-
+                        charging_capacity_fast = float(
+                            helpers.get_column_by_random_number(
+                                self.tech_data.loc[car_type_name, fast_cols],
+                                self.rng.random(),
+                            ).split("_")[-1]
+                        )
+                        car_type = self.car_types[
+                            "{}_{}_{}".format(
+                                car_type_name,
+                                charging_capacity_slow,
+                                charging_capacity_fast,
+                            )
+                        ]
 
                     # create new car objects
                     # TODO: parking parameters that change by region
                     work_parking = (
-                        self.work_parking[region.region_type.rs7_type] >= self.rng.random()
+                        self.work_parking[region.region_type.rs7_type]
+                        >= self.rng.random()
                     )
                     home_parking = (
-                        self.home_parking[region.region_type.rs7_type] >= self.rng.random()
+                        self.home_parking[region.region_type.rs7_type]
+                        >= self.rng.random()
                     )
                     work_power = (
-                        self.get_charging_capacity("work", use_case="work") if work_parking else None
+                        self.get_charging_capacity("work", use_case="work")
+                        if work_parking
+                        else None
                     )
                     home_power = (
-                        self.get_charging_capacity("home", use_case="home") if home_parking else None
+                        self.get_charging_capacity("home", use_case="home")
+                        if home_parking
+                        else None
                     )
                     user_group_id = self.set_user_group(
                         work_parking, home_parking, work_power, home_power
@@ -383,7 +417,8 @@ class SimBEV:
                         else 1
                     )
                     home_detached = (
-                        self.rng.random() <= self.probability_detached_home[region.id]
+                        self.rng.random()
+                        <= self.probability_detached_home[region.region_type.rs7_type]
                     )
 
                     car = Car(
@@ -520,12 +555,18 @@ class SimBEV:
                     probability = probability.loc[use_case, :]
                     probability = probability.squeeze()
                     return float(
-                        helpers.get_column_by_random_number(probability, self.rng.random())
+                        helpers.get_column_by_random_number(
+                            probability, self.rng.random()
+                        )
                     )
                 except KeyError:
                     if not self.charging_probability_warning_flag:
                         self.charging_probability_warning_flag = True
-                        warnings.warn("Warning: charging probability for {} could not be found in input files! Using location data instead.".format(use_case))
+                        warnings.warn(
+                            "Warning: charging probability for {} could not be found in input files! Using location data instead.".format(
+                                use_case
+                            )
+                        )
                     pass
 
         if "hpc" in location:
@@ -804,9 +845,7 @@ class SimBEV:
             file_path = cfg.get("charging_probabilities", charging_type, fallback=None)
             if file_path is not None:
                 df = pd.read_csv(
-                    pathlib.Path(
-                        scenario_path, file_path
-                    ),
+                    pathlib.Path(scenario_path, file_path),
                     index_col=0,
                 )
                 charging_probabilities[charging_type] = df
@@ -879,7 +918,7 @@ class SimBEV:
                 "basic", "distance_threshold_extra_urban", fallback=75
             ),
             "consumption_factor_highway": cfg.getfloat(
-                "basic", "consumption_factor_highway", fallback=1.
+                "basic", "consumption_factor_highway", fallback=1.0
             ),
             "rng_seed": cfg["sim_params"].getint("seed", None),
             "eta_cp": cfg.getfloat("basic", "eta_cp"),
@@ -900,17 +939,37 @@ class SimBEV:
                 "sim_params", "private_only_run", fallback=False
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
-            "fast_charge_threshold": cfg.getfloat("basic", "dc_power_threshold", fallback=50.),
-            "threshold_retail_limit": cfg.getfloat("basic", "threshold_retail_limitation", fallback=21),
-            "threshold_street_night_limit":  cfg.getfloat("basic", "threshold_street_night_limitation", fallback=21),
-            "maximum_park_time_flag": cfg.getboolean("basic", "maximum_park_time_flag", fallback=False),
+            "fast_charge_threshold": cfg.getfloat(
+                "basic", "dc_power_threshold", fallback=50.0
+            ),
+            "threshold_retail_limit": cfg.getfloat(
+                "basic", "threshold_retail_limitation", fallback=21
+            ),
+            "threshold_street_night_limit": cfg.getfloat(
+                "basic", "threshold_street_night_limitation", fallback=21
+            ),
+            "maximum_park_time_flag": cfg.getboolean(
+                "basic", "maximum_park_time_flag", fallback=False
+            ),
             "maximum_park_time": cfg.getint("basic", "maximum_park_time", fallback=10),
-            "lower_maximum_park_time_street_night": cfg.getint("basic", "lower_maximum_park_time_street_night", fallback=8),
-            "upper_maximum_park_time_street_night": cfg.getint("basic", "upper_maximum_park_time_street_night", fallback=12),
-            "home_night_charging_flag": cfg.getboolean("basic", "home_night_charging_flag", fallback=False),
-            "street_night_charging_flag": cfg.getboolean("basic", "street_night_charging_flag", fallback=True),
-            "night_departure_standard_deviation": cfg.getfloat("basic", "night_departure_standard_deviation", fallback=1.0),
-            "night_departure_time": cfg.getfloat("basic", "night_departure_time", fallback=9.0),
+            "lower_maximum_park_time_street_night": cfg.getint(
+                "basic", "lower_maximum_park_time_street_night", fallback=8
+            ),
+            "upper_maximum_park_time_street_night": cfg.getint(
+                "basic", "upper_maximum_park_time_street_night", fallback=12
+            ),
+            "home_night_charging_flag": cfg.getboolean(
+                "basic", "home_night_charging_flag", fallback=False
+            ),
+            "street_night_charging_flag": cfg.getboolean(
+                "basic", "street_night_charging_flag", fallback=True
+            ),
+            "night_departure_standard_deviation": cfg.getfloat(
+                "basic", "night_departure_standard_deviation", fallback=1.0
+            ),
+            "night_departure_time": cfg.getfloat(
+                "basic", "night_departure_time", fallback=9.0
+            ),
         }
         data_dict = {
             "charging_probabilities": charging_probabilities,
