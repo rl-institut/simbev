@@ -75,6 +75,7 @@ class Trip:
 
         self.park_start = time_step
         self.park_time = 0
+        self.real_park_time = None
         self.drive_start = 0
         self.drive_time = 0
         self.trip_end = region.last_time_step + 1
@@ -197,11 +198,13 @@ class Trip:
         self._set_timestamps()
 
     def get_max_parking_time(self, use_case):
+        if self.real_park_time is None:
+            self.real_park_time = self.park_time
         frac_park_start, whole_park_start = math.modf(
             self.park_start / (60 * 24 / self.step_size)
         )
         frac_park_end, whole_park_end = math.modf(
-            (self.park_start + self.park_time) / (60 * 24 / self.step_size)
+            (self.park_start + self.real_park_time) / (60 * 24 / self.step_size)
         )
         whole_park_start_steps = self.simbev.hours_to_time_steps(whole_park_start * 24)
         frac_park_start_steps = self.simbev.hours_to_time_steps(frac_park_start * 24)
@@ -273,7 +276,7 @@ class Trip:
                 else:
                     return self.simbev.maximum_park_time
             else:
-                if self.park_time <= self.simbev.maximum_park_time:
+                if self.real_park_time <= self.simbev.maximum_park_time:
                     return self.simbev.maximum_park_time
                 else:
                     return 0
@@ -493,8 +496,9 @@ class Trip:
 
     def fit_trip_to_timerange(self):
         """
-        Cuts of time-series so it is in simulation-timerange.
+        Cuts off trip so it is inside the simulation time range.
         """
+        self.real_park_time = self.park_time
         # check if trip ends after simulation end
         if self.trip_end > self.region.last_time_step:
             self.trip_end = self.region.last_time_step + 1
@@ -504,6 +508,19 @@ class Trip:
         if self.drive_start > self.region.last_time_step or not self.drive_found:
             self.park_time = self.region.last_time_step - self.park_start + 1
             self.drive_found = False
+            # change the real park time depending on input type
+            # pull actual driving profile data from the first (unused) week in the simulation
+            # this is used to get correct projected standing times at end of simulation
+            replacement_day_timestep = (self.region.last_time_step + 1) % self.simbev.hours_to_time_steps(24 * 7)
+            if self.simbev.input_type == "probability":
+                for index, timestep in enumerate(self.car.output["event_start"]):
+                    if timestep > replacement_day_timestep and not self.car.output["location"][index] == "driving":
+                        next_drive_timesteps = timestep
+                        break
+                self.real_park_time = self.park_time + next_drive_timesteps - replacement_day_timestep
+            elif self.simbev.input_type == "profile":
+                next_drive_timesteps = self.car.driving_profile.loc[self.car.driving_profile["time_step"] > replacement_day_timestep]["time_step"].iat[0]
+                self.real_park_time = self.park_time + next_drive_timesteps - replacement_day_timestep
 
     def delay(self, time_steps: int):
         max_delay = self.park_time - 1
