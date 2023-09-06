@@ -304,6 +304,7 @@ class Car:
         soc: float = 1.0,
         status: str = "home",
         private_only=False,
+        fast_charging_threshold=50
     ):
         self.car_type = car_type
         self.user_group = user_group
@@ -313,11 +314,12 @@ class Car:
         self.home_parking = home_parking
         self.work_capacity = work_capacity
         self.home_capacity = home_capacity
-        self.status = status  # replace with enum?
+        self.status = status  # TODO replace with enum?
         self.number = number
         self.region = region
-        self.home_detached = home_detached  # Describes if Car is at home in apartment building or detached house
+        self.home_detached = home_detached  # Describes if car is at home in apartment building or detached house
         self.private_only = private_only
+        self.fast_charging_threshold = fast_charging_threshold
         self.driving_profile = None
 
         # lists to track output data
@@ -438,79 +440,32 @@ class Car:
         if self.soc >= self.car_type.charging_threshold:
             power = 0
 
-        if charging_type == "slow":
-            avg_power = 0
+        avg_power = 0
 
-            if power != 0:
-                charging_time, avg_power, power, soc = self.charging_curve(
-                    trip,
-                    power,
-                    step_size,
-                    max_charging_time,
-                    charging_type,
-                    charging_use_case,
-                    soc_end=1,
-                )
-                self.soc = soc
-
-            self._update_activity(
-                trip.park_timestamp,
-                trip.park_start,
-                trip.park_time,
-                nominal_charging_capacity=power,
-                charging_power=avg_power,
-                charging_use_case=charging_use_case,
+        if power != 0:
+            charging_time, avg_power, power, soc = self.charging_curve(
+                trip,
+                power,
+                step_size,
+                max_charging_time,
+                charging_type,
+                charging_use_case,
+                soc_end=1,
             )
-
-        elif charging_type == "fast":
-            # if self.car_type.charging_capacity["fast"] == 0:
-            #     raise ValueError(
-            #         "Vehicle {} has no fast charging capacity but got assigned a HPC event.".format(
-            #             self.car_type.name
-            #         )
-            #     )
-            avg_power = 0
-
-            if power != 0:
-                soc_end = trip.rng.uniform(
-                    trip.simbev.hpc_data["soc_end_min"],
-                    trip.simbev.hpc_data["soc_end_max"],
-                )
-                charging_time, avg_power, power, soc = self.charging_curve(
-                    trip,
-                    power,
-                    step_size,
-                    max_charging_time,
-                    charging_type,
-                    charging_use_case,
-                    soc_end,
-                )
-                self.soc = soc
-                self._update_activity(
-                    trip.park_timestamp,
-                    trip.park_start,
-                    charging_time,
-                    nominal_charging_capacity=power,
-                    charging_power=avg_power,
-                    charging_use_case=charging_use_case,
-                )
-            else:
-                charging_time = 0
-                self._update_activity(
-                    trip.park_timestamp,
-                    trip.park_start,
-                    trip.park_time,
-                    nominal_charging_capacity=power,
-                    charging_power=0,
-                    charging_use_case=charging_use_case,
-                )
-            return charging_time
+            self.soc = soc
         else:
-            raise ValueError(
-                "Charging type {} is not accepted in charge function!".format(
-                    charging_type
-                )
-            )
+            charging_time = 0
+
+        self._update_activity(
+            trip.park_timestamp,
+            trip.park_start,
+            trip.park_time,
+            nominal_charging_capacity=power,
+            charging_power=avg_power,
+            charging_use_case=charging_use_case,
+        )
+
+        return charging_time
 
     def charge_home(self, trip):
         """Function for initiation of charging-event in use-case home.
@@ -560,23 +515,15 @@ class Car:
 
     def charge_public(self, trip, station_capacity, max_parking_time, use_case):
         if station_capacity > trip.simbev.fast_charge_threshold:
-            self.charge(
-                trip,
-                station_capacity,
-                "fast",
-                "urban_fast",
-                step_size=self.region.region_type.step_size,
-                max_charging_time=max_parking_time,
-            )
-        else:
-            self.charge(
-                trip,
-                station_capacity,
-                "slow",
-                use_case,
-                step_size=self.region.region_type.step_size,
-                max_charging_time=max_parking_time,
-            )
+            use_case = "urban_fast"
+        self.charge(
+            trip,
+            station_capacity,
+            "slow",
+            use_case,
+            step_size=self.region.region_type.step_size,
+            max_charging_time=max_parking_time,
+        )
 
     def charging_curve(
         self,
@@ -620,6 +567,10 @@ class Car:
             power >= trip.simbev.fast_charge_threshold
         ):
             charging_type = "fast"
+            soc_end = trip.rng.uniform(
+                    trip.simbev.hpc_data["soc_end_min"],
+                    trip.simbev.hpc_data["soc_end_max"],
+                )
 
         if self.car_type.charging_capacity[charging_type] == 0:
             return trip.park_time, 0, 0, soc_start
@@ -907,8 +858,7 @@ class Car:
             return "work"
         elif self.home_parking and self.status == "home":
             return "home"
-        # TODO: decide on status an requirement for hpc
-        elif power >= 150:
+        elif power >= self.fast_charging_threshold:
             return "hpc"
         else:
             return "public"

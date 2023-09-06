@@ -61,8 +61,8 @@ class SimBEV:
             > self.upper_maximum_park_time_street_night
         ):
             print(
-                """Warning: Lower maximum park time can't be bigger than upper maximum park time.
-                 Both will be set to the upper time."""
+                ("Warning: Lower maximum park time can't be bigger than upper maximum park time."
+                 "Both will be set to the upper time.")
             )
             self.lower_maximum_park_time_street_night = (
                 self.upper_maximum_park_time_street_night
@@ -426,6 +426,7 @@ class SimBEV:
                         region,
                         home_detached,
                         1,
+                        fast_charging_threshold=self.fast_charge_threshold,
                     )
 
                     if self.input_type == "profile":
@@ -557,8 +558,8 @@ class SimBEV:
                     if not self.charging_probability_warning_flag:
                         self.charging_probability_warning_flag = True
                         warnings.warn(
-                            """Warning: charging probability for {} could not be found in input files!
-                             Using location data instead.""".format(
+                            ("Warning: charging probability for {} could not be found in input files! "
+                             "Using location data instead.").format(
                                 use_case
                             )
                         )
