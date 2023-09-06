@@ -738,7 +738,6 @@ class Car:
                 duration,
                 distance=distance,
                 destination=destination,
-                extra_urban=extra_urban,
                 charging_use_case="",
             )
             self.status = destination
