@@ -6,19 +6,20 @@
 Welcome to SimBEV's documentation!
 ========================================
 
+What is SimBEV?
+---------------
+
+Simbev stands for "Simulation of Battery Electric Vehicles". Simbev uses german mobility data to calculate expected
+charging demand of electric vehicles in different regions and scenarios. The key features of Simbev are:
+
+* Detailed modelling of driving profiles
+* Stepwise simulation without using perfect foresight
+* Calculating charging demand in a region split into 4 use cases
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
-   
+   :caption: Contents
+
    getting_started
    usage_details
    features
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
