@@ -1,6 +1,6 @@
 import math
-from simbev.helpers.errors import SoCError
 from typing import TYPE_CHECKING
+from simbev.helpers.errors import SoCError
 
 if TYPE_CHECKING:
     from simbev.car import Car
@@ -271,15 +271,13 @@ class Trip:
                         return self.simbev.hours_to_time_steps(departure_time) + (
                             self.simbev.hours_to_time_steps(24) - frac_park_start_steps
                         )
-                    else:
-                        return 0
+                    return 0
                 else:
                     return self.simbev.maximum_park_time
             else:
                 if self.real_park_time <= self.simbev.maximum_park_time:
                     return self.simbev.maximum_park_time
-                else:
-                    return 0
+                return 0
 
     def charge_decision(self, key):
         return self.car.user_group.attractivity[key] >= self.rng.random()
@@ -550,8 +548,7 @@ class Trip:
 
         if threshold_time_steps > park_start_steps_from_midnight:
             return threshold_time_steps - park_start_steps_from_midnight
-        else:
-            return 0
+        return 0
 
 
 def create_trip_from_profile_row(

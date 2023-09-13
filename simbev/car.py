@@ -720,28 +720,28 @@ class Car:
 
         if soc_delta >= self.usable_soc and self.car_type.label == "BEV":
             return False
-        else:
-            self.status = "driving"
-            self.soc -= soc_delta
-            if self.soc < 0:
-                if self.car_type.label == "PHEV":
-                    self.soc = 0
-                else:
-                    raise ValueError(
-                        "SoC of car {} became negative ({})".format(
-                            self.car_type.name, self.soc
-                        )
+
+        self.status = "driving"
+        self.soc -= soc_delta
+        if self.soc < 0:
+            if self.car_type.label == "PHEV":
+                self.soc = 0
+            else:
+                raise ValueError(
+                    "SoC of car {} became negative ({})".format(
+                        self.car_type.name, self.soc
                     )
-            self._update_activity(
-                timestamp,
-                start_time,
-                duration,
-                distance=distance,
-                destination=destination,
-                charging_use_case="",
-            )
-            self.status = destination
-            return True
+                )
+        self._update_activity(
+            timestamp,
+            start_time,
+            duration,
+            distance=distance,
+            destination=destination,
+            charging_use_case="",
+        )
+        self.status = destination
+        return True
 
     @property
     def precise_remaining_range(self):

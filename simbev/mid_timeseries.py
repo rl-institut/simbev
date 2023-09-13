@@ -1,9 +1,10 @@
-import pandas as pd
-import numpy as np
 import random
 import math
 import datetime
 from pathlib import Path
+
+import pandas as pd
+import numpy as np
 
 
 def get_season(date: datetime.date):
@@ -264,8 +265,7 @@ def get_profile_time_series(start_date, end_date, step_size, df):
         week_end = week_start + pd.Timedelta(days=num_days - 1)
 
         # If the week end date is beyond the end date of the time series, adjust it accordingly
-        if week_end > end_date:
-            week_end = end_date
+        week_end = min(week_end, end_date)
 
         # Get the data for this week that falls within the desired date range
         week_data_filtered = week_data[

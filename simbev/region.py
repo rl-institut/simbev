@@ -1,6 +1,8 @@
+import pathlib
+
 import pandas as pd
 import numpy as np
-import pathlib
+
 from simbev.mid_timeseries import get_timeseries, get_empty_timeseries
 import simbev.helpers.helpers as helpers
 
@@ -316,13 +318,7 @@ class Region:
         ]
         for uc in use_cases:
             self.header_grid_ts.append("{}_total_power".format(uc))
-            if (
-                uc == "home_detached"
-                or uc == "home_apartment"
-                or uc == "work"
-                or uc == "retail"
-                or uc == "street"
-            ):
+            if uc in ('home_detached', 'home_apartment', 'work', 'retail', 'street'):
                 for power in header_slow:
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
 

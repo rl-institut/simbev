@@ -450,7 +450,7 @@ class SimBEV:
             ).to_dict()
 
             # create region_type
-            if region_type not in self.created_region_types.keys():
+            if region_type not in self.created_region_types:
                 self._create_region_type(region_type)
 
             # create region objects
@@ -692,8 +692,7 @@ class SimBEV:
                 )
 
                 return None, None
-            else:
-                raise e
+            raise e
 
     def get_charging_capacity(self, location=None, use_case=None, distance=None):
         """Determines charging capacity for specific charging event
@@ -725,7 +724,7 @@ class SimBEV:
                 return float(
                     helpers.get_column_by_random_number(probability, self.rng.random())
                 )
-            elif use_case:
+            if use_case:
                 # todo check if use-case exitis in probability
                 probability = self.charging_probabilities["use_case"]
                 try:
@@ -745,7 +744,6 @@ class SimBEV:
                                 use_case
                             )
                         )
-                    pass
 
         if "hpc" in location:
             if distance > self.distance_threshold_extra_urban:
@@ -761,7 +759,7 @@ class SimBEV:
                 helpers.get_column_by_random_number(probability, self.rng.random())
             )
 
-        elif location:
+        if location:
             probability = self.charging_probabilities["slow"]
             probability = probability.loc[
                 [d for d in probability.index if location in d]
@@ -771,8 +769,7 @@ class SimBEV:
                 helpers.get_column_by_random_number(probability, self.rng.random())
             )
 
-        else:
-            raise ValueError("Missing arguments in get_charging_capacity.")
+        raise ValueError("Missing arguments in get_charging_capacity.")
 
     def hours_to_time_steps(self, t):
         """Converts time in hours to timesteps.
