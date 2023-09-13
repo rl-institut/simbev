@@ -787,7 +787,6 @@ class SimBEV:
         int
             Returns timesteps.
         """
-        # TODO check if this leads to errors with machine inaccuracies. maybe round is better
         return math.ceil(60 / self.step_size * t)
 
     def simulate_car(self, car, region):
