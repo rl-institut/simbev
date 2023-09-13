@@ -290,7 +290,7 @@ class Trip:
 
     def charge_decision(self, use_case):
         """Determine if a charging event is attractive enough.
-        
+
         Parameters
         ----------
         use_case : str
@@ -525,27 +525,36 @@ class Trip:
             # change the real park time depending on input type
             # pull actual driving profile data from the first (unused) week in the simulation
             # this is used to get correct projected standing times at end of simulation
-            replacement_day_timestep = (self.region.last_time_step + 1) % self.simbev.hours_to_time_steps(24 * 7)
+            replacement_day_timestep = (
+                self.region.last_time_step + 1
+            ) % self.simbev.hours_to_time_steps(24 * 7)
             if self.simbev.input_type == "probability":
                 for index, timestep in enumerate(self.car.output["event_start"]):
-                    if timestep > replacement_day_timestep and not self.car.output["location"][index] == "driving":
+                    if (
+                        timestep > replacement_day_timestep
+                        and not self.car.output["location"][index] == "driving"
+                    ):
                         next_drive_timesteps = timestep
                         break
-                self.real_park_time = self.park_time + next_drive_timesteps - replacement_day_timestep
+                self.real_park_time = (
+                    self.park_time + next_drive_timesteps - replacement_day_timestep
+                )
             elif self.simbev.input_type == "profile":
                 next_drive_timesteps = self.car.driving_profile.loc[
                     self.car.driving_profile["time_step"] > replacement_day_timestep
-                    ]["time_step"].iat[0]
-                self.real_park_time = self.park_time + next_drive_timesteps - replacement_day_timestep
+                ]["time_step"].iat[0]
+                self.real_park_time = (
+                    self.park_time + next_drive_timesteps - replacement_day_timestep
+                )
 
     def delay(self, time_steps: int):
         """Change the trip according to a given delay.
-        
+
         Parameters
         ----------
         time_steps : int
             Time steps to delay the start of the trip by
-            
+
         Returns
         -------
         bool

@@ -305,7 +305,7 @@ class Car:
         soc: float = 1.0,
         status: str = "home",
         private_only=False,
-        fast_charging_threshold=50
+        fast_charging_threshold=50,
     ):
         self.car_type = car_type
         self.user_group = user_group
@@ -577,14 +577,12 @@ class Car:
 
         soc_start = self.soc
 
-        if (
-            power >= trip.simbev.fast_charge_threshold
-        ):
+        if power >= trip.simbev.fast_charge_threshold:
             charging_type = "fast"
             soc_end = trip.rng.uniform(
-                    trip.simbev.hpc_data["soc_end_min"],
-                    trip.simbev.hpc_data["soc_end_max"],
-                )
+                trip.simbev.hpc_data["soc_end_min"],
+                trip.simbev.hpc_data["soc_end_max"],
+            )
 
         if self.car_type.charging_capacity[charging_type] == 0:
             return trip.park_time, 0, 0, soc_start
@@ -660,13 +658,13 @@ class Car:
 
             charged_energy_list.append(round(sum(energy_sections), 4))
 
-            charging_time_array = charging_time_array[charging_section_counter - 1:]
+            charging_time_array = charging_time_array[charging_section_counter - 1 :]
             charging_time_array[0] = time_cutoff
 
-            power_array = power_array[charging_section_counter - 1:]
+            power_array = power_array[charging_section_counter - 1 :]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
-            if charging_use_case in ('urban_fast', 'highway_fast'):
+            if charging_use_case in ("urban_fast", "highway_fast"):
                 park_timestep_end = trip.park_start + time_steps + 1
 
             else:

@@ -210,6 +210,7 @@ class SimBEV:
         Time step size as a string representation with 'min' suffix.
 
     """
+
     def __init__(self, data_dict, config_dict, name):
         # parameters from data_dict
         self.region_data = data_dict["regions"]
@@ -250,8 +251,10 @@ class SimBEV:
             > self.upper_maximum_park_time_street_night
         ):
             print(
-                ("Warning: Lower maximum park time can't be bigger than upper maximum park time."
-                 "Both will be set to the upper time.")
+                (
+                    "Warning: Lower maximum park time can't be bigger than upper maximum park time."
+                    "Both will be set to the upper time."
+                )
             )
             self.lower_maximum_park_time_street_night = (
                 self.upper_maximum_park_time_street_night
@@ -742,10 +745,10 @@ class SimBEV:
                     if not self.charging_probability_warning_flag:
                         self.charging_probability_warning_flag = True
                         warnings.warn(
-                            ("Warning: charging probability for {} could not be found in input files! "
-                             "Using location data instead.").format(
-                                use_case
-                            )
+                            (
+                                "Warning: charging probability for {} could not be found in input files! "
+                                "Using location data instead."
+                            ).format(use_case)
                         )
 
         if "hpc" in location:
@@ -816,9 +819,7 @@ class SimBEV:
             trip_possible = True
             for trip in trips:
                 if trip is not None:
-                    delay = max(
-                        previous_trip.trip_end - trip.park_start, 0
-                    )
+                    delay = max(previous_trip.trip_end - trip.park_start, 0)
                     if delay:
                         trip_possible = trip.delay(delay)
                     if trip_possible:
@@ -1012,7 +1013,9 @@ class SimBEV:
         try:
             cfg.read(cfg_file)
         except Exception as exc:
-            raise FileNotFoundError(f"Cannot read config file {cfg_file} - malformed?") from exc
+            raise FileNotFoundError(
+                f"Cannot read config file {cfg_file} - malformed?"
+            ) from exc
 
         region_df = pd.read_csv(
             pathlib.Path(scenario_path, cfg["rampup_ev"]["rampup"]),
@@ -1113,7 +1116,9 @@ class SimBEV:
             ),
             "scenario_path": scenario_path,
             "input_type": cfg.get("basic", "input_type", fallback="probability"),
-            "input_directory": cfg.get("basic", "input_directory", fallback="data/probability"),
+            "input_directory": cfg.get(
+                "basic", "input_directory", fallback="data/probability"
+            ),
             "num_threads": cfg.getint("sim_params", "num_threads", fallback=1),
             "output_options": output_options,
             "private_only_run": cfg.getboolean(

@@ -8,7 +8,6 @@ from scipy.interpolate import interp1d
 from simbev import __version__
 
 
-
 def date_string_to_datetime(date_str):
     """Function that converts string to date-format.
 
@@ -281,6 +280,7 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
 
 def timeitlog(timing, save_directory):
     """Timing decoratior for functions."""
+
     def decorator(func):
         path_to_log_file = Path(save_directory, "timing_log_file_simbev.txt")
 
