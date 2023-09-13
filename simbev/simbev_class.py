@@ -12,12 +12,12 @@ from typing import List
 import pandas as pd
 import numpy as np
 
-import simbev.helpers.helpers as helpers
+from simbev.helpers import helpers
 from simbev.region import Region, RegionType
 from simbev.car import CarType, Car, UserGroup
 from simbev.trip import Trip
 from simbev.mid_timeseries import get_profile_time_series
-import simbev.plot as plot
+from simbev import plot
 from simbev.helpers.errors import SoCError
 
 

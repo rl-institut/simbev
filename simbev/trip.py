@@ -589,7 +589,44 @@ def create_trip_from_profile_row(
     simbev,
     charging_use_case=None,
 ):
-    """"""
+    """
+    Create a Trip object based on information from a driving profile row.
+
+    This function takes various input parameters from a driving profile row and other context data
+    to create a Trip object representing a driving trip. It calculates drive start time,
+    drive time, destination, distance, parking time, and other attributes of the trip.
+
+    Parameters:
+    -----------
+    row : pd.Series
+        A row of data from the profile containing information about the trip.
+    current_location : str
+        The current location of the vehicle.
+    last_time_step : int
+        The time step of the last action taken by the vehicle.
+    region : str
+        The region in which the trip is taking place.
+    car : Car
+        The car involved in the trip.
+    simbev : SimBEV
+        An object representing the simulation environment.
+    charging_use_case : str, optional
+        A string indicating the charging use case for the trip, if applicable.
+
+    Returns:
+    --------
+    Trip
+        A Trip object representing the created trip.
+
+    Notes:
+    ------
+    - The function calculates various attributes of the trip, such as drive start time,
+      drive time, destination, distance, parking time, and more.
+    - The `fit_trip_to_timerange()` method adjusts the trip to fit within the simulation
+      time range.
+    - The `_set_timestamps()` method sets the timestamps for the trip.
+
+    """
     drive_start = int(row.time_step)
     drive_time = max((row.arrival_time - row.departure_time) / simbev.step_size, 1)
     drive_time = math.ceil(drive_time)

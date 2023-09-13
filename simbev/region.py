@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from simbev.mid_timeseries import get_timeseries, get_empty_timeseries
-import simbev.helpers.helpers as helpers
+from simbev.helpers import helpers
 
 
 class RegionType:

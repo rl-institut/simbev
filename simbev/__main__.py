@@ -4,7 +4,7 @@ import pathlib
 import datetime
 
 from simbev.simbev_class import SimBEV
-import simbev.helpers.helpers as helpers
+from simbev.helpers import helpers
 
 
 def main():
