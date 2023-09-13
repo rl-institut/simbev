@@ -280,6 +280,7 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
 
 
 def timeitlog(timing, save_directory):
+    """Timing decoratior for functions."""
     def decorator(func):
         path_to_log_file = Path(save_directory, "timing_log_file_simbev.txt")
 
@@ -306,6 +307,7 @@ def timeitlog(timing, save_directory):
 
 
 def interpolate_charging_curve(x, y):
+    """Cubic interpolation between x and y."""
     f = interp1d(x, y, kind="cubic", fill_value="extrapolate")
 
     return f

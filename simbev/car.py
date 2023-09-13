@@ -515,6 +515,19 @@ class Car:
             raise ValueError("Work charging attempted but power is None!")
 
     def charge_public(self, trip, station_capacity, max_parking_time, use_case):
+        """Function for initiation of charging-event in public use cases.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about current trip.
+        station_capacity : float
+            Charging power of charging infrastructure in kW.
+        max_parking_time : int
+            Maximum possible parking time in timesteps
+        use_case : str
+            Charging use case
+        """
         if station_capacity > trip.simbev.fast_charge_threshold:
             use_case = "urban_fast"
         self.charge(

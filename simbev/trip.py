@@ -198,6 +198,18 @@ class Trip:
         self._set_timestamps()
 
     def get_max_parking_time(self, use_case):
+        """Determine maximum parking time for this trip and a given use case.
+
+        Parameters
+        ----------
+        use_case : str
+            Charging use case
+
+        Returns
+        -------
+        int
+            maximum parking time in time steps
+        """
         if self.real_park_time is None:
             self.real_park_time = self.park_time
         frac_park_start, whole_park_start = math.modf(
@@ -276,13 +288,22 @@ class Trip:
                 return self.simbev.maximum_park_time
             return 0
 
-    def charge_decision(self, key):
-        return self.car.user_group.attractivity[key] >= self.rng.random()
+    def charge_decision(self, use_case):
+        """Determine if a charging event is attractive enough.
+        
+        Parameters
+        ----------
+        use_case : str
+            Charging use case
+
+        Returns
+        -------
+        bool
+        """
+        return self.car.user_group.attractivity[use_case] >= self.rng.random()
 
     def execute(self):
-        """
-        Executes created trip. Charging/parking and driving
-        """
+        """Executes created trip. Charging/parking and driving"""
         if self.distance > self.simbev.distance_threshold_extra_urban:
             self.extra_urban = True
 
@@ -518,6 +539,17 @@ class Trip:
                 self.real_park_time = self.park_time + next_drive_timesteps - replacement_day_timestep
 
     def delay(self, time_steps: int):
+        """Change the trip according to a given delay.
+        
+        Parameters
+        ----------
+        time_steps : int
+            Time steps to delay the start of the trip by
+            
+        Returns
+        -------
+        bool
+        """
         max_delay = self.park_time - 1
         delay = min(max_delay, time_steps)
         # remove possible delay time from parking
@@ -557,6 +589,7 @@ def create_trip_from_profile_row(
     simbev,
     charging_use_case=None,
 ):
+    """"""
     drive_start = int(row.time_step)
     drive_time = max((row.arrival_time - row.departure_time) / simbev.step_size, 1)
     drive_time = math.ceil(drive_time)

@@ -8,6 +8,7 @@ import simbev.helpers.helpers as helpers
 
 
 def main():
+    """Standard way of running the SimBEV module."""
     print(datetime.datetime.now())
     parser = argparse.ArgumentParser(
         description="SimBEV modelling tool for generating timeseries of electric "

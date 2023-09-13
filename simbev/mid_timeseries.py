@@ -210,6 +210,7 @@ def get_timeseries(
 
 
 def get_empty_timeseries(start_date, end_date, step_size):
+    """Creates an empty DataFrame with a time index specified by the input parameters."""
     end_date += datetime.timedelta(days=1)
     date_range = pd.date_range(
         start_date, end_date, freq=f"{step_size}min", inclusive="left"

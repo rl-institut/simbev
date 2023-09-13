@@ -1,4 +1,5 @@
 def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
+    """Create grid timeseries plots split by use case."""
     import plotly.express as px
 
     plot_list = [

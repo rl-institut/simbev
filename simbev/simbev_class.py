@@ -466,6 +466,7 @@ class SimBEV:
             self.regions.append(new_region)
 
     def get_rng(self):
+        """Create RNG based on the given rng seed."""
         return np.random.default_rng(self.rng_seed)
 
     def run_multi(self):
