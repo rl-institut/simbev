@@ -237,10 +237,9 @@ class Trip:
                     sigma = (mean - (lower_bound)) / 3
                     max_parking_end = int(self.rng.normal(mean, sigma))
                 return max_parking_end - self.park_start
-            else:
-                return self.park_time
+            return self.park_time
 
-        elif use_case == "street":
+        if use_case == "street":
             if self.simbev.street_night_charging_flag:
                 # parking starts or ends after threshold or ends the next day
                 if (
@@ -272,12 +271,10 @@ class Trip:
                             self.simbev.hours_to_time_steps(24) - frac_park_start_steps
                         )
                     return 0
-                else:
-                    return self.simbev.maximum_park_time
-            else:
-                if self.real_park_time <= self.simbev.maximum_park_time:
-                    return self.simbev.maximum_park_time
-                return 0
+                return self.simbev.maximum_park_time
+            if self.real_park_time <= self.simbev.maximum_park_time:
+                return self.simbev.maximum_park_time
+            return 0
 
     def charge_decision(self, key):
         return self.car.user_group.attractivity[key] >= self.rng.random()

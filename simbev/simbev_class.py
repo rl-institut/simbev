@@ -1,15 +1,3 @@
-from typing import List
-import simbev.helpers.helpers as helpers
-import pandas as pd
-import numpy as np
-from simbev.region import Region, RegionType
-from simbev.car import CarType, Car, UserGroup
-from simbev.trip import Trip
-from simbev.mid_timeseries import get_profile_time_series
-import simbev.plot as plot
-from simbev.helpers.errors import SoCError
-import multiprocessing as mp
-import pathlib
 import datetime
 import math
 import traceback
@@ -17,6 +5,20 @@ import configparser as cp
 import json
 import copy
 import warnings
+import multiprocessing as mp
+import pathlib
+from typing import List
+
+import pandas as pd
+import numpy as np
+
+import simbev.helpers.helpers as helpers
+from simbev.region import Region, RegionType
+from simbev.car import CarType, Car, UserGroup
+from simbev.trip import Trip
+from simbev.mid_timeseries import get_profile_time_series
+import simbev.plot as plot
+from simbev.helpers.errors import SoCError
 
 
 class SimBEV:
@@ -1008,8 +1010,8 @@ class SimBEV:
             raise FileNotFoundError(f"Config file {cfg_file} not found.")
         try:
             cfg.read(cfg_file)
-        except Exception:
-            raise FileNotFoundError(f"Cannot read config file {cfg_file} - malformed?")
+        except Exception as exc:
+            raise FileNotFoundError(f"Cannot read config file {cfg_file} - malformed?") from exc
 
         region_df = pd.read_csv(
             pathlib.Path(scenario_path, cfg["rampup_ev"]["rampup"]),

@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-import numpy as np
-import pandas as pd
 import pathlib
 import math
+
+import numpy as np
+import pandas as pd
 from scipy.interpolate import interp1d
 
 
@@ -652,7 +653,7 @@ class Car:
             power_array = power_array[charging_section_counter - 1:]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
-            if charging_use_case == "urban_fast" or charging_use_case == "highway_fast":
+            if charging_use_case in ('urban_fast', 'highway_fast'):
                 park_timestep_end = trip.park_start + time_steps + 1
 
             else:
@@ -820,8 +821,7 @@ class Car:
             charging_demand = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             charging_demand *= self.car_type.battery_capacity
             return max(round(charging_demand, 4), 0)
-        else:
-            return 0
+        return 0
 
     def _get_last_consumption(self):
         """Calculates energy used for last driving-event.
@@ -835,8 +835,7 @@ class Car:
             last_consumption = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             last_consumption *= self.car_type.battery_capacity
             return min(round(last_consumption, 4), 0)
-        else:
-            return 0
+        return 0
 
     def _get_usecase(self, power):
         """Determines use-case of parking-event.
@@ -853,14 +852,13 @@ class Car:
         """
         if self.status == "driving":
             return ""
-        elif self.work_parking and self.status == "work":
+        if self.work_parking and self.status == "work":
             return "work"
-        elif self.home_parking and self.status == "home":
+        if self.home_parking and self.status == "home":
             return "home"
-        elif power >= self.fast_charging_threshold:
+        if power >= self.fast_charging_threshold:
             return "hpc"
-        else:
-            return "public"
+        return "public"
 
     def export(self, region_directory, simbev):
         """
