@@ -20,7 +20,194 @@ import warnings
 
 
 class SimBEV:
-    # TODO docstring
+    """
+    SimBEV is a class representing a simulation of Battery Electric Vehicles (BEV) behavior.
+
+    Parameters:
+    ----------
+    data_dict : dict
+        A dictionary containing various data parameters for the simulation.
+
+    config_dict : dict
+        A dictionary containing configuration parameters for the simulation.
+
+    name : str
+        A name or identifier for this simulation.
+
+    Attributes:
+    ----------
+    region_data : dict
+        Data related to different regions for the simulation.
+
+    charging_probabilities : dict
+        Charging probabilities data for BEVs.
+
+    power_by_usecase : bool
+        Indicates whether power is calculated based on use cases.
+
+    tech_data : dict
+        Technical data related to BEVs and PHEVs.
+
+    energy_min : float
+        Minimum charging energy.
+
+    home_parking : DataFrame
+        DataFrame representing probabilities of home parking for BEVs.
+
+    work_parking : DataFrame
+        DataFrame representing probabilities of work parking for BEVs.
+
+    hpc_data : dict
+        Data related to high-power charging for BEVs.
+
+    attractivity : dict
+        Attractivity data for user groups.
+
+    charging_curve_points : dict
+        Charging curve points data.
+
+    step_size : int
+        Time step size for the simulation.
+
+    soc_min : float
+        Minimum state of charge (SOC) for BEVs.
+
+    charging_threshold : float
+        Charging threshold for BEVs.
+
+    distance_threshold_extra_urban : float
+        Distance threshold for extra-urban areas.
+
+    threshold_retail_limitation : float
+        Retail limitation threshold.
+
+    threshold_retail_limitation_steps : int
+        Time steps for the retail limitation threshold.
+
+    threshold_street_limit : float
+        Street night limitation threshold.
+
+    threshold_street_limit_steps : int
+        Time steps for the street night limitation threshold.
+
+    lower_maximum_park_time_street_night : float
+        Lower limit for maximum park time on street at night.
+
+    upper_maximum_park_time_street_night : float
+        Upper limit for maximum park time on street at night.
+
+    fast_charge_threshold : float
+        Fast charging threshold.
+
+    consumption_factor_highway : float
+        Consumption factor on highways.
+
+    rng_seed : int
+        Seed for the random number generator.
+
+    eta_cp : float
+        Charging efficiency.
+
+    start_date_input : datetime
+        Input start date for the simulation.
+
+    start_date : datetime
+        Start date for the simulation (adjusted by 7 days earlier).
+
+    start_date_output : datetime
+        Output start date for the simulation.
+
+    end_date : datetime
+        End date for the simulation.
+
+    probability_detached_home : float
+        Probability of detached home parking.
+
+    private_only_run : bool
+        Flag indicating if EVs should try to be charged with only private charging infrastructure.
+
+    street_night_charging_flag : bool
+        Flag indicating street night charging.
+
+    home_night_charging_flag : bool
+        Flag indicating home night charging.
+
+    night_departure_standard_deviation : float
+        Standard deviation for night departure time.
+
+    night_departure_time : float
+        Night departure time.
+
+    maximum_park_time_flag : bool
+        Flag indicating maximum park time.
+
+    maximum_park_time : int
+        Maximum park time in time steps.
+
+    num_threads : int
+        Number of threads used in the simulation.
+
+    output_options : list
+        List of output options.
+
+    input_type : str
+        Type of input data.
+
+    input_directory : pathlib.Path
+        Path to the input directory.
+
+    input_data : dict
+        A dictionary containing input data for different regions.
+
+    scaling : float
+        Scaling factor for vehicle numbers.
+
+    regions : list
+        List of Region objects.
+
+    created_region_types : dict
+        Dictionary of created region types.
+
+    car_types : dict
+        Dictionary of car types.
+
+    user_groups : dict
+        Dictionary of user groups.
+
+    grid_data_list : list
+        List of grid data.
+
+    analysis_data_list : list
+        List of analysis data.
+
+    terminated : bool
+        Flag indicating if the simulation has terminated.
+
+    charging_probability_warning_flag : bool
+        Flag indicating charging probability warning.
+
+    name : str
+        Name or identifier for this simulation.
+
+    timestamp : str
+        Timestamp indicating when the simulation was created.
+
+    save_directory : pathlib.Path
+        Path to the directory where simulation results are saved.
+
+    file_name_all : str
+        File name for grid time series data for all regions.
+
+    file_name_analysis_all : str
+        File name for analysis data for all regions.
+
+    file_name_analysis_all_json : str
+        File name for analysis data in JSON format for all regions.
+
+    step_size_str : str
+        Time step size as a string representation with 'min' suffix.
+
+    """
     def __init__(self, data_dict, config_dict, name):
         # parameters from data_dict
         self.region_data = data_dict["regions"]
@@ -133,12 +320,14 @@ class SimBEV:
         self.step_size_str = str(self.step_size) + "min"
 
     def setup(self):
+        """Run setup functions. This creates user groups, car types and regions from input data."""
         # run setup functions
         self._create_user_groups()
         self._create_car_types()
         self._add_regions_from_dataframe()
 
     def _create_user_groups(self):
+        """Parses user groups from input data."""
         for user_group_number in self.attractivity.index:
             user_group = UserGroup(
                 user_group_number,
@@ -147,13 +336,7 @@ class SimBEV:
             self.user_groups[user_group_number] = user_group
 
     def _create_car_types(self):
-        """Creates car-types with all necessary properties.
-
-        Parameters
-        ----------
-        output : bool
-            Setting for output.
-        """
+        """Creates car-types with all necessary properties."""
 
         # create new car type
         for car_type_name in self.tech_data.index:
@@ -246,7 +429,7 @@ class SimBEV:
         self.created_region_types[region_type] = rs7_region
 
     def _add_regions_from_dataframe(self):
-        """TODO"""
+        """Parses region input dataframe and creates Region objects"""
 
         # variable to check which region types have been created
         for region_counter in range(len(self.region_data.index)):
@@ -519,10 +702,10 @@ class SimBEV:
         ----------
         location : str
             Current location of the vehicle.
+        use_case : str
+            Charging use case.
         distance : float
             Distance of trip.
-        distance_limit : int
-            distance of trip, that determines the area of hpc charging.
 
         Returns
         -------
@@ -644,7 +827,7 @@ class SimBEV:
                         previous_trip = trip
 
     def set_user_group(self, work_parking, home_parking, work_capacity, home_capacity):
-        """Assigns specific user-group to vehicle."""
+        """Decides on a user group based on private charging infrastructure available."""
         if home_capacity and home_parking:
             if work_capacity and work_parking:
                 user_group = 0  # private LIS at home and at work
@@ -802,8 +985,12 @@ class SimBEV:
 
     @classmethod
     def from_config(cls, config_path):
-        """Creates a SimBEV object from a specified scenario name.
-        The scenario needs to be located in /simbev/scenarios.
+        """Creates a SimBEV object from a config path string.
+
+        Parameters
+        ----------
+        config_path : str
+            Path string pointing to the config file.
 
         Returns
         -------
