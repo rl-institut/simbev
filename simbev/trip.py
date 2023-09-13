@@ -546,10 +546,8 @@ class Trip:
         park_start_steps_from_midnight = int(
             self.park_start % (24 * 60 / self.simbev.step_size)
         )
-        # TODO calculate threshold timesteps once in simbev and just use it from there?
-        threshold_time_steps = self.simbev.hours_to_time_steps(
-            self.simbev.threshold_street_limit
-        )
+        threshold_time_steps = self.simbev.threshold_street_limit_steps
+
         if threshold_time_steps > park_start_steps_from_midnight:
             return threshold_time_steps - park_start_steps_from_midnight
         else:
