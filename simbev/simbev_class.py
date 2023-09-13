@@ -387,7 +387,6 @@ class SimBEV:
                         ]
 
                     # create new car objects
-                    # TODO: parking parameters that change by region
                     work_parking = (
                         self.work_parking[region.region_type.rs7_type]
                         >= self.rng.random()
@@ -637,7 +636,7 @@ class SimBEV:
                 if trip is not None:
                     delay = max(
                         previous_trip.trip_end - trip.park_start, 0
-                    )  # TODO maybe add +1 to first term
+                    )
                     if delay:
                         trip_possible = trip.delay(delay)
                     if trip_possible:

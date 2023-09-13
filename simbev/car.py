@@ -314,7 +314,7 @@ class Car:
         self.home_parking = home_parking
         self.work_capacity = work_capacity
         self.home_capacity = home_capacity
-        self.status = status  # TODO replace with enum?
+        self.status = status
         self.number = number
         self.region = region
         self.home_detached = home_detached  # Describes if car is at home in apartment building or detached house

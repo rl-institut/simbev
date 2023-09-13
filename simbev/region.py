@@ -294,10 +294,10 @@ class Region:
         """Constructs grid-time-series"""
         header_slow = list(
             self.region_type.charging_probabilities["slow"].columns
-        )  # TODO change if power by usecase
+        )
         header_fast = list(
             self.region_type.charging_probabilities["fast"].columns
-        )  # TODO change if power by usecase
+        )
         if "0" in header_slow:
             header_slow.remove("0")
         if "0" in header_fast:
