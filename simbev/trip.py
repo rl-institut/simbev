@@ -94,16 +94,22 @@ class Trip:
 
     @classmethod
     def from_driving_profile(cls, region: "Region", car: "Car", simbev: "SimBEV"):
-        """Generate a list of `Trip` objects based on the driving profile of a car.
+        """
+        Generate a list of `Trip` objects based on the driving profile of a car.
 
-        Args:
-            region: A `Region` object representing the geographic region in which the `Car` operates.
-            car: A `Car` object for which to generate the list of `Trip` objects.
-            simbev: A `SimBEV` object representing the EV simulation parameters.
+        Parameters
+        ----------
+        region : Region
+            A `Region` object representing the geographic region in which the `Car` operates.
+        car : Car
+            A `Car` object for which to generate the list of `Trip` objects.
+        simbev : SimBEV
+            A `SimBEV` object representing the EV simulation parameters.
 
-        Returns:
+        Returns
+        -------
+        list of Trip
             A list of `Trip` objects representing the trips taken by the `Car` as defined in its driving profile.
-
         """
         first_trip = create_trip_from_profile_row(
             car.driving_profile.iloc[0, :], "home", 0, region, car, simbev
@@ -142,17 +148,23 @@ class Trip:
     def from_probability(
         cls, region: "Region", car: "Car", time_step: int, simbev: "SimBEV"
     ):
-        """Generate a `Trip` object based on the probability of a car trip.
+        """Generate a `Trip` object based on probability input data.
 
-        Args:
-            region: A `Region` object representing the geographic region in which the `Car` operates.
-            car: A `Car` object for which to generate the `Trip`.
-            time_step: An integer representing the time step at which to start the `Trip`.
-            simbev: A `SimBEV` object representing the EV simulation parameters.
+        Parameters
+        ----------
+        region : Region
+            A `Region` object representing the geographic region in which the `Car` operates.
+        car : Car
+            A `Car` object for which to generate the `Trip`.
+        time_step : int
+            An integer representing the time step at which to start the `Trip`.
+        simbev : SimBEV
+            A `SimBEV` object representing the EV simulation parameters.
 
-        Returns:
+        Returns
+        -------
+        Trip
             A `Trip` object representing the trip taken by the `Car` based on the probability of a trip occurring.
-
         """
         trip = cls(region, car, time_step, simbev)
         trip.create()
@@ -576,17 +588,22 @@ class Trip:
     @property
     def park_time_until_threshold(self) -> int:
         """
-        Returns time steps between park start and next threshold
+        Returns time steps between park start and next threshold.
+
+        Returns
+        -------
+        int
+            time steps until threshold time on the same day. returns 0 if negative
         """
         # This function currently only works for street, could be improved to work with retail threshold as well
+        # Get time of day when parking starts (in time steps)
+        # Calculate hours until threshold, return 0 if negative
         park_start_steps_from_midnight = int(
             self.park_start % (24 * 60 / self.simbev.step_size)
         )
-        threshold_time_steps = self.simbev.threshold_street_limit_steps
+        steps_until_threshold_time = self.simbev.threshold_street_limit_steps - park_start_steps_from_midnight
 
-        if threshold_time_steps > park_start_steps_from_midnight:
-            return threshold_time_steps - park_start_steps_from_midnight
-        return 0
+        return max(steps_until_threshold_time, 0)
 
 
 def create_trip_from_profile_row(
