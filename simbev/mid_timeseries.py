@@ -93,6 +93,9 @@ def get_name_csv(region, season, data_directory):
         Current region.
     season : str
         Season the data is wanted for.
+    data_directory : pathlib.Path
+        Path to probability data directory
+
     Returns
     -------
     WindowsPath
@@ -118,6 +121,8 @@ def get_timeseries(
         Region.
     stepsize : int
         Stepsize of simulation.
+    data_directory : pathlib.Path
+        Path to probability data directory
 
     Returns
     -------
@@ -231,7 +236,7 @@ def get_profile_time_series(start_date, end_date, step_size, df):
         The end date of the time series in yyyy-mm-dd format.
     step_size : int
         Step size of the simulation in minutes.
-    df : pandas DataFrame
+    df : pd.DataFrame
         The input DataFrame containing week data, where each entry with the same ID belongs to the same week.
 
     Returns

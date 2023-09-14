@@ -9,6 +9,23 @@ from scipy.interpolate import interp1d
 
 @dataclass
 class UserGroup:
+    """
+    Represents a user group with attributes for identification and attractivity values.
+
+    Parameters
+    ----------
+    user_group : int
+        An integer representing the identification of the user group.
+    attractivity : dict
+        A dictionary containing charging attractivity information for the user group.
+
+    Attributes
+    ----------
+    user_group : int
+        An integer representing the identification of the user group.
+    attractivity : dict
+        A dictionary containing charging attractivity information for the user group.
+    """
     user_group: int
     attractivity: dict
 
@@ -431,7 +448,9 @@ class Car:
         power : float
             Power of charging-point.
         charging_type : str
-            Type of charging.
+            Type of charging (slow or fast)
+        charging_use_case : str
+            Charging use case of charging event.
         step_size : int
             Step-size of simulation.
         max_charging_time : int
@@ -708,6 +727,8 @@ class Car:
             Duration of drive in time
         destination : str
             Location of destination.
+        extra_urban : bool
+            Flag to determine if a drive is extra-urban (e.g. on a highway).
 
         Returns
         -------
