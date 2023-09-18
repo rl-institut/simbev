@@ -1,15 +1,9 @@
-Features - overview
-===================
+Features
+========
 
 This section presents the main features and functions to use in SimBEV.
 
-simbev.simbev_class
--------------------
-
-.. automodule:: simbev.simbev_class
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. contents:: Table of Contents
 
 simbev.car
 ----------
@@ -43,6 +37,14 @@ simbev.region
    :undoc-members:
    :show-inheritance:
 
+simbev.simbev_class
+-------------------
+
+.. automodule:: simbev.simbev_class
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 simbev.trip
 -----------
 
@@ -51,3 +53,10 @@ simbev.trip
    :undoc-members:
    :show-inheritance:
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 0
+
+   simbev.helpers
