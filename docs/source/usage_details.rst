@@ -3,15 +3,30 @@ SimBEV usage
 
 This section gives a quick overview, what you can do with SimBEV and how to use it.
 
-General Concept:
+General Concept
+---------------
 
 Simbev forecast charging demand for different e-cars for a pregiven time period. It does so by analysing the mobility in Germany
-data. This data is split into different region types ( Ländliche Regionen LR_Klein - Kleinstädtischer, dörflicher Raum LR_Mitte
-- Mittelstädte, städtischer Raum LR_Zentr - Zentrale Stadt Stadtregionen SR_Klein - Kleinstädtischer, dörflicher Raum SR_Mitte
-- Mittelstädte, städtischer Raum SR_Gross - Regiopolen, Großstädte SR_Metro - Metropole).
+data. This data is split into different region types:
+
+Rural regions:
+    * Kleinstädtischer, dörflicher Raum - LR_Klein
+    * Mittelstädte, städtischer Raum - LR_Mitte
+    * Zentrale Stadt - LR_Zentr
+Urban regions:
+    * Kleinstädtischer, städtischer Raum - SR_Klein
+    * Mittelstädte, städtischer Raum - SR_Mitte
+    * Regiopolen, Großstädte - SR_Gross
+    * Metropole - SR_Metro
+
 The system is parameterized with the help of different input parameters such as battery capacity and charging power (slow and fast)
 as well as the consumption of each car.
 
+- It reads the data and creates simBEV object(s) (depends on the specified iterations).
+
+- Every simBEV object gets setup.
+
+- For every region a new process is created and it iterates through all vehicles and generate their events and outputs.
 
 Usage overview
 --------------------
@@ -63,25 +78,42 @@ defaults to:
 
 - Results are created in the subdirectory `results` in the scenario directory
 
+Iterations
+----------
+
+The default value of simulation iterations is 1.
+By using the argument ``-r`` or ``--repeat`` a certain number of simulations can be specified:
+
+.. code:: bash
+
+    python -m simbev -r <number of iterations>
+
+or
+
+.. code:: bash
+
+    python -m simbev --repeat <number of iterations>
+
 Set parameters for your scenario
 --------------------------------
 
 Select regio-type for the mobility characteristics:
-- regiotypes:
-Ländliche Regionen
-LR_Klein - Kleinstädtischer, dörflicher Raum
-LR_Mitte - Mittelstädte, städtischer Raum
-LR_Zentr - Zentrale Stadt
-Stadtregionen
-SR_Klein - Kleinstädtischer, dörflicher Raum
-SR_Mitte - Mittelstädte, städtischer Raum
-SR_Gross - Regiopolen, Großstädte
-SR_Metro - Metropole
+
+Rural regions:
+    * Kleinstädtischer, dörflicher Raum - LR_Klein
+    * Mittelstädte, städtischer Raum - LR_Mitte
+    * Zentrale Stadt - LR_Zentr
+Urban regions:
+    * Kleinstädtischer, städtischer Raum - SR_Klein
+    * Mittelstädte, städtischer Raum - SR_Mitte
+    * Regiopolen, Großstädte - SR_Gross
+    * Metropole - SR_Metro
 
 Change vehicle configuration
-- battery capacity
-- charging power (slow and fast)
-- consumption
+ * battery capacity
+ * charging power (slow and fast)
+ * consumption
 
-Decide how many vehicles should be simulated
+Decide how many vehicles should be simulated:
+
 - note: more than 5000 vehicles of one type in one region is not necessary, if you want to analyze more, scale it accordingly
