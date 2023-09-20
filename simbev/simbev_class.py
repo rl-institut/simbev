@@ -1097,7 +1097,9 @@ class SimBEV:
         cfg_dict = {
             "step_size": cfg.getint("basic", "stepsize", fallback=15),
             "soc_min": cfg.getfloat("basic", "soc_min", fallback=0.2),
-            "charging_threshold": cfg.getfloat("basic", "charging_threshold", fallback=0.8),
+            "charging_threshold": cfg.getfloat(
+                "basic", "charging_threshold", fallback=0.8
+            ),
             "distance_threshold_extra_urban": cfg.getfloat(
                 "basic", "distance_threshold_extra_urban", fallback=75
             ),

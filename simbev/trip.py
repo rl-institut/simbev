@@ -601,7 +601,9 @@ class Trip:
         park_start_steps_from_midnight = int(
             self.park_start % (24 * 60 / self.simbev.step_size)
         )
-        steps_until_threshold_time = self.simbev.threshold_street_limit_steps - park_start_steps_from_midnight
+        steps_until_threshold_time = (
+            self.simbev.threshold_street_limit_steps - park_start_steps_from_midnight
+        )
 
         return max(steps_until_threshold_time, 0)
 

@@ -26,6 +26,7 @@ class UserGroup:
     attractivity : dict
         A dictionary containing charging attractivity information for the user group.
     """
+
     user_group: int
     attractivity: dict
 
