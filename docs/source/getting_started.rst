@@ -7,7 +7,7 @@ Getting started
     :local:
     :backlinks: top
 
-Installing simBEV
+Installing SimBEV
 =================
 
 Install using pip
