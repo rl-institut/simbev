@@ -1,8 +1,10 @@
+import pathlib
+
 import pandas as pd
 import numpy as np
-import pathlib
+
 from simbev.mid_timeseries import get_timeseries, get_empty_timeseries
-import simbev.helpers.helpers as helpers
+from simbev.helpers import helpers
 
 
 class RegionType:
@@ -292,12 +294,8 @@ class Region:
 
     def create_grid_timeseries(self):
         """Constructs grid-time-series"""
-        header_slow = list(
-            self.region_type.charging_probabilities["slow"].columns
-        )  # TODO change if power by usecase
-        header_fast = list(
-            self.region_type.charging_probabilities["fast"].columns
-        )  # TODO change if power by usecase
+        header_slow = list(self.region_type.charging_probabilities["slow"].columns)
+        header_fast = list(self.region_type.charging_probabilities["fast"].columns)
         if "0" in header_slow:
             header_slow.remove("0")
         if "0" in header_fast:
@@ -316,13 +314,7 @@ class Region:
         ]
         for uc in use_cases:
             self.header_grid_ts.append("{}_total_power".format(uc))
-            if (
-                uc == "home_detached"
-                or uc == "home_apartment"
-                or uc == "work"
-                or uc == "retail"
-                or uc == "street"
-            ):
+            if uc in ("home_detached", "home_apartment", "work", "retail", "street"):
                 for power in header_slow:
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
 

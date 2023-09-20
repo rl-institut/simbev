@@ -1,13 +1,31 @@
 from dataclasses import dataclass
-import numpy as np
-import pandas as pd
 import pathlib
 import math
+
+import numpy as np
+import pandas as pd
 from scipy.interpolate import interp1d
 
 
 @dataclass
 class UserGroup:
+    """
+    Represents a user group with attributes for identification and attractivity values.
+
+    Parameters
+    ----------
+    user_group : int
+        An integer representing the identification of the user group.
+    attractivity : dict
+        A dictionary containing charging attractivity information for the user group.
+
+    Attributes
+    ----------
+    user_group : int
+        An integer representing the identification of the user group.
+    attractivity : dict
+        A dictionary containing charging attractivity information for the user group.
+    """
     user_group: int
     attractivity: dict
 
@@ -304,7 +322,7 @@ class Car:
         soc: float = 1.0,
         status: str = "home",
         private_only=False,
-        fast_charging_threshold=50
+        fast_charging_threshold=50,
     ):
         self.car_type = car_type
         self.user_group = user_group
@@ -314,7 +332,7 @@ class Car:
         self.home_parking = home_parking
         self.work_capacity = work_capacity
         self.home_capacity = home_capacity
-        self.status = status  # TODO replace with enum?
+        self.status = status
         self.number = number
         self.region = region
         self.home_detached = home_detached  # Describes if car is at home in apartment building or detached house
@@ -430,7 +448,9 @@ class Car:
         power : float
             Power of charging-point.
         charging_type : str
-            Type of charging.
+            Type of charging (slow or fast)
+        charging_use_case : str
+            Charging use case of charging event.
         step_size : int
             Step-size of simulation.
         max_charging_time : int
@@ -514,6 +534,19 @@ class Car:
             raise ValueError("Work charging attempted but power is None!")
 
     def charge_public(self, trip, station_capacity, max_parking_time, use_case):
+        """Function for initiation of charging-event in public use cases.
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about current trip.
+        station_capacity : float
+            Charging power of charging infrastructure in kW.
+        max_parking_time : int
+            Maximum possible parking time in timesteps
+        use_case : str
+            Charging use case
+        """
         if station_capacity > trip.simbev.fast_charge_threshold:
             use_case = "urban_fast"
         self.charge(
@@ -563,14 +596,12 @@ class Car:
 
         soc_start = self.soc
 
-        if (
-            power >= trip.simbev.fast_charge_threshold
-        ):
+        if power >= trip.simbev.fast_charge_threshold:
             charging_type = "fast"
             soc_end = trip.rng.uniform(
-                    trip.simbev.hpc_data["soc_end_min"],
-                    trip.simbev.hpc_data["soc_end_max"],
-                )
+                trip.simbev.hpc_data["soc_end_min"],
+                trip.simbev.hpc_data["soc_end_max"],
+            )
 
         if self.car_type.charging_capacity[charging_type] == 0:
             return trip.park_time, 0, 0, soc_start
@@ -646,13 +677,13 @@ class Car:
 
             charged_energy_list.append(round(sum(energy_sections), 4))
 
-            charging_time_array = charging_time_array[charging_section_counter - 1:]
+            charging_time_array = charging_time_array[charging_section_counter - 1 :]
             charging_time_array[0] = time_cutoff
 
-            power_array = power_array[charging_section_counter - 1:]
+            power_array = power_array[charging_section_counter - 1 :]
             chargepower_timestep = sum(energy_sections) * 60 / step_size
 
-            if charging_use_case == "urban_fast" or charging_use_case == "highway_fast":
+            if charging_use_case in ("urban_fast", "highway_fast"):
                 park_timestep_end = trip.park_start + time_steps + 1
 
             else:
@@ -696,6 +727,8 @@ class Car:
             Duration of drive in time
         destination : str
             Location of destination.
+        extra_urban : bool
+            Flag to determine if a drive is extra-urban (e.g. on a highway).
 
         Returns
         -------
@@ -720,28 +753,28 @@ class Car:
 
         if soc_delta >= self.usable_soc and self.car_type.label == "BEV":
             return False
-        else:
-            self.status = "driving"
-            self.soc -= soc_delta
-            if self.soc < 0:
-                if self.car_type.label == "PHEV":
-                    self.soc = 0
-                else:
-                    raise ValueError(
-                        "SoC of car {} became negative ({})".format(
-                            self.car_type.name, self.soc
-                        )
+
+        self.status = "driving"
+        self.soc -= soc_delta
+        if self.soc < 0:
+            if self.car_type.label == "PHEV":
+                self.soc = 0
+            else:
+                raise ValueError(
+                    "SoC of car {} became negative ({})".format(
+                        self.car_type.name, self.soc
                     )
-            self._update_activity(
-                timestamp,
-                start_time,
-                duration,
-                distance=distance,
-                destination=destination,
-                charging_use_case="",
-            )
-            self.status = destination
-            return True
+                )
+        self._update_activity(
+            timestamp,
+            start_time,
+            duration,
+            distance=distance,
+            destination=destination,
+            charging_use_case="",
+        )
+        self.status = destination
+        return True
 
     @property
     def precise_remaining_range(self):
@@ -820,8 +853,7 @@ class Car:
             charging_demand = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             charging_demand *= self.car_type.battery_capacity
             return max(round(charging_demand, 4), 0)
-        else:
-            return 0
+        return 0
 
     def _get_last_consumption(self):
         """Calculates energy used for last driving-event.
@@ -835,8 +867,7 @@ class Car:
             last_consumption = self.output["soc_end"][-1] - self.output["soc_start"][-1]
             last_consumption *= self.car_type.battery_capacity
             return min(round(last_consumption, 4), 0)
-        else:
-            return 0
+        return 0
 
     def _get_usecase(self, power):
         """Determines use-case of parking-event.
@@ -853,14 +884,13 @@ class Car:
         """
         if self.status == "driving":
             return ""
-        elif self.work_parking and self.status == "work":
+        if self.work_parking and self.status == "work":
             return "work"
-        elif self.home_parking and self.status == "home":
+        if self.home_parking and self.status == "home":
             return "home"
-        elif power >= self.fast_charging_threshold:
+        if power >= self.fast_charging_threshold:
             return "hpc"
-        else:
-            return "public"
+        return "public"
 
     def export(self, region_directory, simbev):
         """
