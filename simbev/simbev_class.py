@@ -1097,7 +1097,7 @@ class SimBEV:
         cfg_dict = {
             "step_size": cfg.getint("basic", "stepsize", fallback=15),
             "soc_min": cfg.getfloat("basic", "soc_min", fallback=0.2),
-            "charging_threshold": cfg.getfloat("basic", "charging_threshold"),
+            "charging_threshold": cfg.getfloat("basic", "charging_threshold", fallback=0.8),
             "distance_threshold_extra_urban": cfg.getfloat(
                 "basic", "distance_threshold_extra_urban", fallback=75
             ),
@@ -1105,7 +1105,7 @@ class SimBEV:
                 "basic", "consumption_factor_highway", fallback=1.0
             ),
             "rng_seed": cfg["sim_params"].getint("seed", None),
-            "eta_cp": cfg.getfloat("basic", "eta_cp"),
+            "eta_cp": cfg.getfloat("basic", "eta_cp", fallback=1),
             "start_date": start_date,
             "end_date": end_date,
             "home_private": cfg.getfloat(
