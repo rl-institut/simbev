@@ -22,6 +22,10 @@ class Trip:
         Current time-step
     simbev : SimBEV
         Object that contains superior data.
+    destination : str
+        Default is an empty string.
+    distance : float
+        Default is 0.
 
     Attributes
     ----------
@@ -521,9 +525,7 @@ class Trip:
         self.trip_end = self.drive_start + last_drive_time
 
     def fit_trip_to_timerange(self):
-        """
-        Cuts off trip so it is inside the simulation time range.
-        """
+        """Cuts off trip so it is inside the simulation time range."""
         self.real_park_time = self.park_time
         # check if trip ends after simulation end
         if self.trip_end > self.region.last_time_step:
