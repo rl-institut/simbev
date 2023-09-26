@@ -69,6 +69,30 @@ defaults to:
 
 - Results are created in the subdirectory `results` in the scenario directory
 
+Set parameters for your scenario
+--------------------------------
+
+Select regio-type for the mobility characteristics:
+
+Rural regions:
+    * Kleinstädtischer, dörflicher Raum - LR_Klein
+    * Mittelstädte, städtischer Raum - LR_Mitte
+    * Zentrale Stadt - LR_Zentr
+Urban regions:
+    * Kleinstädtischer, städtischer Raum - SR_Klein
+    * Mittelstädte, städtischer Raum - SR_Mitte
+    * Regiopolen, Großstädte - SR_Gross
+    * Metropole - SR_Metro
+
+Change vehicle configuration
+ * battery capacity
+ * charging power (slow and fast)
+ * consumption
+
+Decide how many vehicles should be simulated:
+
+- note: more than 5000 vehicles of one type in one region is not necessary, if you want to analyze more, scale it accordingly
+
 Iterations
 ----------
 
