@@ -473,7 +473,14 @@ class SimBEV:
         return np.random.default_rng(self.rng_seed)
 
     def run_multi(self):
-        """Runs Simulation for multiprocessing"""
+        """Runs Simulation for multiprocessing
+
+        Raises
+        ------
+        SystemExit
+            If an Exception occurred during multiprocessing and the simulation stopped.
+
+        """
         print(
             "Scaling set to {}: 1 simulated vehicle represents {} vehicles in grid time series".format(
                 self.scaling, self.scaling
@@ -503,7 +510,7 @@ class SimBEV:
             pool.join()
         if self.terminated:
             raise SystemExit(
-                "Exception occured during multiprocessing, simulation stopped. See above for further information."
+                "Exception occurred during multiprocessing, simulation stopped. See above for further information."
             )
         grid_time_series_all_regions = helpers.timeitlog(
             self.output_options["timing"], self.save_directory

@@ -53,10 +53,12 @@ class CarType:
         curve that describes charging-power dependent of soc.
     consumption : float
         consumption of car.
+    consumption_factor_highway : float
+        Influence on the consumption of a vehicle by driving on the highway.
     output : bool
         Setting for output.
-    hpc_data : dict
-        Config parameters for hpc
+    attractivity : pd.DataFrame
+
     analyze_mid : bool
         Setting for analysis-output
     label : str

@@ -8,17 +8,10 @@ Welcome to SimBEV's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
-   
+   :caption: Contents
+
+   simbev_intro
    getting_started
    usage_details
+   simulation_settings
    features
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
