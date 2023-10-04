@@ -51,14 +51,10 @@ class RegionType:
     def create_timeseries(self, simbev):
         """Creating timeseries for vehicle.
 
-        Parameters .start_date, self.end_date, self.step_size, self.input_directory
+        Parameters
         ----------
-        start_date : date
-            Start-date of simulation.
-        end_date : date
-            End-date of simulation.
-        step_size : int
-            Step-size of simulation
+        simbev : SimBEV object
+            Used attributes are start_date, end_date, step_size and the input_directory.
         """
 
         if not self.time_series:
@@ -179,6 +175,7 @@ class Region:
     @property
     def car_amount(self):
         """Returns number of vehicles
+
         Returns
         -------
         int
