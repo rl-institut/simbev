@@ -51,6 +51,8 @@ Get the data
 
 If you want to run SimBEV in the mode using probabilities, a data set is available `here <https://zenodo.org/record/7609683>`_.
 
+If you have access to the MiD 2017 data set and want to create your own driving profiles, you can use the script examples/driving_profiles_from_mid. At the bottom of the file you can set the number of driving profiles and the regions and car types.
+
 Create a scenario
 -----------------
 
@@ -108,3 +110,24 @@ or
 .. code:: bash
 
     python -m simbev --repeat <number of iterations>
+
+Example run
+-----------
+
+To determine the charging demand for a single defined region, you first need to collect the relevant data:
+
+- Region type of the region
+- Vehicle types and their amount for the relevant year
+- Vehicle tech data (if unsure, use the default values)
+
+For your first scenario, you can simply copy the directory "default" in the scenarios folder, rename the copy to your scenario name, and then change the relevant files (regions.csv, tech_data.csv). In this example, we will name it "test".
+
+After you have collected the necessary data and input it into the scenario files, we can look at the config settings next. Open the "minimal.cfg" and set the start and end dates (ISO-format). If you have many vehicles in your region, you might also want to increase the scaling (section sim_params at the bottom of the config). If you have multiple regions set in your regions.csv (either due to different region types or to split your regions for multiprocessing), you can also adjust the parameter num_threads. Now you can run your simulation with the following command:
+
+.. code-block:: shell
+
+    python -m simbev scenarios/test/configs/minimal.cfg
+
+You can check the simulation results in your scenario directory under "results".
+
+For more in-depth settings, check out the section :doc:`simulation_settings` and the "default.cfg".
