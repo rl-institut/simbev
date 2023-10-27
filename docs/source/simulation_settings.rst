@@ -47,47 +47,47 @@ a certain output file should be generated.
    :header: **Keyword**, **Default**, **Description**
    :widths: 50, 25, 25
 
-   vehicle_csv, true, Shows the vehicle events with socs and energy use
-   grid_time_series_csv, true, Shows energy use of the grid by time step
-   plot_grid_time_series_split, false,
-   plot_grid_time_series_collective, false,
-   analyze, false,
+   vehicle_csv, true, Saves the vehicle events with socs and energy use as csv
+   grid_time_series_csv, true, Saves energy use of the grid by time step as csv
+   plot_grid_time_series_split, false, Saves grid plots for each region
+   plot_grid_time_series_collective, false, Saves aggregated grid plot for the scenario
+   analyze, false, Saves an additional analysis csv with multiple computed values
 
 .. csv-table:: [rampup_ev]
    :header: **Keyword**, **Default**, **Description**
    :widths: 50, 25, 25
 
-   rampup, regions.csv, Here is some description about the file
+   rampup, regions.csv, Link to input file for region definitions and vehicle amounts
 
 .. csv-table:: [tech_data]
    :header: **Keyword**, **Default**, **Description**
    :widths: 50, 25, 25
 
-   tech_data, tech_data.csv, Here is some description about the file
-   charging_curve, charging_curve.csv, Here is some description about the file
-   hpc_data, hpc_config.csv, Here is some description about the file
+   tech_data, tech_data.csv, Link to input file for technical vehicle data (for example battery capacity)
+   charging_curve, charging_curve.csv, Link to input file for charging curve definition
+   hpc_data, hpc_config.csv, Link to input file for High Power Charging parameters
 
 .. csv-table:: [user_data]
    :header: **Keyword**, **Default**, **Description**
    :widths: 50, 25, 25
 
-   user_groups, user_groups.csv, Here is some description about the file
+   user_groups, user_groups.csv, Link to input file for user group definitions for different charging behaviour
 
 .. csv-table:: [charging_probabilities]
    :header: **Keyword**, **Default**, **Description**
    :widths: 50, 25, 25
 
-   slow, charging_probability.csv, Here is some description about the file
-   fast, fast_charging_probability.csv, Here is some description about the file
-   home_work_private, home_work_private.csv,
-   energy_min, energy_min.csv,
+   slow, charging_probability.csv, Link to input file for charging probabilites outside of HPC charging
+   fast, fast_charging_probability.csv, Link to input file for HPC charging
+   home_work_private, home_work_private.csv, Link to input file for availability of private charging infrastructure
+   energy_min, energy_min.csv, Link to input file for minimal charging requirements
 
 .. csv-table:: [sim_params]
    :header: **Keyword**, **Default/Example**, **Description**
    :widths: 50, 25, 25
 
-   scaling, 1, Here is some description about the file
-   num_threads, 4, Here is some description about the file
+   scaling, 1, Simulation scaling. Example: With a scaling of 10 SimBEV would simulate only 1/10th of the given vehicles and extrapolate results
+   num_threads, 4, Number of regions to be calculated at the same time (limited by processor cores)
 
 
 

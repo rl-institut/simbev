@@ -13,18 +13,24 @@ Installing SimBEV
 Install using pip
 -----------------
 
-First, clone via SSH using
+First, clone via SSH:
 
 .. code:: bash
 
     git clone git@github.com:rl-institut/simbev.git /local/path/to/simbev/
 
+or via HTTPS:
+
+.. code:: bash
+
+    git clone https://github.com/rl-institut/simbev.git
+
 Make sure you have Python >= 3.8 installed, let's create a virtual env:
 
 .. code:: bash
 
-    virtualenv --python=python3.8 simbev
-    source simbev/bin/activate
+    python3 -m venv venv
+    source venv/bin/activate
 
 Install package with
 
@@ -50,6 +56,6 @@ The following code already simulates the default scenario in the folder scenario
 
 .. code:: bash
 
-    python simbev
+    python -m simbev
 
 More about simulating: :doc:`usage_details`
