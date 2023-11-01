@@ -92,12 +92,6 @@ class SimBEV:
     threshold_street_limit_steps : int
         Time steps for the street night limitation threshold.
 
-    lower_maximum_park_time_street_night : float
-        Lower limit for maximum park time on street at night.
-
-    upper_maximum_park_time_street_night : float
-        Upper limit for maximum park time on street at night.
-
     fast_charge_threshold : float
         Fast charging threshold.
 
@@ -240,25 +234,6 @@ class SimBEV:
         self.threshold_street_limit_steps = self.hours_to_time_steps(
             self.threshold_street_limit
         )
-        self.lower_maximum_park_time_street_night = config_dict[
-            "lower_maximum_park_time_street_night"
-        ]
-        self.upper_maximum_park_time_street_night = config_dict[
-            "upper_maximum_park_time_street_night"
-        ]
-        if (
-            self.lower_maximum_park_time_street_night
-            > self.upper_maximum_park_time_street_night
-        ):
-            print(
-                (
-                    "Warning: Lower maximum park time can't be bigger than upper maximum park time."
-                    "Both will be set to the upper time."
-                )
-            )
-            self.lower_maximum_park_time_street_night = (
-                self.upper_maximum_park_time_street_night
-            )
 
         self.fast_charge_threshold = config_dict["fast_charge_threshold"]
         self.consumption_factor_highway = config_dict["consumption_factor_highway"]
@@ -1145,13 +1120,6 @@ class SimBEV:
             ),
             "maximum_park_time_flag": cfg.getboolean(
                 "basic", "maximum_park_time_flag", fallback=False
-            ),
-            "maximum_park_time": cfg.getint("basic", "maximum_park_time", fallback=10),
-            "lower_maximum_park_time_street_night": cfg.getint(
-                "basic", "lower_maximum_park_time_street_night", fallback=8
-            ),
-            "upper_maximum_park_time_street_night": cfg.getint(
-                "basic", "upper_maximum_park_time_street_night", fallback=12
             ),
             "home_night_charging_flag": cfg.getboolean(
                 "basic", "home_night_charging_flag", fallback=False

@@ -99,39 +99,37 @@ All Settings
    :header: **Keyword**, **Default/Example**, **Description**
    :widths: 33, 33, 33
 
-   start_date, 2021-09-17, Starting date of the simulation has no default
-   end_date, 2021-09-30, Ending date of the simulation has no default
+   start_date, 2021-09-17, Starting date of the simulation
+   end_date, 2021-09-30, Ending date of the simulation
    input_type, probability, Choose what kind of input is used for driving profiles (Options: probability or profile)
-   input_directory, Data\probability, specify where the input data is located
+   input_directory, data\probability, specify where the input data is located
    eta_cp, 1, Efficiency of charging points
    stepsize, 15, Step size of simulation (should stay at 15 min for best results)
-   soc_min, 0.2, Value can be between 0 and 1
-   charging_threshold, 0.8,
-   distance_threshold_extra_urban, 50,
-   consumption_factor_highway, 1.2,
-   dc_power_threshold, 50,
-   threshold_retail_limitation, 21,
-   threshold_street_night_limitation, 21,
-   maximum_park_time_flag, false,
-   maximum_park_time, 10,
-   lower_maximum_park_time_street_night, 8,
-   upper_maximum_park_time_street_night, 12,
-   street_night_charging_flag, true,
-   home_night_charging_flag, false,
-   night_departure_standard_deviation, 1,
-   night_departure_time, 9,
+   soc_min, 0.2, Minimum SoC left over at all times (not usable). Value can be between 0 and 1
+   charging_threshold, 0.8, SoC threshold. Vehicles with higher SoC will not attempt to charge
+   distance_threshold_extra_urban, 50, Determines if a trip is urban or extra urban by distance in kilometers
+   consumption_factor_highway, 1.2, Extra consumption on highway trips
+   dc_power_threshold, 50, Threshold power in kW, anything higher is considered DC charging
+   threshold_retail_limitation, 21, Time of day in hours until when retail charging is allowed
+   threshold_street_night_limitation, 21, Time of day in hours where night charging methods are used (different allowed standing times)
+   maximum_park_time_flag, false, Toggle a maximum standing time. Higher standing times will not be allowed to charge (have to park elsewhere)
+   maximum_park_time, 10, Time in hours. Any parking events that are shorter than this are considered for charging
+   street_night_charging_flag, true, Enables night charging option for street use case. This overrides the maximum park time for night events
+   home_night_charging_flag, false, Enables night charging option for public home use case. This overrides the maximum park time for night events
+   night_departure_standard_deviation, 1, Standard deviation for departure. Normal distribution
+   night_departure_time, 9, Standard departure time after night charging event. Normal distribution
 
 
 .. csv-table:: [output]
    :header: **Keyword**, **Default**, **Description**
    :widths: 33, 33, 33
 
-   vehicle_csv, true, Decide if you want a output csv-file for each car simulated
-   rid_time_series_csv, true, Decide if you want a output csv-file for all cars per uc
-   plot_grid_time_series_split, false, Decide if you want a plot png-file for each region simulated
-   plot_grid_time_series_collective, false, Decide if you want a plot png-file for all regions simulated in one plot
-   analyze, false,
-   timing, false,
+   vehicle_csv, true, Saves the vehicle events with socs and energy use as csv
+   grid_time_series_csv, true, Saves energy use of the grid by time step as csv
+   plot_grid_time_series_split, false, Saves grid plots for each region
+   plot_grid_time_series_collective, false, Saves aggregated grid plot for the scenario
+   analyze, false, Saves an additional analysis csv with multiple computed values
+   timing, false, Debug option to time simulation
 
 .. csv-table:: [rampup_ev]
    :header: **Keyword**, **Default**, **Description**
@@ -143,34 +141,34 @@ All Settings
    :header: **Keyword**, **Default**, **Description**
    :widths: 33, 33, 33
 
-   tech_data, tech_data.csv, Value can be also tech_data_by_probability.csv
-   charging_curve, charging_curve.csv,
-   hpc_data, hpc_config.csv,
+   tech_data, tech_data.csv, Link to input file for technical vehicle data (for example battery capacity)
+   charging_curve, charging_curve.csv, Link to input file for charging curve definition
+   hpc_data, hpc_config.csv, Link to input file for High Power Charging parameters
 
 .. csv-table:: [user_data]
    :header: **Keyword**, **Default**, **Description**
    :widths: 33, 33, 33
 
-   user_groups, user_groups.csv, Here is some description about the file
+   user_groups, user_groups.csv, Link to input file for user group definitions for different charging behaviour
 
 .. csv-table:: [charging_probabilities]
    :header: **Keyword**, **Default**, **Description**
    :widths: 33, 33, 33
 
-   slow, charging_probability.csv, Charging probabilities for all locations
-   fast, fast_charging_probability.csv, Charging probabilities for all locations
-   use_case, charging_probability_by_usecase.csv, Optional parameter
-   home_work_private, home_work_private.csv, Share of private charging at home/work and 1 equals 100%
-   energy_min, energy_min.csv,
+   slow, charging_probability.csv, Link to input file for charging probabilites outside of HPC charging
+   fast, fast_charging_probability.csv, Link to input file for HPC charging
+   home_work_private, home_work_private.csv, Link to input file for availability of private charging infrastructure
+   energy_min, energy_min.csv, Link to input file for minimal charging requirements
+   use_case, charging_probability_by_usecase.csv, Variant to determine charging probabilities
 
 .. csv-table:: [sim_params]
    :header: **Keyword**, **Default**, **Description**
    :widths: 33, 33, 33
 
-   scaling, 1, Here is some description about the file
-   num_threads, 4, Here is some description about the file
-   seed, 3,
-   private_run_only, false,
+   scaling, 1, Simulation scaling. Example: With a scaling of 10 SimBEV would simulate only 1/10th of the given vehicles and extrapolate results
+   num_threads, 4, Number of regions to be calculated at the same time (limited by processor cores)
+   seed, 3, RNG seed. Same seed with same input data will produce the same results
+   private_run_only, false, Attempts to charge all vehicles with private charging infrastructure if they have access
 
 Input Files
 -----------
