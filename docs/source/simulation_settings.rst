@@ -38,14 +38,14 @@ a certain output file should be generated.
 
 .. csv-table:: [basic]
    :header: **Keyword**, **Example**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    start_date, 2021-09-17, Starting date of the simulation
    end_date, 2021-09-30, Ending date of the simulation
 
 .. csv-table:: [output]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    vehicle_csv, true, Saves the vehicle events with socs and energy use as csv
    grid_time_series_csv, true, Saves energy use of the grid by time step as csv
@@ -55,13 +55,13 @@ a certain output file should be generated.
 
 .. csv-table:: [rampup_ev]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    rampup, regions.csv, Link to input file for region definitions and vehicle amounts
 
 .. csv-table:: [tech_data]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    tech_data, tech_data.csv, Link to input file for technical vehicle data (for example battery capacity)
    charging_curve, charging_curve.csv, Link to input file for charging curve definition
@@ -69,13 +69,13 @@ a certain output file should be generated.
 
 .. csv-table:: [user_data]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    user_groups, user_groups.csv, Link to input file for user group definitions for different charging behaviour
 
 .. csv-table:: [charging_probabilities]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    slow, charging_probability.csv, Link to input file for charging probabilites outside of HPC charging
    fast, fast_charging_probability.csv, Link to input file for HPC charging
@@ -84,7 +84,7 @@ a certain output file should be generated.
 
 .. csv-table:: [sim_params]
    :header: **Keyword**, **Default/Example**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    scaling, 1, Simulation scaling. Example: With a scaling of 10 SimBEV would simulate only 1/10th of the given vehicles and extrapolate results
    num_threads, 4, Number of regions to be calculated at the same time (limited by processor cores)
@@ -97,7 +97,7 @@ All Settings
 
 .. csv-table:: [basic]
    :header: **Keyword**, **Default/Example**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    start_date, 2021-09-17, Starting date of the simulation has no default
    end_date, 2021-09-30, Ending date of the simulation has no default
@@ -124,7 +124,7 @@ All Settings
 
 .. csv-table:: [output]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    vehicle_csv, true, Decide if you want a output csv-file for each car simulated
    rid_time_series_csv, true, Decide if you want a output csv-file for all cars per uc
@@ -135,13 +135,13 @@ All Settings
 
 .. csv-table:: [rampup_ev]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    rampup, regions.csv, Number of every vehicle type per region
 
 .. csv-table:: [tech_data]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    tech_data, tech_data.csv, Value can be also tech_data_by_probability.csv
    charging_curve, charging_curve.csv,
@@ -149,13 +149,13 @@ All Settings
 
 .. csv-table:: [user_data]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    user_groups, user_groups.csv, Here is some description about the file
 
 .. csv-table:: [charging_probabilities]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    slow, charging_probability.csv, Charging probabilities for all locations
    fast, fast_charging_probability.csv, Charging probabilities for all locations
@@ -165,7 +165,7 @@ All Settings
 
 .. csv-table:: [sim_params]
    :header: **Keyword**, **Default**, **Description**
-   :widths: 50, 25, 25
+   :widths: 33, 33, 33
 
    scaling, 1, Here is some description about the file
    num_threads, 4, Here is some description about the file
@@ -360,11 +360,11 @@ Technical probability data for every vehicle type in terms charging, capacity an
    :header: type,slow_3.7,slow_11,slow_22,fast_50,fast_150,fast_350,battery_capacity,energy_consumption
    :widths: 10,10,10,10,10,10,10,10,10
 
-   bev_mini,0.02,0.82,0.16,0.33,0.62,0.04,60,0.1397
-   bev_medium,0,0.68,0.32,0.35,0.61,0.04,90,0.1746
-   bev_luxury,0.04,0.72,0.24,0.03,0.85,0.12,110,0.2096
-   phev_mini,0.88,0.12,0,1,0,0,14,0.1425
-   phev_medium,0.44,0.18,0.39,1,0,0,20,0.1782
+   bev_mini,0.05,0.80,0.15,0.30,0.65,0.05,60,0.1397
+   bev_medium,0,0.7,0.3,0.3,0.6,0.1,90,0.1746
+   bev_luxury,0,0.8,0.2,0,0.85,0.15,110,0.2096
+   phev_mini,0.9,0.1,0,1,0,0,14,0.1425
+   phev_medium,0.5,0.2,0.3,1,0,0,20,0.1782
    phev_luxury,0.75,0.25,0,1,0,0,30,0.2138
 
 

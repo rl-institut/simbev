@@ -7,17 +7,7 @@ General Concept
 ---------------
 
 SimBEV forecast charging demand for different e-cars for a pre-given time period. It does so by analysing the mobility in Germany
-data. This data is split into different region types:
-
-Rural regions:
-    * Kleinstädtischer, dörflicher Raum - LR_Klein
-    * Mittelstädte, städtischer Raum - LR_Mitte
-    * Zentrale Stadt - LR_Zentr
-Urban regions:
-    * Kleinstädtischer, städtischer Raum - SR_Klein
-    * Mittelstädte, städtischer Raum - SR_Mitte
-    * Regiopolen, Großstädte - SR_Gross
-    * Metropole - SR_Metro
+data. This data is split into different region types.
 
 The system is parameterized with the help of different input parameters such as battery capacity and charging power (slow and fast)
 as well as the consumption of each car.
@@ -98,23 +88,21 @@ Set parameters for your scenario
 Select regio-type for the mobility characteristics:
 
 Rural regions:
-    * Kleinstädtischer, dörflicher Raum - LR_Klein
-    * Mittelstädte, städtischer Raum - LR_Mitte
-    * Zentrale Stadt - LR_Zentr
+    * Small town, village - LR_Klein
+    * Medium-sized cities, urban areas - LR_Mitte
+    * Central cities - LR_Zentr
 Urban regions:
-    * Kleinstädtischer, städtischer Raum - SR_Klein
-    * Mittelstädte, städtischer Raum - SR_Mitte
-    * Regiopolen, Großstädte - SR_Gross
-    * Metropole - SR_Metro
+    * Small town, urban areas - SR_Klein
+    * Medium-sized cities, urban areas - SR_Mitte
+    * Large cities - SR_Gross
+    * Metropolis - SR_Metro
 
 Change vehicle configuration
  * battery capacity
  * charging power (slow and fast)
  * consumption
 
-Decide how many vehicles should be simulated:
-
-- note: more than 5000 vehicles of one type in one region is not necessary, if you want to analyze more, scale it accordingly
+Decide how many vehicles should be simulated.
 
 Iterations
 ----------
