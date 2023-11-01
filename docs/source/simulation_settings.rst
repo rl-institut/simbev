@@ -109,7 +109,7 @@ All Settings
    charging_threshold, 0.8, SoC threshold. Vehicles with higher SoC will not attempt to charge
    distance_threshold_extra_urban, 50, Determines if a trip is urban or extra urban by distance in kilometers
    consumption_factor_highway, 1.2, Extra consumption on highway trips
-   dc_power_threshold, 50, Threshold power in kW, anything higher is considered DC charging
+   dc_power_threshold, 50, Threshold power in kW. Anything higher is considered DC charging
    threshold_retail_limitation, 21, Time of day in hours until when retail charging is allowed
    threshold_street_night_limitation, 21, Time of day in hours where night charging methods are used (different allowed standing times)
    maximum_park_time_flag, false, Toggle a maximum standing time. Higher standing times will not be allowed to charge (have to park elsewhere)
