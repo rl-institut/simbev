@@ -18,7 +18,9 @@ The key features of SimBEV are:
 License
 -------
 
-MIT License
+This open source tool is licensed under the MIT license:
+
+**MIT License**
 
 Copyright (c) 2023 Reiner Lemoine Institut
 

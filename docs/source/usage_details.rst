@@ -6,8 +6,8 @@ This section gives a quick overview, what you can do with SimBEV and how to use 
 General Concept
 ---------------
 
-SimBEV forecast charging demand for different e-cars for a pre-given time period. It does so by analysing the mobility in Germany
-data. This data is split into different region types.
+SimBEV forecasts charging demand for electric vehicles in a given time period. It does so on the basis of german mobility
+data. This data is split into different region types (urban, suburban, rural).
 
 The system is parameterized with the help of different input parameters such as battery capacity and charging power (slow and fast)
 as well as the consumption of each car.

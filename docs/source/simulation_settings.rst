@@ -40,8 +40,8 @@ a certain output file should be generated.
    :header: **Keyword**, **Example**, **Description**
    :widths: 33, 33, 33
 
-   start_date, 2021-09-17, Starting date of the simulation
-   end_date, 2021-09-30, Ending date of the simulation
+   start_date, 2021-09-17, Starting date of the simulation in ISO format
+   end_date, 2021-09-30, Ending date of the simulation in ISO format
 
 .. csv-table:: [output]
    :header: **Keyword**, **Default**, **Description**
@@ -184,7 +184,7 @@ The charging intensity is described from 0.1 to 0.9 in 0.2 steps over all vehicl
 
 .. csv-table:: charging_curve.csv
    :header: key,bev_mini,bev_medium,bev_luxury,phev_mini,phev_medium,phev_luxury
-   :widths: 10,10,10,10,10,10,10
+   :widths: 14,14,14,14,14,14,14
 
    0.1,0.9,0.9,0.9,0.9,0.9,0.9
    0.3,0.915,0.915,0.915,0.915,0.915,0.915
@@ -203,7 +203,7 @@ The probability of charging in the given destination by kW.
 
 .. csv-table:: charging_probability.csv
    :header: destination,0,3.7,11.0,22.0,50.0
-   :widths: 10,10,10,10,10,10
+   :widths: 20,10,10,10,10,10
 
    work,0.5887,0.0411,0.1645,0.1645,0.0411
    business,0.64,0.033,0.135,0.15,0.042
@@ -224,7 +224,7 @@ The probability of charging by usecase in the given destination.
 
 .. csv-table:: charging_probability_by_usecase.csv
    :header: destination,22.0,50.0,150.0,250.0,350.0
-   :widths: 10,10,10,10,10,10
+   :widths: 20,10,10,10,10,10
 
    home,1,0,0,0,0
    work,1,0,0,0,0
@@ -278,7 +278,7 @@ Different values for home and work.
 
 .. csv-table:: home_work_private.csv
    :header: region,LR_Klein,LR_Mitte,LR_Zentr,SR_Klein,SR_Mitte,SR_Gross,SR_Metro
-   :widths: 10,10,10,10,10,10,10,10
+   :widths: 20,10,10,10,10,10,10,10
 
    home, 0.9,0.85,0.7,0.85,0.8,0.6,0.4
    work,0.7,0.7,0.7,0.7,0.7,0.7,0.7
@@ -295,7 +295,7 @@ Configuration for high power charging.
 
 .. csv-table:: hpc_config.csv
    :header: key,values
-   :widths: 10,10
+   :widths: 20,10
 
    soc_end_min,0.8
    soc_end_max,0.95
@@ -315,7 +315,7 @@ Amount of vehicles per region and vehicle type.
 
 .. csv-table:: regions.csv
    :header: region_id,RegioStaR7,bev_mini,bev_medium,bev_luxury,phev_mini,phev_medium,phev_luxury
-   :widths: 10,10,10,10,10,10,10,10
+   :widths: 20,20,10,10,10,10,10,10
 
    LR_Klein,LR_Klein,10,5,5,5,10,1
    LR_Mitte,LR_Mitte,20,30,10,2,20,10
@@ -336,7 +336,7 @@ Technical data for every vehicle type in terms charging, capacity and consumptio
 
 .. csv-table:: tech_data.csv
    :header: type,max_charging_capacity_slow,max_charging_capacity_fast,battery_capacity,energy_consumption
-   :widths: 10,10,10,10,10
+   :widths: 20,10,10,10,10
 
    bev_mini,11,50,60,0.1397
    bev_medium,22,50,90,0.1746
@@ -356,7 +356,7 @@ Technical probability data for every vehicle type in terms charging, capacity an
 
 .. csv-table:: tech_data_by_probability.csv
    :header: type,slow_3.7,slow_11,slow_22,fast_50,fast_150,fast_350,battery_capacity,energy_consumption
-   :widths: 10,10,10,10,10,10,10,10,10
+   :widths: 20,10,10,10,10,10,10,10,10
 
    bev_mini,0.05,0.80,0.15,0.30,0.65,0.05,60,0.1397
    bev_medium,0,0.7,0.3,0.3,0.6,0.1,90,0.1746
