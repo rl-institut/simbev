@@ -1,9 +1,10 @@
+import pathlib
+
 import pandas as pd
 import numpy as np
-import pathlib
+
 from simbev.mid_timeseries import get_timeseries, get_empty_timeseries
-import simbev.helpers.helpers as helpers
-import math
+from simbev.helpers import helpers
 
 
 class RegionType:
@@ -50,14 +51,10 @@ class RegionType:
     def create_timeseries(self, simbev):
         """Creating timeseries for vehicle.
 
-        Parameters .start_date, self.end_date, self.step_size, self.input_directory
+        Parameters
         ----------
-        start_date : date
-            Start-date of simulation.
-        end_date : date
-            End-date of simulation.
-        step_size : int
-            Step-size of simulation
+        simbev : SimBEV object
+            Used attributes are start_date, end_date, step_size and the input_directory.
         """
 
         if not self.time_series:
@@ -178,6 +175,7 @@ class Region:
     @property
     def car_amount(self):
         """Returns number of vehicles
+
         Returns
         -------
         int
@@ -253,7 +251,7 @@ class Region:
 
         Returns
         -------
-        int
+        str
             Destination of trip.
         """
         random_number = rng.random()
@@ -293,8 +291,8 @@ class Region:
 
     def create_grid_timeseries(self):
         """Constructs grid-time-series"""
-        header_slow = list(self.region_type.charging_probabilities["slow"].columns) # TODO change if power by usecase
-        header_fast = list(self.region_type.charging_probabilities["fast"].columns) # TODO change if power by usecase
+        header_slow = list(self.region_type.charging_probabilities["slow"].columns)
+        header_fast = list(self.region_type.charging_probabilities["fast"].columns)
         if "0" in header_slow:
             header_slow.remove("0")
         if "0" in header_fast:
@@ -313,13 +311,7 @@ class Region:
         ]
         for uc in use_cases:
             self.header_grid_ts.append("{}_total_power".format(uc))
-            if (
-                uc == "home_detached"
-                or uc == "home_apartment"
-                or uc == "work"
-                or uc == "retail"
-                or uc == "street"
-            ):
+            if uc in ("home_detached", "home_apartment", "work", "retail", "street"):
                 for power in header_slow:
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
 

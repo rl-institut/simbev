@@ -1,9 +1,10 @@
-import pandas as pd
-import numpy as np
 import random
 import math
 import datetime
 from pathlib import Path
+
+import pandas as pd
+import numpy as np
 
 
 def get_season(date: datetime.date):
@@ -92,6 +93,9 @@ def get_name_csv(region, season, data_directory):
         Current region.
     season : str
         Season the data is wanted for.
+    data_directory : pathlib.Path
+        Path to probability data directory
+
     Returns
     -------
     WindowsPath
@@ -117,6 +121,8 @@ def get_timeseries(
         Region.
     stepsize : int
         Stepsize of simulation.
+    data_directory : pathlib.Path
+        Path to probability data directory
 
     Returns
     -------
@@ -209,6 +215,7 @@ def get_timeseries(
 
 
 def get_empty_timeseries(start_date, end_date, step_size):
+    """Creates an empty DataFrame with a time index specified by the input parameters."""
     end_date += datetime.timedelta(days=1)
     date_range = pd.date_range(
         start_date, end_date, freq=f"{step_size}min", inclusive="left"
@@ -229,7 +236,7 @@ def get_profile_time_series(start_date, end_date, step_size, df):
         The end date of the time series in yyyy-mm-dd format.
     step_size : int
         Step size of the simulation in minutes.
-    df : pandas DataFrame
+    df : pd.DataFrame
         The input DataFrame containing week data, where each entry with the same ID belongs to the same week.
 
     Returns
@@ -264,8 +271,7 @@ def get_profile_time_series(start_date, end_date, step_size, df):
         week_end = week_start + pd.Timedelta(days=num_days - 1)
 
         # If the week end date is beyond the end date of the time series, adjust it accordingly
-        if week_end > end_date:
-            week_end = end_date
+        week_end = min(week_end, end_date)
 
         # Get the data for this week that falls within the desired date range
         week_data_filtered = week_data[

@@ -1,4 +1,26 @@
-MIT License
+General information
+===================
+
+What is SimBEV?
+---------------
+
+SimBEV stands for "Simulation of Battery Electric Vehicles". SimBEV uses german mobility data to calculate expected
+charging demand of electric vehicles in different regions and scenarios. The current version focuses on private vehicles in Germany.
+
+The key features of SimBEV are:
+
+* Detailed modelling of driving profiles
+* Stepwise simulation without using perfect foresight
+* Charging decisions based on a multitude of factors
+* Calculating charging demand in a region, split by use case
+* Total energy and grid demand calculation
+
+License
+-------
+
+This open source tool is licensed under the MIT license:
+
+**MIT License**
 
 Copyright (c) 2023 Reiner Lemoine Institut
 

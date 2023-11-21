@@ -1,11 +1,11 @@
 import json
 from pathlib import Path
 import datetime
+from functools import wraps
+import time
 import pandas as pd
 from scipy.interpolate import interp1d
 from simbev import __version__
-from functools import wraps
-import time
 
 
 def date_string_to_datetime(date_str):
@@ -84,7 +84,6 @@ def export_metadata(simbev, config):
         "charge_prob_fast": simbev.charging_probabilities["fast"].to_dict(
             orient="index"
         ),
-        # TODO maybe add charging probability by usecase here
         "car_sum": cars.sum().to_dict(),
         "car_amounts": cars.to_dict(orient="index"),
     }
@@ -280,6 +279,17 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
 
 
 def timeitlog(timing, save_directory):
+    """Timing decorator for functions.
+
+    Parameters
+    ----------
+    timing : bool
+        Flag that indicates if decorated function should be timed or not.
+    save_directory : pathlib.Path
+        Path to the directory where simulation results are saved.
+
+    """
+
     def decorator(func):
         path_to_log_file = Path(save_directory, "timing_log_file_simbev.txt")
 
@@ -306,6 +316,17 @@ def timeitlog(timing, save_directory):
 
 
 def interpolate_charging_curve(x, y):
+    """Cubic interpolation between x and y.
+
+    Wrapper for scipys interp1d function.
+
+    Parameters
+    ----------
+
+    x : array_like
+    y : array_like
+
+    """
     f = interp1d(x, y, kind="cubic", fill_value="extrapolate")
 
     return f

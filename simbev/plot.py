@@ -1,4 +1,5 @@
 def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
+    """Create grid timeseries plots split by use case."""
     import plotly.express as px
 
     plot_list = [
@@ -20,7 +21,7 @@ def plot_gridtimeseries_by_usecase(simbev, grid_timeseries_all):
         "highway_fast",
     ]
     y_title = "P in kW"
-    # TODO fix plot first region outputs all regions data (log_region_data)
+
     if simbev.output_options["region_plot"]:
         for idx, data in enumerate(simbev.grid_data_list):
             df_results = data.set_index("timestamp")
