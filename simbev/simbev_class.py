@@ -1118,9 +1118,7 @@ class SimBEV:
             "threshold_street_night_limit": cfg.getfloat(
                 "basic", "threshold_street_night_limitation", fallback=21
             ),
-            "maximum_park_time": cfg.getint(
-                "basic", "maximum_park_time", fallback=10
-            ),
+            "maximum_park_time": cfg.getint("basic", "maximum_park_time", fallback=10),
             "maximum_park_time_flag": cfg.getboolean(
                 "basic", "maximum_park_time_flag", fallback=False
             ),
