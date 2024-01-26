@@ -479,10 +479,11 @@ class Car:
         else:
             charging_time = 0
 
+        park_time = charging_time if charging_type == "fast" and charging_time > 0 else trip.park_time
         self._update_activity(
             trip.park_timestamp,
             trip.park_start,
-            trip.park_time,
+            park_time,
             nominal_charging_capacity=power,
             charging_power=avg_power,
             charging_use_case=charging_use_case,
