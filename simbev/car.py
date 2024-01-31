@@ -551,12 +551,14 @@ class Car:
         use_case : str
             Charging use case
         """
+        charge_type = "slow"
         if station_capacity > trip.simbev.fast_charge_threshold:
             use_case = "urban_fast"
+            charge_type = "fast"
         self.charge(
             trip,
             station_capacity,
-            "slow",
+            charge_type,
             use_case,
             step_size=self.region.region_type.step_size,
             max_charging_time=max_parking_time,
