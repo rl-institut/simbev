@@ -465,6 +465,12 @@ class Car:
 
         avg_power = 0
 
+        soc_end = 1
+        if charging_type == "fast":
+            soc_end = trip.rng.uniform(
+                trip.simbev.hpc_data["soc_end_min"], trip.simbev.hpc_data["soc_end_max"]
+            )
+
         if power != 0:
             charging_time, avg_power, power, soc = self.charging_curve(
                 trip,
@@ -473,13 +479,17 @@ class Car:
                 max_charging_time,
                 charging_type,
                 charging_use_case,
-                soc_end=1,
+                soc_end,
             )
             self.soc = soc
         else:
             charging_time = 0
 
-        park_time = charging_time if charging_type == "fast" and charging_time > 0 else trip.park_time
+        park_time = (
+            charging_time
+            if charging_type == "fast" and charging_time > 0
+            else trip.park_time
+        )
         self._update_activity(
             trip.park_timestamp,
             trip.park_start,
