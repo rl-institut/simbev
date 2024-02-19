@@ -1,21 +1,15 @@
-import json
-import pathlib
-
 import pandas as pd
 import numpy as np
-
+import pathlib
 pd.options.mode.chained_assignment = None  # default='warn'
 
-
-def create_driving_profiles(number_of_dp, region_names, car_type_names):
-    data_path = pathlib.Path("mid_data")
+def create_driving_profiles(number_of_dp, path):
+    data_path = pathlib.Path("..", "mid_data")
+    # way_cols = [0, 1, 2, 3, 4, 17, 19, 21, 26, 28, 30, 35, 43, 48, 55, 58, 60, 67, 68, 87, 94, 95, 113, 122, 163]
     way_cols = [0, 1, 2, 3, 4, 21, 28, 30, 35, 48, 53, 54, 58, 60, 67, 68, 94, 95, 163]
-    way = pd.read_csv(
-        pathlib.Path(data_path, "MiD2017_Wege.csv"),
-        sep=";",
-        decimal=",",
-        usecols=way_cols,
-    )
+    way = pd.read_csv(pathlib.Path(data_path, "MiD2017_Wege.csv"), sep=';', decimal=',',
+                      usecols=way_cols)
+    way.head()
 
     # read MiD-Wege, required fields (see code plan for mid)
     # 0: HP_ID (Haushalts-Personen-ID)
@@ -38,7 +32,7 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
     # 58: wegkm_imp (Wegelaenge in km, 0,01 - 900)
     # 60: tempo (Geschwindigkeit 0,5 - 900, 9994 unplausibel, 9995 Wert nicht zu berechnen, 70701 bei rBW nicht zu bestimmen, 70703 Weg ohne Detailerfassung)
     # 67: W_VM_G (Verkehrsmittel - Pkw 0: nicht genannt, 1: genannt)
-    # 68: W_VM_H (Verkehrsmittel - Carsharing 0: nicht genannt, 1: genannt)
+    # 68: W_VM_H (Verkehrsmittel - Carsharing 0: nicht genannt, 1: genannt) TODO add?
     # 87: hvm_imp (Hauptverkehrsmittel - 1: zu Fuss, 2: Fahrrad, 3: MIV Mitfahrer, 4: MIV Fahrer, 5 OePV)
     # 94: W_AUTO_HH (Auto aus dem Haushalt - 1: ja, 2: nein, 9: keine Angabe, weitere Codes fuer Begruendung des Fehlens)
     # 95: W_WAUTO (A_ID des FAhrzeugs - 1: 1. Fahrzeug, 2: 2. Fahrzeug, 3: 3. Fahrzeug, 4: anderes Fahrzeug, 9: keine Angabe, weitere Codes fuer Begruendung des Fehlens)
@@ -52,60 +46,44 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
     uc_zwdp_street = [701, 705, 711, 604, 715, 717, 999, 2020, 7704, 7705]
 
     uc_zwdf_retail = [503, 603, 702, 703, 704, 705, 706, 713, 714]
-    uc_zwdf_street = [
-        605,
-        701,
-        707,
-        710,
-        711,
-        712,
-        716,
-        717,
-        719,
-        720,
-        999,
-        2202,
-        7704,
-        7705,
-    ]
+    uc_zwdf_street = [605, 701, 707, 710, 711, 712, 716, 717, 719, 720, 999, 2202, 7704, 7705]
 
-    way["charging_use_case"].loc[
-        (way["W_ZWDP"].isin(uc_zwdp_street) & (way["zweck"] == 5))
-        | (way["W_ZWDF"].isin(uc_zwdf_street) & (way["zweck"] == 7))
-    ] = "street"
-    way["charging_use_case"].loc[
-        (way["W_ZWDP"].isin(uc_zwdp_retail) & (way["zweck"] == 5))
-        | (way["W_ZWDF"].isin(uc_zwdf_retail) & (way["zweck"] == 7))
-    ] = "retail"
+    way["charging_use_case"].loc[(way["W_ZWDP"].isin(uc_zwdp_street) & (way["zweck"] == 5)) |
+                                 (way["W_ZWDF"].isin(uc_zwdf_street) & (way["zweck"] == 7))] = "street"
+    way["charging_use_case"].loc[(way["zweck"].isin([4, 6])) |
+                                 ((way["zweck"] == 2) & (way["wegkm_imp"] <= 350)) |
+                                 (way["W_ZWDP"].isin(uc_zwdp_retail) & (way["zweck"] == 5)) |
+                                 (way["W_ZWDF"].isin(uc_zwdf_retail) & (way["zweck"] == 7))] = "retail"
 
-    household_cols = [0, 1, 87, 97]
-    households = pd.read_csv(
-        pathlib.Path(data_path, "MiD2017_Haushalte.csv"),
-        sep=";",
-        decimal=",",
-        usecols=household_cols,
-    )
+    # car_cols = []
+    #cars = pd.read_csv(pathlib.Path(data_path, "MiD2017_Autos.csv"), sep=';', decimal=',',
+                       # usecols=car_cols
+    #                   )
+
+    #cars.head()
+
+    household_cols = [0,1,87,97]
+    households = pd.read_csv(pathlib.Path(data_path, "MiD2017_Haushalte.csv"), sep=';', decimal=',',
+                       usecols=household_cols
+                       )
 
     households.head()
 
     person_cols = [0, 1, 3, 22]
-    persons = pd.read_csv(
-        pathlib.Path(data_path, "MiD2017_Personen.csv"),
-        sep=";",
-        decimal=",",
-        usecols=person_cols,
-    )
+    persons = pd.read_csv(pathlib.Path(data_path, "MiD2017_Personen.csv"), sep=';', decimal=',',
+                       usecols=person_cols
+                       )
     persons.head()
 
     # group by H_ID and count number of unique ST_WOTAG values
-    counts = persons.groupby("H_ID")["ST_WOTAG"].nunique()
+    counts = persons.groupby('H_ID')['ST_WOTAG'].nunique()
 
     if (counts == 1).all():
         print("All ST_WOTAG values are the same for each H_ID")
     else:
         print("ST_WOTAG values are not always the same for the same H_ID")
 
-    persons = persons.drop_duplicates(subset="HP_ID", keep="first")
+    persons = persons.drop_duplicates(subset='HP_ID', keep='first')
     persons.head()
 
     households = households.join(persons.set_index("H_ID"), on="H_ID")
@@ -131,17 +109,16 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
 
     # fahrten mit fahrzeit = 0 raus filtern
 
-    way_filtered = way.loc[
-        (way["wegkm_imp"] >= way_distance_min)
-        & (way["wegkm_imp"] <= way_distance_max)
-        & ((way["W_VM_G"] == 1) | (way["W_VM_H"] == 1))
-        & (way["tempo"] >= speed_min)
-        & (way["tempo"] <= speed_max)
-        & (way["W_SZ"].str.contains("^\d{1,2}:\d{2}:\d{2}$", regex=True))
-        & (way["W_AZ"].str.contains("^\d{1,2}:\d{2}:\d{2}$", regex=True))
-        & (way["zweck"] >= 1)
-        & (way["zweck"] <= 10)
-    ].copy()
+    way_filtered = way.loc[(way["wegkm_imp"] >= way_distance_min) &
+                           (way["wegkm_imp"] <= way_distance_max) &
+                           ((way["W_VM_G"] == 1) | (way["W_VM_H"] == 1)) &
+                           (way["tempo"] >= speed_min) &
+                           (way["tempo"] <= speed_max) &
+                           (way["W_SZ"].str.contains('^\d{1,2}:\d{2}:\d{2}$', regex=True)) &
+                           (way["W_AZ"].str.contains('^\d{1,2}:\d{2}:\d{2}$', regex=True)) &
+                           (way["zweck"] >= 1) &
+                           (way["zweck"] <= 10)
+                           ].copy()
     print("lenght_filterd", len(way_filtered))
     print("lenght_households", len(households))
 
@@ -149,20 +126,9 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
 
     # private/ridesharing/anderer zweck zusammenfassen
 
-    mid_zweck = range(1, 11)
+    mid_zweck = range(1, 11)  # todo: check if wegzweck rückweg auf home okay!?
 
-    simbev_zweck = [
-        "work",
-        "business",
-        "school",
-        "shopping",
-        "private",
-        "private",
-        "leisure",
-        "home",
-        "home",
-        "private",
-    ]
+    simbev_zweck = ["work", "business", "school", "shopping", "private", "private", "leisure", "home", "home", "private"]
 
     zweck_dict = dict(zip(mid_zweck, simbev_zweck))
 
@@ -176,6 +142,7 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
         "rural": [74, 77],
     }
 
+    # TODO change to 12 classes? method: join vehicle data to households, pkw seg_kba #27
     car_type_names = ["mini", "medium", "luxury"]
     kba_seg = {
         "mini": [1, 2],
@@ -214,34 +181,34 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
             # print(region, car_type)
             # 1. find all households that mach region and car-type by region
             household_dict[region][car_type] = households.loc[
-                households["RegioStaR7"].isin(regiostar7[region])
-                & households["pkw_seg_kba"].isin(kba_seg[car_type])
-            ].copy()
-            stats_dict[region][car_type]["number_of_households"] = len(
-                household_dict[region][car_type]["H_ID"].unique()
-            )
+                households["RegioStaR7"].isin(regiostar7[region]) & households["pkw_seg_kba"].isin(
+                    kba_seg[car_type])].copy()
+            stats_dict[region][car_type]["number_of_households"] = len(household_dict[region][car_type]["H_ID"].unique())
 
             # 2. find all ways that are done by household
             way_dict[region][car_type] = way_filtered.loc[
-                way_filtered["H_ID"].isin(household_dict[region][car_type]["H_ID"])
-            ].copy()
-            stats_dict[region][car_type]["number_of_ways"] = len(
-                way_dict[region][car_type]
-            )
+                way_filtered["H_ID"].isin(household_dict[region][car_type]["H_ID"])].copy()
+            stats_dict[region][car_type]["number_of_ways"] = len(way_dict[region][car_type])
             # print()
 
     def create_timestep_from_time(time_str):
         time_str_list = time_str.split(":")
-        return int(time_str_list[0]) * 60 + int(time_str_list[1])
+        return int(time_str_list[0])*60+int(time_str_list[1])
 
+    # get ways data for each household, change it to fit own specifications (use cases)
     for region in region_names:
         for car_type in car_type_names:
-            way_dict[region][car_type]["departure_time"] = way_dict[region][car_type][
-                "W_SZ"
-            ].apply(create_timestep_from_time)
-            way_dict[region][car_type]["arrival_time"] = way_dict[region][car_type][
-                "W_AZ"
-            ].apply(create_timestep_from_time)
+            way_dict[region][car_type]["departure_time"] = way_dict[region][car_type]["W_SZ"].apply(create_timestep_from_time)
+            way_dict[region][car_type]["arrival_time"] = way_dict[region][car_type]["W_AZ"].apply(create_timestep_from_time)
+
+        # fill day with activities
+        #activity = pd.DataFrame([[id_driving_profile, (weekday-1), row["zweck"], row["W_SZ"], row["W_AZ"], row["wegkm_imp"]]],columns=dp_columns)
+        #driving_profile_dict[region][car_type] = pd.concat([driving_profile_dict[region][car_type], activity],ignore_index=True)
+        #previous_row = row
+
+    # construct weekly driving profiles using the weight column of daily profiles
+    # build in eventfree days
+    # check if value of 40% of days are without event in MiD
 
     # choose H_ID out of Householdgroup by using weight column
 
@@ -259,58 +226,58 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
 
         # return household_id for further usage
         return selected_df[column]
-
-    def select_randomly(df, column):
+    
+    # deprecated
+    def select_randomly(df,column,weight):
         selected_df = df.sample()
         return selected_df[column].iloc[0]
+
 
     # check choosen household for driving-events on given weekday
     def check_for_way(household_df, weekday, way_df):
         # households_df: all households with PkW in specific region and with specific car type
         household_df_weekday = household_df.loc[household_df["ST_WOTAG"] == weekday]
         # select households that have a maching "Stichtag"
-        H_ID = select_randomly(household_df_weekday, "H_ID")
+        H_ID = select_by_weight(household_df_weekday, "H_ID", "H_GEW")
+        # check for unfiltered ways here?
+        # print(H_ID)
 
         # check for persons and persons with way
+        # unique_persons = household_df["HP_ID"].loc[(household_df["H_ID"] == H_ID)].unique()
         unique_persons_with_way = way_df["HP_ID"].loc[(way_df["H_ID"] == H_ID)].unique()
+        # print(H_ID)
+        # print(unique_persons)
+        # print(unique_persons_with_way)
+        # print()
 
         if unique_persons_with_way.size == 0:
             # If there is no persons with way in household write empty DataFrame
             specific_day = pd.DataFrame()
         else:
             # else check for person with way by weight
-            HP_ID = select_randomly(
-                household_df.loc[household_df["HP_ID"].isin(unique_persons_with_way)],
-                "HP_ID",
-            )
+            HP_ID = select_by_weight(household_df.loc[household_df["HP_ID"].isin(unique_persons_with_way)], "HP_ID",
+                                     "P_GEW")
             # check if there is any connection to way dataframe
             specific_day = way_df.loc[(way_df["HP_ID"] == HP_ID)]
 
         return specific_day, (not specific_day.empty)
 
+
     # start with preperations for generating driving profiles
-    dp_columns = [
-        "id",
-        "day",
-        "location",
-        "departure_time",
-        "arrival_time",
-        "distance",
-        "charging_use_case",
-    ]
-    profile_columns = [
-        "id",
-        "ST_WOTAG",
-        "zweck",
-        "departure_time",
-        "arrival_time",
-        "wegkm_imp",
-        "charging_use_case",
-    ]
+    dp_columns = ["id", "day", "location", "departure_time", "arrival_time", "distance", "charging_use_case"]
+    profile_columns = ["id", "ST_WOTAG", "zweck", "departure_time", "arrival_time", "wegkm_imp", "charging_use_case"]
 
     new_column_dict = {key: value for key, value in zip(profile_columns, dp_columns)}
 
     days = 7
+    region_names = ["urban", "suburban", "rural"]
+    #region_names = ["urban"]
+    #region_names = ["suburban"]
+    #region_names = ["rural"]
+    car_type_names = ["mini", "medium", "luxury"]
+    #car_type_names = ["mini"]
+    #car_type_names = ["medium"]
+    #car_type_names = ["luxury"]
 
     # counters for identifying empty days
     day_counter = number_of_dp * len(region_names) * len(car_type_names) * days
@@ -324,12 +291,10 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
             for _ in range(number_of_dp):
                 # start generating driving-profile for given household
                 for weekday in range(days):
+
                     # check if day is empty
-                    day_specific, ways_found = check_for_way(
-                        household_dict[region][car_type],
-                        weekday,
-                        way_dict[region][car_type],
-                    )
+                    day_specific, ways_found = check_for_way(household_dict[region][car_type], weekday,
+                                                             way_dict[region][car_type])
                     if not ways_found:
                         # skip day with no activities
                         no_way_counter += 1
@@ -342,9 +307,7 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
                         activity = day_specific.copy()
                         activity["id"] = id_driving_profile
                         activity = activity[profile_columns]
-                        driving_profiles = pd.concat(
-                            [driving_profiles, activity], ignore_index=True
-                        )
+                        driving_profiles = pd.concat([driving_profiles, activity], ignore_index=True)
 
                 id_driving_profile += 1
             driving_profiles = driving_profiles.rename(columns=new_column_dict)
@@ -355,40 +318,34 @@ def create_driving_profiles(number_of_dp, region_names, car_type_names):
     stats_dict["share_of_empty_days"] = share_of_empty_days
     print("share of empty days", share_of_empty_days)
 
-    save_dir = pathlib.Path("driving_profiles")
+    import json
+
+    save_dir = pathlib.Path(path)
     save_dir.mkdir(exist_ok=True)
 
     for region in region_names:
         for car_type in car_type_names:
             # change datatypes
             driving_profile = driving_profile_dict[region][car_type]
-            driving_profile["id"] = driving_profile["id"].astype("int32")
-            driving_profile["day"] = driving_profile["day"].astype("int8")
-            driving_profile["location"] = driving_profile["location"].astype("category")
-            driving_profile["departure_time"] = driving_profile[
-                "departure_time"
-            ].astype("int16")
-            driving_profile["arrival_time"] = driving_profile["arrival_time"].astype(
-                "int16"
-            )
-            driving_profile["distance"] = driving_profile["distance"].astype("float32")
+            driving_profile["id"] = driving_profile["id"].astype('int32')
+            driving_profile["day"] = driving_profile["day"].astype('int8')
+            driving_profile["location"] = driving_profile["location"].astype('category')
+            driving_profile["departure_time"] = driving_profile["departure_time"].astype('int16')
+            driving_profile["arrival_time"] = driving_profile["arrival_time"].astype('int16')
+            driving_profile["distance"] = driving_profile["distance"].astype('float32')
 
             # save to parquet
-            driving_profile.to_parquet(
-                pathlib.Path(save_dir, f"driving_profiles_{region}_{car_type}.gzip"),
-                compression="gzip",
-            )
+            driving_profile.to_parquet(path + f'/driving_profiles_{region}_{car_type}.gzip',
+                                       compression='gzip')
 
             # save to csv
-            # driving_profile.to_csv(pathlib.Path(save_dir, f'driving_profiles_{region}_{car_type}.csv'))
+            # driving_profile.to_csv(path + f'/driving_profiles_{region}_{car_type}.csv')
 
     # save statistics
-    with open(f"stats.json", "w") as outfile:
+    with open(path + f"/stats.json", "w") as outfile:
         json.dump(stats_dict, outfile, indent=4)
 
-
 if __name__ == "__main__":
-    region_names = ["urban", "suburban", "rural"]
-    car_type_names = ["mini", "medium", "luxury"]
-    number_of_dp = 1000
-    create_driving_profiles(number_of_dp, region_names, car_type_names)
+    number_of_dp = 400000
+    path = 'results/profiles'
+    create_driving_profiles(number_of_dp, path)
