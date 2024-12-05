@@ -212,7 +212,8 @@ class SimBEV:
         self.power_by_usecase = "use_case" in self.charging_probabilities
         self.tech_data = data_dict["tech_data"]
         self.energy_min = data_dict["energy_min"]
-        self.home_parking = data_dict["private_probabilities"].loc["home", :]
+        self.home_parking_uc1 = data_dict["private_probabilities"].loc["home_uc1", :]
+        self.home_parking_uc2 = data_dict["private_probabilities"].loc["home_uc2", :]
         self.work_parking = data_dict["private_probabilities"].loc["work", :]
 
         self.hpc_data = data_dict["hpc_data"]
@@ -246,7 +247,6 @@ class SimBEV:
             self.start_date_input, datetime.datetime.min.time()
         )
         self.end_date = config_dict["end_date"]
-        self.home_parking = data_dict["private_probabilities"].loc["home", :]
         self.work_parking = data_dict["private_probabilities"].loc["work", :]
         self.probability_detached_home = data_dict["private_probabilities"].loc[
             "probability_detached_home"
@@ -562,10 +562,20 @@ class SimBEV:
                         self.work_parking[region.region_type.rs7_type]
                         >= self.rng.random()
                     )
-                    home_parking = (
-                        self.home_parking[region.region_type.rs7_type]
-                        >= self.rng.random()
+                    home_detached = (
+                        self.rng.random()
+                        <= self.probability_detached_home[region.region_type.rs7_type]
                     )
+                    if home_detached:
+                        home_parking = (
+                            self.home_parking_uc1[region.region_type.rs7_type]
+                            >= self.rng.random()
+                        )
+                    else:
+                        home_parking = (
+                            self.home_parking_uc2[region.region_type.rs7_type]
+                            >= self.rng.random()
+                        )
                     work_power = (
                         self.get_charging_capacity("work", use_case="work")
                         if work_parking
@@ -576,13 +586,9 @@ class SimBEV:
                         if home_parking
                         else None
                     )
+
                     user_group_id = self.set_user_group(
                         work_parking, home_parking, work_power, home_power
-                    )
-
-                    home_detached = (
-                        self.rng.random()
-                        <= self.probability_detached_home[region.region_type.rs7_type]
                     )
 
                     car = Car(
@@ -1004,7 +1010,7 @@ class SimBEV:
             sep=",",
             index_col=0,
         )
-
+        print(cfg["rampup_ev"]["rampup"])
         # read chargepoint probabilities
         charging_probabilities = {}
         for charging_type in ["slow", "fast", "use_case"]:
