@@ -355,6 +355,8 @@ class Car:
             "soc_end": [],
             "energy": [],
             "station_charging_capacity": [],
+            "car_charging_capacity_ac": [],
+            "car_charging_capacity_dc": [],
             "average_charging_power": [],
             "destination": [],
             "distance": [],
@@ -416,6 +418,12 @@ class Car:
             self.output["station_charging_capacity"].append(
                 np.float32(nominal_charging_capacity)
             )
+            self.output["car_charging_capacity_ac"].append(
+                np.float32(self.car_type.charging_capacity["slow"])
+            )
+            self.output["car_charging_capacity_dc"].append(
+                np.float32(self.car_type.charging_capacity["fast"])
+            )
             self.output["average_charging_power"].append(
                 round(np.float32(charging_power), 4)
             )
@@ -470,6 +478,9 @@ class Car:
             soc_end = trip.rng.uniform(
                 trip.simbev.hpc_data["soc_end_min"], trip.simbev.hpc_data["soc_end_max"]
             )
+
+        if max_charging_time > trip.park_time:
+            max_charging_time = trip.park_time
 
         if power != 0:
             charging_time, avg_power, power, soc = self.charging_curve(
