@@ -4,14 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and the versioning aim to respect [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+=======
 ## [Unreleased]
 
 ### Added
 
+- driving_profile_seed parameter in the config file to set the seed for the driving profile generation step #139
 - 
 ### Changed
 
 - Fix charging time bug #141
+- Results are the same for the same seed specified in the config file #139
 
 ### Removed
 
