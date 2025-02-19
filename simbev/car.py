@@ -471,6 +471,9 @@ class Car:
                 trip.simbev.hpc_data["soc_end_min"], trip.simbev.hpc_data["soc_end_max"]
             )
 
+        if max_charging_time > trip.park_time:
+            max_charging_time = trip.park_time
+        
         if power != 0:
             charging_time, avg_power, power, soc = self.charging_curve(
                 trip,
