@@ -87,6 +87,7 @@ def export_metadata(simbev, config):
             orient="index"
         ),
         "car_sum": cars.sum().to_dict(),
+        "car_amounts": cars.to_dict(orient="index"),
     }
     outfile = Path(simbev.save_directory, "metadata_simbev_run.json")
     with open(outfile, "w") as f:
