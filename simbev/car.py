@@ -471,7 +471,7 @@ class Car:
                 trip.simbev.hpc_data["soc_end_min"], trip.simbev.hpc_data["soc_end_max"]
             )
 
-        if max_charging_time > trip.park_time:
+        if max_charging_time > trip.park_time and charging_type == "slow":
             max_charging_time = trip.park_time
         
         if power != 0:
