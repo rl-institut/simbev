@@ -549,10 +549,11 @@ class Trip:
                         and not self.car.output["location"][index] == "driving"
                     ):
                         next_drive_timesteps = timestep
+                        self.real_park_time = (
+                            self.park_time + next_drive_timesteps - replacement_day_timestep
+                        )
                         break
-                self.real_park_time = (
-                    self.park_time + next_drive_timesteps - replacement_day_timestep
-                )
+                    
             elif self.simbev.input_type == "profile":
                 next_drive_timesteps = self.car.driving_profile.loc[
                     self.car.driving_profile["time_step"] > replacement_day_timestep

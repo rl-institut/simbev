@@ -72,12 +72,14 @@ def export_metadata(simbev, config):
         ]
     ]
     meta_dict = {
-        "simBEV_version": __version__,
+        "SimBEV_version": __version__,
         "scenario": simbev.name,
         "timestamp_start": simbev.timestamp,
         "timestamp_end": datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S"),
         "config": config._sections,
         "tech_data": simbev.tech_data.to_dict(orient="index"),
+        "regions": simbev.region_data.to_dict(orient="index"),
+        "home_charging": simbev.home_parking.to_dict(),
         "charge_prob_slow": simbev.charging_probabilities["slow"].to_dict(
             orient="index"
         ),

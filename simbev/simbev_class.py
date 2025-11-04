@@ -1007,6 +1007,7 @@ class SimBEV:
             pathlib.Path(scenario_path, cfg["rampup_ev"]["rampup"]),
             sep=",",
             index_col=0,
+            dtype={"region_id":str}
         )
 
         # read chargepoint probabilities
