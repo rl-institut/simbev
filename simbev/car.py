@@ -966,7 +966,7 @@ class Car:
                     new_demand = round(
                         max(activity.at[activity.index[0], "energy"] - pre_demand, 0), 4
                     )
-                    activity.at[activity.index[0], "energy"] = new_demand
+                    activity.at[activity.index[0], "energy"] = float(new_demand)
 
                 # change driving events
                 elif activity.at[activity.index[0], "energy"] < 0:
@@ -975,7 +975,7 @@ class Car:
                         * (post_event_len / event_len),
                         4,
                     )
-                    activity.at[activity.index[0], "energy"] = new_consumption
+                    activity.at[activity.index[0], "energy"] = float(new_consumption)
 
                 # adjust value for starting soc in first row
                 activity.at[activity.index[0], "soc_start"] = round(
@@ -988,9 +988,9 @@ class Car:
                 )
 
                 # adjust value for average charging power in first row
-                activity.at[activity.index[0], "average_charging_power"] = activity.at[
+                activity.at[activity.index[0], "average_charging_power"] = float(activity.at[
                     activity.index[0], "energy"
-                ] / (post_event_len * simbev.step_size / 60)
+                ] / (post_event_len * simbev.step_size / 60))
 
                 # fit first row event to start at time step 0
                 activity.at[activity.index[0], "event_start"] = 0

@@ -9,6 +9,11 @@ and the versioning aim to respect [Semantic Versioning](http://semver.org/spec/v
 
 ### Added
 
+- added datatype conversion to fix #143
+- removed all NaN values in dataframe for the grid-timeseries to fix #143
+
+### Added
+
 - driving_profile_seed parameter in the config file to set the seed for the driving profile generation step #139
 - 
 ### Changed
