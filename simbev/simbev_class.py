@@ -598,6 +598,7 @@ class SimBEV:
                         home_power,
                         region,
                         home_detached,
+                        self.eta_cp,
                         1,
                         fast_charging_threshold=self.fast_charge_threshold,
                     )
