@@ -23,7 +23,17 @@ and the versioning aim to respect [Semantic Versioning](http://semver.org/spec/v
 
 ### Removed
 
-- 
+
+## [Unreleased] 2026-05-08
+
+### Added
+
+- added battery-energy output in driving-profiles
+
+### Changed
+
+- Fix charging logics bug #145 -> included eta_cp
+- running black formatter on car.py
 
 ## [1.0.0] - 2022-07-15
 

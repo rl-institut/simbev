@@ -186,7 +186,7 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
         Returns information about driving events of vehicle in whole timeframe.
     """
 
-    drive_events = output_df.loc[output_df["energy_grid"] < 0]
+    drive_events = output_df.loc[output_df["energy_battery"] < 0]
     event_count = len(drive_events.index)
     max_time = drive_events["event_time"].max()
     min_time = drive_events["event_time"].min()
@@ -415,11 +415,14 @@ class Car:
             self.output["soc_end"].append(round(np.float32(self.soc), 4))
             charging_demand = self._get_last_charging_demand()
             consumption = self._get_last_consumption()
-            self.output["energy_battery"].append(np.float32(charging_demand + consumption))
-            if charging_demand > 0:
-                self.output["energy_grid"].append(round(np.float32(charging_demand/self.eta_cp + consumption), 3))
-            else:
-                self.output["energy_grid"].append(0)
+            # Fills in charging demand or consumption for battery (one is always zero).
+            self.output["energy_battery"].append(
+                np.float32(charging_demand + consumption)
+            )
+            # Fills in charging demand for that is pulled by the grid (only when charging).
+            self.output["energy_grid"].append(
+                round(np.float32(charging_demand / self.eta_cp), 3)
+            )
             self.output["station_charging_capacity"].append(
                 np.float32(nominal_charging_capacity)
             )
@@ -480,7 +483,7 @@ class Car:
 
         if max_charging_time > trip.park_time and charging_type == "slow":
             max_charging_time = trip.park_time
-        
+
         if power != 0:
             charging_time, avg_power, power, soc = self.charging_curve(
                 trip,
@@ -640,6 +643,7 @@ class Car:
 
         # set up parameters for charging curve
         soc_delta = (soc_end - soc_start) / 10
+        # get array for avarge soc for each charging-step. Needed to get charging-power of soc-dependent charging-curve.
         charging_soc_array = np.arange(
             soc_start + soc_delta / 2, soc_end + soc_delta / 2, soc_delta
         )
@@ -656,7 +660,10 @@ class Car:
                 power,
             )
             charging_time_array[index] = (
-                soc_delta * self.car_type.battery_capacity / (power_array[index] * trip.simbev.eta_cp) * 60
+                soc_delta
+                * self.car_type.battery_capacity
+                / (power_array[index] * trip.simbev.eta_cp)
+                * 60
             )
 
         charging_time = sum(charging_time_array)
@@ -672,7 +679,9 @@ class Car:
                 soc_end = min(
                     1,
                     soc_start
-                    + sum(charged_energy_list) * trip.simbev.eta_cp / self.car_type.battery_capacity,
+                    + sum(charged_energy_list)
+                    * trip.simbev.eta_cp
+                    / self.car_type.battery_capacity,
                 )
                 # check if min charging energy is charged
                 if (
@@ -700,7 +709,9 @@ class Car:
             ] -= time_cutoff  # charging times of sections that are fitted to timestep
             power_sections = power_array[:charging_section_counter]
             energy_sections_grid = charging_time_sections * power_sections / 60
-            energy_sections_battery = charging_time_sections * power_sections * trip.simbev.eta_cp/ 60
+            energy_sections_battery = (
+                charging_time_sections * power_sections * trip.simbev.eta_cp / 60
+            )
 
             charged_energy_list.append(round(sum(energy_sections_grid), 4))
 
@@ -972,7 +983,11 @@ class Car:
                         / 60
                     )
                     new_demand = round(
-                        max(activity.at[activity.index[0], "energy_grid"] - pre_demand, 0), 4
+                        max(
+                            activity.at[activity.index[0], "energy_grid"] - pre_demand,
+                            0,
+                        ),
+                        4,
                     )
                     activity.at[activity.index[0], "energy_grid"] = float(new_demand)
 
@@ -983,7 +998,9 @@ class Car:
                         * (post_event_len / event_len),
                         4,
                     )
-                    activity.at[activity.index[0], "energy_grid"] = float(new_consumption)
+                    activity.at[activity.index[0], "energy_grid"] = float(
+                        new_consumption
+                    )
 
                 # adjust value for starting soc in first row
                 activity.at[activity.index[0], "soc_start"] = round(
@@ -996,9 +1013,10 @@ class Car:
                 )
 
                 # adjust value for average charging power in first row
-                activity.at[activity.index[0], "average_charging_power"] = float(activity.at[
-                    activity.index[0], "energy_grid"
-                ] / (post_event_len * simbev.step_size / 60))
+                activity.at[activity.index[0], "average_charging_power"] = float(
+                    activity.at[activity.index[0], "energy_grid"]
+                    / (post_event_len * simbev.step_size / 60)
+                )
 
                 # fit first row event to start at time step 0
                 activity.at[activity.index[0], "event_start"] = 0
