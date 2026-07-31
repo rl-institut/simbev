@@ -398,7 +398,6 @@ class Trip:
                 self.drive_timestamp,
                 self.drive_time,
                 self.destination,
-                self.extra_urban,
             )
 
             # call hpc events if trip cant be completed
@@ -425,18 +424,14 @@ class Trip:
         remaining_distance = self.distance
         sum_hpc_drivetime = 0
 
-        remaining_range = (
-            self.car.remaining_range_highway
-            if self.extra_urban
-            else self.car.remaining_range
+        remaining_range = self.car.remaining_range(
+            self.speed, self.drive_timestamp.month
         )
 
         # check if next drive needs charging to be completed
         while remaining_distance > remaining_range and self.car.car_type.label == "BEV":
-            precise_remaining_range = (
-                self.car.precise_remaining_range_highway
-                if self.extra_urban
-                else self.car.precise_remaining_range
+            precise_remaining_range = self.car.precise_remaining_range(
+                self.speed, self.drive_timestamp.month
             )
 
             # get time and distance until next hpc station
@@ -460,7 +455,6 @@ class Trip:
                         self.drive_timestamp,
                         new_drive_time,
                         "hpc",
-                        self.extra_urban,
                     )
                 self.trip_end = self.region.last_time_step + 1
                 return
@@ -471,7 +465,6 @@ class Trip:
                 self.drive_timestamp,
                 hpc_drive_time,
                 "hpc",
-                self.extra_urban,
             )
 
             # get parameters for charging at hpc station
@@ -500,10 +493,8 @@ class Trip:
 
             # set necessary parameters for next loop or the following drive
             remaining_distance -= hpc_distance
-            remaining_range = (
-                self.car.remaining_range_highway
-                if self.extra_urban
-                else self.car.remaining_range
+            remaining_range = self.car.remaining_range(
+                self.speed, self.drive_timestamp.month
             )
             self.drive_start = self.park_start + charging_time
             if self.drive_start > self.region.last_time_step:
@@ -519,7 +510,6 @@ class Trip:
             self.drive_timestamp,
             last_drive_time,
             self.destination,
-            self.extra_urban,
         )
         # update trip end to start next parking at correct time stamp
         self.trip_end = self.drive_start + last_drive_time

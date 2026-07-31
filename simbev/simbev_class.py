@@ -95,8 +95,22 @@ class SimBEV:
     fast_charge_threshold : float
         Fast charging threshold.
 
-    consumption_factor_highway : float
-        Consumption factor on highways.
+    consumption_factor_winter : float
+        Consumption factor applied during winter months (Dec-Feb).
+
+    consumption_factor_summer : float
+        Consumption factor applied during summer months (Jun-Aug).
+
+    consumption_speed_optimal : float
+        Driving speed in km/h at which consumption is lowest.
+
+    consumption_speed_coefficient_low : float
+        Coefficient of the speed-consumption curve for speeds at or below
+        consumption_speed_optimal.
+
+    consumption_speed_coefficient_high : float
+        Coefficient of the speed-consumption curve for speeds above
+        consumption_speed_optimal.
 
     rng_seed : int
         Seed for the random number generator.
@@ -236,7 +250,15 @@ class SimBEV:
         )
 
         self.fast_charge_threshold = config_dict["fast_charge_threshold"]
-        self.consumption_factor_highway = config_dict["consumption_factor_highway"]
+        self.consumption_factor_winter = config_dict["consumption_factor_winter"]
+        self.consumption_factor_summer = config_dict["consumption_factor_summer"]
+        self.consumption_speed_optimal = config_dict["consumption_speed_optimal"]
+        self.consumption_speed_coefficient_low = config_dict[
+            "consumption_speed_coefficient_low"
+        ]
+        self.consumption_speed_coefficient_high = config_dict[
+            "consumption_speed_coefficient_high"
+        ]
         self.rng_seed = config_dict["rng_seed"]
         self.rng = self.get_rng()
         self.eta_cp = config_dict["eta_cp"]
@@ -371,7 +393,11 @@ class SimBEV:
                     energy_min,
                     charging_curve,
                     consumption,
-                    self.consumption_factor_highway,
+                    self.consumption_factor_winter,
+                    self.consumption_factor_summer,
+                    self.consumption_speed_optimal,
+                    self.consumption_speed_coefficient_low,
+                    self.consumption_speed_coefficient_high,
                     output,
                     self.attractivity,
                     analyze_mid=True,
@@ -1091,8 +1117,20 @@ class SimBEV:
             "distance_threshold_extra_urban": cfg.getfloat(
                 "basic", "distance_threshold_extra_urban", fallback=75
             ),
-            "consumption_factor_highway": cfg.getfloat(
-                "basic", "consumption_factor_highway", fallback=1.0
+            "consumption_factor_winter": cfg.getfloat(
+                "basic", "consumption_factor_winter", fallback=1.15
+            ),
+            "consumption_factor_summer": cfg.getfloat(
+                "basic", "consumption_factor_summer", fallback=0.95
+            ),
+            "consumption_speed_optimal": cfg.getfloat(
+                "basic", "consumption_speed_optimal", fallback=50.0
+            ),
+            "consumption_speed_coefficient_low": cfg.getfloat(
+                "basic", "consumption_speed_coefficient_low", fallback=0.00001
+            ),
+            "consumption_speed_coefficient_high": cfg.getfloat(
+                "basic", "consumption_speed_coefficient_high", fallback=0.00004
             ),
             "rng_seed": cfg["sim_params"].getint("seed", None),
             "driving_profile_seed": cfg["sim_params"].getint(
