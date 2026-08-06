@@ -71,6 +71,12 @@ class CarType:
         Setting for analysis-output
     label : str
         Drive type of vehicle.
+    vehicle_group : str
+        Vehicle group the car-type belongs to (determines which trip-purpose
+        distributions and private-charging roles apply, see
+        PRIVATE_CHARGING_ROLES). Defaults to "private" (private Pkw, today's
+        behavior). Commercial vehicle groups are "pkw_commercial" (gewerbliche
+        Pkw), "light_duty_vehicle" and "heavy_duty_vehicle".
     """
 
     name: str
@@ -90,6 +96,79 @@ class CarType:
     attractivity: pd.DataFrame
     analyze_mid: bool = False
     label: str = None
+    vehicle_group: str = "private"
+
+
+# Maps a vehicle-group's trip-purpose destinations to the private-charging
+# use case they trigger. Purposes not listed here fall through to the
+# existing public street/retail/hpc cascade (unchanged behavior). "private"
+# is today's exact private-Pkw logic, re-expressed as data.
+PRIVATE_CHARGING_ROLES = {
+    "private": {
+        "home": "home",
+        "work": "work",
+        "shopping": "retail",
+    },
+    "pkw_commercial": {
+        "nach_hause": "home",
+        "arbeitsplatz": "work",
+        "rueckfahrt_betrieb": "depot",
+        "einkauf": "retail",
+    },
+    "light_duty_vehicle": {
+        "rueckfahrt_betrieb": "depot",
+    },
+    "heavy_duty_vehicle": {
+        "rueckfahrt_betrieb": "depot",
+    },
+}
+
+
+def vehicle_group_has_role(vehicle_group, role):
+    """Returns whether vehicle_group's PRIVATE_CHARGING_ROLES mapping includes
+    the given private-charging role (e.g. "home", "work").
+
+    Parameters
+    ----------
+    vehicle_group : str
+    role : str
+
+    Returns
+    -------
+    bool
+    """
+    return role in PRIVATE_CHARGING_ROLES.get(vehicle_group, {}).values()
+
+
+def default_starting_status(vehicle_group):
+    """Returns the purpose destination a car of vehicle_group is assumed to
+    be parked at when the simulation starts (seeds Car.status, i.e. the
+    location of the very first trip's "stand"/dwell-time lookup).
+
+    Prefers the group's "home"-role purpose (e.g. "home" for private Pkw,
+    "nach_hause" for pkw_commercial - the vehicle's private residence).
+    Vehicle_groups without a home role (light_duty_vehicle, heavy_duty_vehicle)
+    fall back to their "depot"-role purpose (e.g. "rueckfahrt_betrieb") - the
+    vehicle's base/depot is the closest equivalent starting location. Falls
+    back to "home" for an unknown/unmapped vehicle_group, matching the
+    private-Pkw default.
+
+    Parameters
+    ----------
+    vehicle_group : str
+
+    Returns
+    -------
+    str
+    """
+    roles = PRIVATE_CHARGING_ROLES.get(vehicle_group, {})
+    for purpose, role in roles.items():
+        if role == "home":
+            return purpose
+    for purpose, role in roles.items():
+        if role == "depot":
+            return purpose
+    return "home"
 
 
 def analyze_charge_events(output_df: pd.DataFrame):
@@ -111,6 +190,7 @@ def analyze_charge_events(output_df: pd.DataFrame):
     hpc_count = len(
         charge_events.loc[
             (charge_events["use_case"] == "hpc")
+            | (charge_events["use_case"] == "mcs")
             | (charge_events["use_case"] == "public_fast")
             | (charge_events["use_case"] == "public_highway")
         ].index
@@ -125,6 +205,7 @@ def analyze_charge_events(output_df: pd.DataFrame):
         charge_events["energy_grid"]
         .loc[
             (charge_events["use_case"] == "hpc")
+            | (charge_events["use_case"] == "mcs")
             | (charge_events["use_case"] == "public_fast")
             | (charge_events["use_case"] == "public_highway")
         ]
@@ -150,6 +231,7 @@ def analyze_charge_events(output_df: pd.DataFrame):
         charge_events.loc[
             (charge_events["use_case"] == "public")
             | (charge_events["use_case"] == "hpc")
+            | (charge_events["use_case"] == "mcs")
             | (charge_events["use_case"] == "public_fast")
             | (charge_events["use_case"] == "public_highway")
             | (charge_events["use_case"] == "retail")
@@ -159,6 +241,7 @@ def analyze_charge_events(output_df: pd.DataFrame):
         charge_events.loc[
             (charge_events["use_case"] == "home")
             | (charge_events["use_case"] == "work")
+            | (charge_events["use_case"] == "depot")
         ].index
     )
 
@@ -335,6 +418,10 @@ class Car:
         Power of LIS at work
     home_capacity
         Power of LIS at work
+    depot_parking : bool
+        Identifier for private parking/charging at the vehicle's Betriebsgelände (company depot). Only relevant for commercial vehicle_groups.
+    depot_capacity
+        Power of LIS at the depot.
     region : Region
         Includes data related to current region
     soc : float
@@ -393,9 +480,11 @@ class Car:
         home_detached,
         eta_cp: float = 1.0,
         soc: float = 1.0,
-        status: str = "home",
+        status: str = None,
         private_only=False,
         fast_charging_threshold=50,
+        depot_parking=False,
+        depot_capacity=None,
     ):
         self.car_type = car_type
         self.user_group = user_group
@@ -405,7 +494,11 @@ class Car:
         self.home_parking = home_parking
         self.work_capacity = work_capacity
         self.home_capacity = home_capacity
-        self.status = status
+        self.depot_parking = depot_parking
+        self.depot_capacity = depot_capacity
+        self.status = (
+            status if status is not None else default_starting_status(car_type.vehicle_group)
+        )
         self.number = number
         self.region = region
         self.home_detached = home_detached  # Describes if car is at home in apartment building or detached house
@@ -469,7 +562,9 @@ class Car:
             self.output["event_start"].append(np.int32(event_start))
             self.output["event_time"].append(np.int32(event_time))
             self.output["location"].append(self.status)
-            self.output["use_case"].append(self._get_usecase(nominal_charging_capacity))
+            self.output["use_case"].append(
+                self._get_usecase(nominal_charging_capacity, charging_use_case)
+            )
             self.output["charging_use_case"].append(charging_use_case)
             self.output["soc_start"].append(
                 round(
@@ -549,6 +644,18 @@ class Car:
             soc_end = trip.rng.uniform(
                 trip.simbev.hpc_data["soc_end_min"], trip.simbev.hpc_data["soc_end_max"]
             )
+            if (
+                power != 0
+                and self.car_type.vehicle_group == "heavy_duty_vehicle"
+                and self._estimate_fast_charging_minutes(power, soc_end)
+                > trip.simbev.mcs_time_threshold
+            ):
+                # HPC would take too long for this truck - switch to MCS
+                # (Megawatt Charging System) instead. Everything else about
+                # the charging decision (soc_end target, max_charging_time,
+                # ...) stays exactly as for a normal fast-charge.
+                power = trip.simbev.mcs_power
+                charging_use_case = "mcs"
 
         if max_charging_time > trip.park_time and charging_type == "slow":
             max_charging_time = trip.park_time
@@ -629,6 +736,27 @@ class Car:
         else:
             raise ValueError("Work charging attempted but power is None!")
 
+    def charge_depot(self, trip):
+        """Function for initiation of charging-event in use-case depot (Betriebsgelände).
+
+        Parameters
+        ----------
+        trip : Trip
+            Includes information about current trip.
+        """
+
+        if self.depot_capacity is not None:
+            self.charge(
+                trip,
+                self.depot_capacity,
+                "slow",
+                "depot",
+                step_size=self.region.region_type.step_size,
+                max_charging_time=trip.park_time,
+            )
+        else:
+            raise ValueError("Depot charging attempted but power is None!")
+
     def charge_public(self, trip, station_capacity, max_parking_time, use_case):
         """Function for initiation of charging-event in public use cases.
 
@@ -655,6 +783,51 @@ class Car:
             step_size=self.region.region_type.step_size,
             max_charging_time=max_parking_time,
         )
+
+    def _estimate_fast_charging_minutes(self, power, soc_end):
+        """Analytically estimates fast-charging duration in minutes for a
+        given power and target soc_end, without drawing random numbers or
+        mutating any state.
+
+        Used only to decide whether MCS should replace HPC for
+        heavy_duty_vehicle (see charge()). Mirrors the time computation at
+        the core of charging_curve(), skipping its per-timestep grid-dict
+        bookkeeping and max_charging_time truncation, since only the total
+        untruncated time is needed for that decision.
+
+        Parameters
+        ----------
+        power : float
+            Power of the charging-point under consideration (e.g. the
+            HPC power that was drawn).
+        soc_end : float
+            Soc-target of the charging-event.
+
+        Returns
+        -------
+        float
+            Estimated charging duration in minutes.
+        """
+        soc_start = self.soc
+        if self.car_type.charging_capacity["fast"] == 0 or soc_end <= soc_start:
+            return 0.0
+
+        soc_delta = (soc_end - soc_start) / 10
+        charging_soc_array = np.arange(
+            soc_start + soc_delta / 2, soc_end + soc_delta / 2, soc_delta
+        )
+        charging_soc_array[-1] = min(charging_soc_array[-1], 1)
+
+        charging_minutes = 0.0
+        for soc in charging_soc_array:
+            power_at_soc = min(
+                self.car_type.charging_curve(soc) * self.car_type.charging_capacity["fast"],
+                power,
+            )
+            charging_minutes += (
+                soc_delta * self.car_type.battery_capacity / (power_at_soc * self.eta_cp) * 60
+            )
+        return charging_minutes
 
     def charging_curve(
         self,
@@ -707,7 +880,7 @@ class Car:
         # check if min charging energy is charged
         if (
             (soc_end - soc_start) * self.car_type.battery_capacity
-        ) <= self.car_type.energy_min[self._get_usecase(power)]:
+        ) <= self.car_type.energy_min[self._get_usecase(power, charging_use_case)]:
             return trip.park_time, 0, 0, soc_start
 
         # set up parameters for charging curve
@@ -755,7 +928,7 @@ class Car:
                 # check if min charging energy is charged
                 if (
                     (soc_end - soc_start) * self.car_type.battery_capacity
-                ) <= self.car_type.energy_min[self._get_usecase(power)]:
+                ) <= self.car_type.energy_min[self._get_usecase(power, charging_use_case)]:
                     return trip.park_time, 0, 0, soc_start
                 time_steps = max_charging_time
                 break
@@ -968,13 +1141,17 @@ class Car:
             return min(round(last_consumption, 4), 0)
         return 0
 
-    def _get_usecase(self, power):
+    def _get_usecase(self, power, charging_use_case=None):
         """Determines use-case of parking-event.
 
         Parameters
         ----------
         power : int
             Power of charging-point.
+        charging_use_case : str, optional
+            Charging use case of the current charging event, if any (e.g.
+            "mcs"). Used to distinguish MCS from regular HPC charging, since
+            both draw power above fast_charging_threshold.
 
         Returns
         -------
@@ -983,10 +1160,17 @@ class Car:
         """
         if self.status == "driving":
             return ""
-        if self.work_parking and self.status == "work":
+        role = PRIVATE_CHARGING_ROLES.get(self.car_type.vehicle_group, {}).get(
+            self.status
+        )
+        if role == "work" and self.work_parking:
             return "work"
-        if self.home_parking and self.status == "home":
+        if role == "home" and self.home_parking:
             return "home"
+        if role == "depot" and self.depot_parking:
+            return "depot"
+        if charging_use_case == "mcs":
+            return "mcs"
         if power >= self.fast_charging_threshold:
             return "hpc"
         return "public"

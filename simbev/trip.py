@@ -1,5 +1,6 @@
 import math
 from typing import TYPE_CHECKING
+from simbev.car import PRIVATE_CHARGING_ROLES
 from simbev.helpers.errors import SoCError
 
 if TYPE_CHECKING:
@@ -180,27 +181,34 @@ class Trip:
         Calculates standing time, next destination and driving time.
         """
 
-        self.park_time = self.region.get_probability(self.rng, self.location, "stand")
+        vehicle_group = self.car.car_type.vehicle_group
+        self.park_time = self.region.get_probability(
+            self.rng, self.location, "stand", vehicle_group
+        )
         self.park_time = self.simbev.hours_to_time_steps(self.park_time)
         self.drive_start = self.park_start + self.park_time
 
         while not self.drive_found and (self.drive_start < self.region.last_time_step):
             if (
                 self.rng.random()
-                < self.region.region_type.trip_starts.iat[self.drive_start]
+                < self.region.region_type.trip_starts[vehicle_group].iat[
+                    self.drive_start
+                ]
             ):
-                self.destination = self.region.get_purpose(self.rng, self.drive_start)
+                self.destination = self.region.get_purpose(
+                    self.rng, self.drive_start, vehicle_group
+                )
                 # don't use same destination in a row
                 if self.destination == self.car.status:
                     self.drive_start += 1
                     continue
                 self.distance = self.region.get_probability(
-                    self.rng, self.destination, "distance"
+                    self.rng, self.destination, "distance", vehicle_group
                 )
                 # check if driving makes sense, max is set as x amount of hours TODO figure out better sanity check
                 while self.speed < 5 or self.drive_time > 15:
                     self.speed = self.region.get_probability(
-                        self.rng, self.destination, "speed"
+                        self.rng, self.destination, "speed", vehicle_group
                     )
                     self.drive_time = self.distance / self.speed
                 self.drive_time = self.simbev.hours_to_time_steps(self.drive_time)
@@ -286,8 +294,11 @@ class Trip:
                         - self.simbev.maximum_park_time
                     )
                 ):
+                    role = PRIVATE_CHARGING_ROLES.get(
+                        self.car.car_type.vehicle_group, {}
+                    ).get(self.location)
                     if (
-                        self.location == "home"
+                        role == "home"
                         or not self.simbev.home_night_charging_flag
                     ):
                         departure_time = self.rng.normal(
@@ -323,7 +334,11 @@ class Trip:
         if self.distance > self.simbev.distance_threshold_extra_urban:
             self.extra_urban = True
 
-        if self.location == "home" and self.car.home_parking:
+        role = PRIVATE_CHARGING_ROLES.get(
+            self.car.car_type.vehicle_group, {}
+        ).get(self.location)
+
+        if role == "home" and self.car.home_parking:
             if (self.charge_decision("home_detached") and self.car.home_detached) or (
                 self.charge_decision("home_apartment") and not self.car.home_detached
             ):
@@ -331,11 +346,20 @@ class Trip:
             else:
                 self.car.park(self)
 
-        elif self.location == "work" and self.car.work_parking:
+        elif role == "work" and self.car.work_parking:
             if self.charge_decision("work"):
                 self.car.charge_work(self)
             else:
                 self.car.park(self)
+
+        elif role == "depot" and self.car.depot_parking:
+            # falls through to public street/retail/hpc charging below when
+            # depot_parking is False (no private infra at the depot)
+            if self.charge_decision("depot"):
+                self.car.charge_depot(self)
+            else:
+                self.car.park(self)
+
         elif not self.car.private_only:
             if (
                 self.car.soc <= self.simbev.hpc_data["soc_start_threshold"]
@@ -356,7 +380,7 @@ class Trip:
                     max_charging_time=self.park_time,
                 )
 
-            elif self.location == "shopping" or self.charging_use_case == "retail":
+            elif role == "retail" or self.charging_use_case == "retail":
                 if self.charge_decision("retail") and not (
                     self.simbev.maximum_park_time_flag
                     and self.park_time > self.simbev.maximum_park_time
@@ -407,22 +431,37 @@ class Trip:
                         f"Vehicle {self.car.file_name} dropped below the minimum SoC "
                         f"while trying to charge private only."
                     )
-                self._create_fast_charge_events()
+                if not self._create_fast_charge_events():
+                    raise SoCError(
+                        f"Vehicle {self.car.file_name} dropped below the minimum SoC "
+                        f"even after inserting fast-charging stops to complete the "
+                        f"{self.distance}km trip."
+                    )
 
     def _set_timestamps(self):
         """
         Sets timestep for drive and park.
         """
-        self.park_timestamp = self.region.region_type.time_series.index[self.park_start]
+        self.park_timestamp = self.region.region_type.time_series["private"].index[
+            self.park_start
+        ]
         if self.drive_found:
-            self.drive_timestamp = self.region.region_type.time_series.index[
+            self.drive_timestamp = self.region.region_type.time_series["private"].index[
                 self.drive_start
             ]
 
     def _create_fast_charge_events(self):
-        """Creates hpc-event."""
+        """Creates hpc-event.
+
+        Returns
+        -------
+        bool
+            True if the trip was completed (or the simulation ended before it
+            could be, which isn't a car failure). False if the vehicle's SoC
+            would still drop below the minimum even with fast-charging stops
+            inserted.
+        """
         remaining_distance = self.distance
-        sum_hpc_drivetime = 0
 
         remaining_range = self.car.remaining_range(
             self.speed, self.drive_timestamp.month
@@ -443,7 +482,6 @@ class Trip:
                 * precise_remaining_range
             )
             hpc_drive_time = math.ceil(hpc_distance / self.distance * self.drive_time)
-            sum_hpc_drivetime += hpc_drive_time
 
             if self.drive_start + hpc_drive_time > self.region.last_time_step:
                 new_drive_time = self.region.last_time_step - self.drive_start + 1
@@ -457,7 +495,7 @@ class Trip:
                         "hpc",
                     )
                 self.trip_end = self.region.last_time_step + 1
-                return
+                return True
 
             self.car.drive(
                 hpc_distance,
@@ -472,7 +510,7 @@ class Trip:
                 location=self.car.status, use_case="hpc", distance=self.distance
             )
             self.park_start = self.drive_start + hpc_drive_time
-            self.park_timestamp = self.region.region_type.time_series.index[
+            self.park_timestamp = self.region.region_type.time_series["private"].index[
                 self.park_start
             ]
             max_charging_time = self.region.last_time_step - self.park_start
@@ -500,11 +538,22 @@ class Trip:
             if self.drive_start > self.region.last_time_step:
                 self.drive_found = False
                 self.trip_end = self.region.last_time_step + 1
-                return
+                return True
             self._set_timestamps()
 
-        last_drive_time = max(self.drive_time - sum_hpc_drivetime, 1)
-        self.car.drive(
+        # Allocate the final leg's time proportionally to its own share of the
+        # original distance, the same way each hpc hop's time was computed -
+        # not as "whatever's left of drive_time after subtracting the hops".
+        # ceil() rounds every hop's time up a little; with several hops that
+        # accumulates into a real time deficit for the final leg, which
+        # implies an unrealistically high speed/consumption for it and can
+        # make an otherwise completable trip fail on SoC (seen with long
+        # multi-stop truck trips: 4 hops ate 24 of 27 steps, leaving 3 steps
+        # for a 143km remaining leg - an implied ~190 km/h).
+        last_drive_time = max(
+            math.ceil(remaining_distance / self.distance * self.drive_time), 1
+        )
+        trip_completed = self.car.drive(
             remaining_distance,
             self.drive_start,
             self.drive_timestamp,
@@ -513,14 +562,23 @@ class Trip:
         )
         # update trip end to start next parking at correct time stamp
         self.trip_end = self.drive_start + last_drive_time
+        return trip_completed
 
     def fit_trip_to_timerange(self):
         """Cuts off trip so it is inside the simulation time range."""
         self.real_park_time = self.park_time
         # check if trip ends after simulation end
         if self.trip_end > self.region.last_time_step:
+            old_drive_time = self.drive_time
             self.trip_end = self.region.last_time_step + 1
             self.drive_time = self.trip_end - self.drive_start
+            if self.drive_found and old_drive_time > 0:
+                # the drive itself is being cut short by the simulation
+                # window ending mid-route - scale distance down with it.
+                # Otherwise the (still full) distance would have to be
+                # covered in less time than it actually takes, implying an
+                # unrealistic speed/consumption spike and a spurious SoCError.
+                self.distance *= self.drive_time / old_drive_time
 
         # check if drive happens after simulation end
         if self.drive_start > self.region.last_time_step or not self.drive_found:
