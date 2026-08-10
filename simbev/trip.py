@@ -1,6 +1,6 @@
 import math
 from typing import TYPE_CHECKING
-from simbev.car import PRIVATE_CHARGING_ROLES
+from simbev.car import PRIVATE_CHARGING_ROLES, resolve_charging_role
 from simbev.helpers.errors import SoCError
 
 if TYPE_CHECKING:
@@ -334,9 +334,12 @@ class Trip:
         if self.distance > self.simbev.distance_threshold_extra_urban:
             self.extra_urban = True
 
-        role = PRIVATE_CHARGING_ROLES.get(
-            self.car.car_type.vehicle_group, {}
-        ).get(self.location)
+        role = resolve_charging_role(
+            self.car.car_type.vehicle_group,
+            self.location,
+            self.rng,
+            self.simbev.depot_share_business_purposes,
+        )
 
         if role == "home" and self.car.home_parking:
             if (self.charge_decision("home_detached") and self.car.home_detached) or (
@@ -527,6 +530,7 @@ class Trip:
                 charging_use_case,
                 self.step_size,
                 max_charging_time=max_charging_time,
+                mid_route_event=True,
             )
 
             # set necessary parameters for next loop or the following drive

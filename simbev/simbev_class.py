@@ -298,6 +298,9 @@ class SimBEV:
             if "depot" in data_dict["private_probabilities"].index
             else None
         )
+        self.depot_share_business_purposes = config_dict[
+            "depot_share_business_purposes"
+        ]
         self.mcs_power = config_dict["mcs_power"]
         self.mcs_time_threshold = config_dict["mcs_time_threshold"]
 
@@ -1217,6 +1220,9 @@ class SimBEV:
             "input_directory",
             fallback="data/probability_commercial",
         )
+        depot_share_business_purposes = cfg.getfloat(
+            "commercial_vehicles", "depot_share_business_purposes", fallback=0.0
+        )
         if commercial_enabled:
             if "depot" not in home_work_private.index:
                 raise ValueError(
@@ -1270,6 +1276,7 @@ class SimBEV:
         cfg_dict = {
             "commercial_enabled": commercial_enabled,
             "commercial_input_directory": commercial_input_directory,
+            "depot_share_business_purposes": depot_share_business_purposes,
             "mcs_power": mcs_power,
             "mcs_time_threshold": mcs_time_threshold,
             "step_size": cfg.getint("basic", "stepsize", fallback=15),

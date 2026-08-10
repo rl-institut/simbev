@@ -6,6 +6,7 @@ from simbev.car import (
     CarType,
     UserGroup,
     default_starting_status,
+    resolve_charging_role,
     vehicle_group_has_role,
 )
 
@@ -122,16 +123,21 @@ def test_vehicle_group_has_role():
     assert not vehicle_group_has_role("private", "depot")
 
     assert vehicle_group_has_role("pkw_commercial", "home")
-    assert vehicle_group_has_role("pkw_commercial", "work")
+    # arbeitsplatz now maps to "depot" (not "work") for pkw_commercial
+    assert not vehicle_group_has_role("pkw_commercial", "work")
     assert vehicle_group_has_role("pkw_commercial", "depot")
+    assert vehicle_group_has_role("pkw_commercial", "retail")
 
     # light_duty_vehicle/heavy_duty_vehicle have no home/work role - their
     # user_group selection must fall back to depot availability instead.
     assert not vehicle_group_has_role("light_duty_vehicle", "home")
     assert not vehicle_group_has_role("light_duty_vehicle", "work")
     assert vehicle_group_has_role("light_duty_vehicle", "depot")
+    assert vehicle_group_has_role("light_duty_vehicle", "retail")
     assert not vehicle_group_has_role("heavy_duty_vehicle", "home")
     assert vehicle_group_has_role("heavy_duty_vehicle", "depot")
+    # einkauf deliberately not mapped to retail for heavy_duty_vehicle
+    assert not vehicle_group_has_role("heavy_duty_vehicle", "retail")
 
 
 def test_default_starting_status():
@@ -142,6 +148,43 @@ def test_default_starting_status():
     # their depot-role purpose instead
     assert default_starting_status("light_duty_vehicle") == "rueckfahrt_betrieb"
     assert default_starting_status("heavy_duty_vehicle") == "rueckfahrt_betrieb"
+
+
+def test_resolve_charging_role_fixed_roles_unaffected():
+    # Purposes with a fixed role in PRIVATE_CHARGING_ROLES are returned as-is
+    # and never draw from rng, regardless of depot_share_business_purposes.
+    rng = np.random.default_rng(1)
+    assert resolve_charging_role("private", "home", rng, 1.0) == "home"
+    assert resolve_charging_role("pkw_commercial", "rueckfahrt_betrieb", rng, 1.0) == "depot"
+
+
+def test_resolve_charging_role_zero_share_never_draws_rng_or_overrides():
+    # depot_share_business_purposes=0 (the default) must be a no-op: no role
+    # override, and critically no rng draw at all - this is what keeps the
+    # RNG stream byte-identical for anyone not using this option.
+    rng = np.random.default_rng(1)
+    state_before = rng.bit_generator.state
+    for purpose in ("gueter", "dienstleistung", "sonstige_dienstlich"):
+        assert resolve_charging_role("pkw_commercial", purpose, rng, 0.0) is None
+        assert resolve_charging_role("light_duty_vehicle", purpose, rng, 0.0) is None
+        assert resolve_charging_role("heavy_duty_vehicle", purpose, rng, 0.0) is None
+    assert rng.bit_generator.state == state_before
+
+
+def test_resolve_charging_role_full_share_always_overrides_to_depot():
+    rng = np.random.default_rng(1)
+    for purpose in ("gueter", "dienstleistung", "sonstige_dienstlich"):
+        assert resolve_charging_role("pkw_commercial", purpose, rng, 1.0) == "depot"
+        assert resolve_charging_role("light_duty_vehicle", purpose, rng, 1.0) == "depot"
+        assert resolve_charging_role("heavy_duty_vehicle", purpose, rng, 1.0) == "depot"
+
+
+def test_resolve_charging_role_unrelated_purpose_never_overridden():
+    # A purpose outside PARTIAL_DEPOT_PURPOSES (e.g. "personen") must stay
+    # unmapped even with a 100% share - the override is scoped to exactly
+    # gueter/dienstleistung/sonstige_dienstlich.
+    rng = np.random.default_rng(1)
+    assert resolve_charging_role("pkw_commercial", "personen", rng, 1.0) is None
 
 
 def test_car_starting_status_matches_vehicle_group():
@@ -202,7 +245,10 @@ def test_mcs_power_is_still_capped_by_vehicle_fast_charging_capacity():
 
 
 def test_heavy_duty_vehicle_switches_to_mcs_when_hpc_too_slow():
-    car_type = _make_heavy_duty_car_type()
+    # fast_capacity=1000 so the vehicle actually has MCS-capable onboard
+    # charging hardware (max_charging_capacity_fast >= mcs_power) - without
+    # that, it must stay on HPC no matter how slow, see the test below.
+    car_type = _make_heavy_duty_car_type(fast_capacity=1000)
     user_group = UserGroup(1, {})
     car = Car(
         car_type, user_group, 0, False, False, None, None, None, False, soc=0.2
@@ -210,8 +256,14 @@ def test_heavy_duty_vehicle_switches_to_mcs_when_hpc_too_slow():
     trip = _FakeTrip(park_time=100)
 
     # 100 kW HPC would take ~126 min (> the 45 min mcs_time_threshold), so
-    # this heavy_duty_vehicle must switch to the configured 1000 kW MCS power.
-    car.charge(trip, 100, "fast", "urban_fast", step_size=15, max_charging_time=100)
+    # this heavy_duty_vehicle must switch to the configured 1000 kW MCS
+    # power - but only for a mid-route recharge stop (as
+    # Trip._create_fast_charge_events() calls charge()), never for the
+    # proactive while-parked HPC branch, see the tests below.
+    car.charge(
+        trip, 100, "fast", "urban_fast", step_size=15, max_charging_time=100,
+        mid_route_event=True,
+    )
 
     assert car.grid_timeseries_list
     assert all(
@@ -219,6 +271,55 @@ def test_heavy_duty_vehicle_switches_to_mcs_when_hpc_too_slow():
     )
     assert all(
         event["power"] == pytest.approx(1000) for event in car.grid_timeseries_list
+    )
+
+
+def test_heavy_duty_vehicle_without_mcs_hardware_stays_on_hpc():
+    # Same slow mid-route-recharge scenario as above (100 kW would take
+    # ~126 min, way over the 45 min threshold), but this vehicle's own
+    # fast-charging capacity (150 kW) is below mcs_power (1000 kW) - it has
+    # no MCS-capable hardware, so it must stay on regular (slow) HPC rather
+    # than being bumped to a station power it could never actually draw.
+    car_type = _make_heavy_duty_car_type(fast_capacity=150)
+    user_group = UserGroup(1, {})
+    car = Car(
+        car_type, user_group, 0, False, False, None, None, None, False, soc=0.2
+    )
+    trip = _FakeTrip(park_time=100)
+
+    car.charge(
+        trip, 100, "fast", "urban_fast", step_size=15, max_charging_time=100,
+        mid_route_event=True,
+    )
+
+    assert car.grid_timeseries_list
+    assert all(
+        event["charging_use_case"] == "urban_fast" for event in car.grid_timeseries_list
+    )
+    assert all(
+        event["power"] == pytest.approx(100) for event in car.grid_timeseries_list
+    )
+
+
+def test_mcs_never_triggers_outside_mid_route_recharge_events():
+    # Same slow scenario as the switching test above (100 kW would take
+    # ~126 min, an MCS-capable truck), but charge() is called without
+    # mid_route_event=True (the default) - this is how both charge_public()
+    # (street/retail that happened to draw a fast-tier power level) and the
+    # proactive while-parked HPC branch call charge(). Neither may ever be
+    # upgraded to MCS, only an actual mid-route recharge stop may.
+    car_type = _make_heavy_duty_car_type(fast_capacity=1000)
+    user_group = UserGroup(1, {})
+    car = Car(
+        car_type, user_group, 0, False, False, None, None, None, False, soc=0.2
+    )
+    trip = _FakeTrip(park_time=100)
+
+    car.charge(trip, 100, "fast", "urban_fast", step_size=15, max_charging_time=100)
+
+    assert car.grid_timeseries_list
+    assert all(
+        event["charging_use_case"] == "urban_fast" for event in car.grid_timeseries_list
     )
 
 

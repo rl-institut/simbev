@@ -111,17 +111,67 @@ PRIVATE_CHARGING_ROLES = {
     },
     "pkw_commercial": {
         "nach_hause": "home",
-        "arbeitsplatz": "work",
+        "arbeitsplatz": "depot",
         "rueckfahrt_betrieb": "depot",
         "einkauf": "retail",
     },
     "light_duty_vehicle": {
         "rueckfahrt_betrieb": "depot",
+        "arbeitsplatz": "depot",
+        "einkauf": "retail",
     },
     "heavy_duty_vehicle": {
         "rueckfahrt_betrieb": "depot",
+        "arbeitsplatz": "depot",
+        # einkauf deliberately not mapped to "retail" here (unlike
+        # light_duty_vehicle) - falls through to the generic public cascade.
     },
 }
+
+# Trip purposes with no fixed private-charging role (unmapped in
+# PRIVATE_CHARGING_ROLES above) that should nonetheless be treated as
+# "depot" for a configurable share of trips - these business purposes often
+# implicitly end back at the depot even though the KiD2010 data only
+# explicitly labels the dedicated "rueckfahrt_betrieb" return trip that way.
+# Applies to pkw_commercial, light_duty_vehicle and heavy_duty_vehicle (the
+# only vehicle_groups that ever produce these purpose strings); the actual
+# share is read from commercial_vehicles.depot_share_business_purposes.
+PARTIAL_DEPOT_PURPOSES = {"gueter", "dienstleistung", "sonstige_dienstlich"}
+
+
+def resolve_charging_role(vehicle_group, location, rng, depot_share_business_purposes=0.0):
+    """Resolves the private-charging role for a trip's destination.
+
+    Starts from the fixed PRIVATE_CHARGING_ROLES mapping. If the location
+    has no fixed role there and is one of PARTIAL_DEPOT_PURPOSES, a
+    configurable share of those trips are treated as "depot" too.
+
+    Parameters
+    ----------
+    vehicle_group : str
+    location : str
+    rng : Generator
+        Only drawn from when depot_share_business_purposes > 0 and location
+        is one of PARTIAL_DEPOT_PURPOSES, so the RNG stream is unaffected
+        for anyone not using this option (including all private Pkw runs,
+        since "private" never produces these purpose strings).
+    depot_share_business_purposes : float
+        Share (0-1) of PARTIAL_DEPOT_PURPOSES trips treated as "depot".
+        Defaults to 0 (disabled).
+
+    Returns
+    -------
+    str or None
+    """
+    role = PRIVATE_CHARGING_ROLES.get(vehicle_group, {}).get(location)
+    if (
+        role is None
+        and location in PARTIAL_DEPOT_PURPOSES
+        and depot_share_business_purposes > 0
+        and rng.random() < depot_share_business_purposes
+    ):
+        role = "depot"
+    return role
 
 
 def vehicle_group_has_role(vehicle_group, role):
@@ -615,6 +665,7 @@ class Car:
         charging_use_case,
         step_size=None,
         max_charging_time=None,
+        mid_route_event=False,
     ):
         """Function for charging.
 
@@ -632,6 +683,15 @@ class Car:
             Step-size of simulation.
         max_charging_time : int
             Maximum possible time spend charging.
+        mid_route_event : bool
+            True only for a mid-route fast-charge stop inserted by
+            Trip._create_fast_charge_events() (charging inserted because the
+            vehicle's remaining range wouldn't otherwise make it to its
+            destination). Gates the MCS switch below - the proactive
+            while-parked HPC branch and a "fast" charge_public() event that
+            merely happened to draw a fast-tier public power level are not
+            mid-route events and must never be upgraded to MCS; the HPC
+            decision/behavior itself is unchanged either way.
         """
 
         if self.soc >= self.car_type.charging_threshold:
@@ -645,8 +705,14 @@ class Car:
                 trip.simbev.hpc_data["soc_end_min"], trip.simbev.hpc_data["soc_end_max"]
             )
             if (
-                power != 0
+                mid_route_event
+                and power != 0
                 and self.car_type.vehicle_group == "heavy_duty_vehicle"
+                # the vehicle itself must have MCS-capable onboard charging
+                # hardware (max_charging_capacity_fast >= mcs_power in
+                # tech_data.csv) - otherwise it physically cannot draw MCS
+                # power no matter how slow HPC would be for it
+                and self.car_type.charging_capacity["fast"] >= trip.simbev.mcs_power
                 and self._estimate_fast_charging_minutes(power, soc_end)
                 > trip.simbev.mcs_time_threshold
             ):
