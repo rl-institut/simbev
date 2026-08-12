@@ -1056,7 +1056,9 @@ class Car:
 
         return time_steps, chargepower_avgerage, power, soc_end
 
-    def drive(self, distance, start_time, timestamp, duration, destination):
+    def drive(
+        self, distance, start_time, timestamp, duration, destination, consumption_speed=None
+    ):
         """Method for driving.
 
         Parameters
@@ -1071,7 +1073,8 @@ class Car:
             Duration of drive in time
         destination : str
             Location of destination.
-
+        consumption_speed : float, optional
+            Speed to use for the consumption calculation
         Returns
         -------
         bool
@@ -1082,7 +1085,11 @@ class Car:
                 f"Drive duration of vehicle {self.file_name} is {duration} at {timestamp}"
             )
 
-        speed = distance / (duration * self.region.region_type.step_size / 60)
+        speed = (
+            consumption_speed
+            if consumption_speed is not None
+            else distance / (duration * self.region.region_type.step_size / 60)
+        )
         consumption_factor = get_consumption_factor(
             timestamp.month,
             speed,

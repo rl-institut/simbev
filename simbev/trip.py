@@ -496,17 +496,20 @@ class Trip:
                         self.drive_timestamp,
                         new_drive_time,
                         "hpc",
+                        consumption_speed=self.speed,
                     )
                 self.trip_end = self.region.last_time_step + 1
                 return True
 
-            self.car.drive(
+            if not self.car.drive(
                 hpc_distance,
                 self.drive_start,
                 self.drive_timestamp,
                 hpc_drive_time,
                 "hpc",
-            )
+                consumption_speed=self.speed,
+            ):
+                return False
 
             # get parameters for charging at hpc station
             charging_capacity = self.simbev.get_charging_capacity(
@@ -535,15 +538,15 @@ class Trip:
 
             # set necessary parameters for next loop or the following drive
             remaining_distance -= hpc_distance
-            remaining_range = self.car.remaining_range(
-                self.speed, self.drive_timestamp.month
-            )
             self.drive_start = self.park_start + charging_time
             if self.drive_start > self.region.last_time_step:
                 self.drive_found = False
                 self.trip_end = self.region.last_time_step + 1
                 return True
             self._set_timestamps()
+            remaining_range = self.car.remaining_range(
+                self.speed, self.drive_timestamp.month
+            )
 
         # Allocate the final leg's time proportionally to its own share of the
         # original distance, the same way each hpc hop's time was computed -
@@ -563,6 +566,7 @@ class Trip:
             self.drive_timestamp,
             last_drive_time,
             self.destination,
+            consumption_speed=self.speed,
         )
         # update trip end to start next parking at correct time stamp
         self.trip_end = self.drive_start + last_drive_time
