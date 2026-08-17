@@ -287,6 +287,7 @@ class Region:
         i,
         park_ts_end,
         car_type,
+        street_purpose=None,
     ):
         """Writes values in grid-time-series
 
@@ -308,6 +309,14 @@ class Region:
             End of parking-time.
         car_type : str
             Type of car (BEV/PHEV and Segment).
+        street_purpose : str, optional
+            Only set (to "work" or "other") for use_case "street". Splits
+            street-charging events into the trip purpose that led to them -
+            "work" (work purpose, but no charging infra there, so the
+            vehicle fell back to street parking) vs "other" (any other
+            purpose). Additionally credits the "street_work"/"street_other"
+            columns on top of the regular "street" columns below, without
+            affecting the overall total_power.
         """
 
         # distribute power to use cases dependent on power
@@ -332,6 +341,24 @@ class Region:
             self.grid_time_series[timestep_start:timestep_end, column] += np.float32(
                 chargepower * self.scaling[car_type]
             )
+
+            # additionally credit the work/other split of use-case "street",
+            # on top of (not instead of) the "street" columns above
+            if use_case == "street" and street_purpose is not None:
+                split_use_case = "street_{}".format(street_purpose)
+                code = "cars_{}_{}".format(split_use_case, power_lis)
+                if code in self.header_grid_ts:
+                    column = self.header_grid_ts.index(code)
+                    if i == 0:
+                        self.grid_time_series[
+                            timestep_start:park_ts_end, column
+                        ] += np.float32(1 * self.scaling[car_type])
+                code_uc_ges = "{}_total_power".format(split_use_case)
+                if code_uc_ges in self.header_grid_ts:
+                    column = self.header_grid_ts.index(code_uc_ges)
+                    self.grid_time_series[
+                        timestep_start:timestep_end, column
+                    ] += np.float32(chargepower * self.scaling[car_type])
 
     def get_purpose(self, rng, time_step, vehicle_group="private"):
         """Determinants purpose of trip.
@@ -407,6 +434,12 @@ class Region:
             "home_apartment",
             "work",
             "street",
+            # split of "street" by the trip purpose that led to it - "work"
+            # (work purpose, no charging infra there, fell back to street)
+            # vs "other" (any other purpose). Additive breakdown columns;
+            # every street event is still counted in "street" above too.
+            "street_work",
+            "street_other",
             "retail",
             "urban_fast",
             "highway_fast",
@@ -416,7 +449,16 @@ class Region:
             use_cases.append("depot")
         if "heavy_duty_vehicle" in self.region_type.time_series:
             use_cases.append("mcs")
-        private_use_cases = ("home_detached", "home_apartment", "work", "retail", "street", "depot")
+        private_use_cases = (
+            "home_detached",
+            "home_apartment",
+            "work",
+            "retail",
+            "street",
+            "street_work",
+            "street_other",
+            "depot",
+        )
         for uc in use_cases:
             self.header_grid_ts.append("{}_total_power".format(uc))
             if uc in private_use_cases:

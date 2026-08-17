@@ -1039,6 +1039,17 @@ class Car:
                     else trip.park_start + trip.park_time
                 )
 
+            street_purpose = None
+            if charging_use_case == "street":
+                # split use-case "street" into "work" (trip purpose is work,
+                # but the vehicle had no charging infrastructure there and
+                # fell back to street parking) vs "other" (any other trip
+                # purpose ending up in street charging), purely for the
+                # grid time series breakdown - charging_use_case itself
+                # stays "street" everywhere else (energy_min lookup, output
+                # CSV, capacity/attractivity config keys stay unaffected).
+                street_purpose = "work" if trip.charging_role == "work" else "other"
+
             grid_dict = {
                 "charging_use_case": charging_use_case,
                 "chargepower_timestep": np.float32(chargepower_timestep),
@@ -1047,6 +1058,7 @@ class Car:
                 "end": trip.park_start + charging_time_step + 1,
                 "time": charging_time_step,
                 "park_ts_end": park_timestep_end,
+                "street_purpose": street_purpose,
             }
             self.grid_timeseries_list.append(grid_dict)
 
@@ -1275,6 +1287,7 @@ class Car:
                 charge_event["time"],
                 charge_event["park_ts_end"],
                 self.car_type.name,
+                street_purpose=charge_event["street_purpose"],
             )
         if self.car_type.output:
             activity = pd.DataFrame(self.output)

@@ -96,6 +96,12 @@ class Trip:
         self.rng = simbev.rng
         self.step_size = simbev.step_size
         self.charging_use_case = None
+        # private-charging role resolved for this trip's location (e.g.
+        # "work", "home", "depot"), set in execute(). Used to split
+        # use-case "street" charging events into street_work/street_other
+        # for the grid time series, without changing the charging_use_case
+        # value itself. None until execute() runs.
+        self.charging_role = None
 
     @classmethod
     def from_driving_profile(cls, region: "Region", car: "Car", simbev: "SimBEV"):
@@ -340,6 +346,7 @@ class Trip:
             self.rng,
             self.simbev.depot_share_business_purposes,
         )
+        self.charging_role = role
 
         if role == "home" and self.car.home_parking:
             if (self.charge_decision("home_detached") and self.car.home_detached) or (

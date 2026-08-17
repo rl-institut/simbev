@@ -14,6 +14,7 @@ and the versioning aim to respect [Semantic Versioning](http://semver.org/spec/v
 - new mcs-methodology for heavy duty vehicles
 - added datatype conversion to fix #143
 - removed all NaN values in dataframe for the grid-timeseries to fix #143
+- split use case "street" in the grid time series into `street_work_total_power` / `cars_street_work_*` (street charging following a work trip purpose with no charging infra there) and `street_other_total_power` / `cars_street_other_*` (street charging following any other trip purpose); the existing `street_total_power` / `cars_street_*` columns keep including both, unchanged
 
 ### Added
 
