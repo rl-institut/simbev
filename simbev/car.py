@@ -123,7 +123,6 @@ PRIVATE_CHARGING_ROLES = {
     "heavy_duty_vehicle": {
         "rueckfahrt_betrieb": "depot",
         "arbeitsplatz": "depot",
-
     },
 }
 
@@ -138,7 +137,9 @@ PRIVATE_CHARGING_ROLES = {
 PARTIAL_DEPOT_PURPOSES = {"gueter", "dienstleistung", "sonstige_dienstlich"}
 
 
-def resolve_charging_role(vehicle_group, location, rng, depot_share_business_purposes=0.0):
+def resolve_charging_role(
+    vehicle_group, location, rng, depot_share_business_purposes=0.0
+):
     """Resolves the private-charging role for a trip's destination.
 
     Starts from the fixed PRIVATE_CHARGING_ROLES mapping. If the location
@@ -531,7 +532,9 @@ class Car:
         self.depot_parking = depot_parking
         self.depot_capacity = depot_capacity
         self.status = (
-            status if status is not None else default_starting_status(car_type.vehicle_group)
+            status
+            if status is not None
+            else default_starting_status(car_type.vehicle_group)
         )
         self.number = number
         self.region = region
@@ -863,11 +866,15 @@ class Car:
         charging_minutes = 0.0
         for soc in charging_soc_array:
             power_at_soc = min(
-                self.car_type.charging_curve(soc) * self.car_type.charging_capacity["fast"],
+                self.car_type.charging_curve(soc)
+                * self.car_type.charging_capacity["fast"],
                 power,
             )
             charging_minutes += (
-                soc_delta * self.car_type.battery_capacity / (power_at_soc * self.eta_cp) * 60
+                soc_delta
+                * self.car_type.battery_capacity
+                / (power_at_soc * self.eta_cp)
+                * 60
             )
         return charging_minutes
 
@@ -970,7 +977,9 @@ class Car:
                 # check if min charging energy is charged
                 if (
                     (soc_end - soc_start) * self.car_type.battery_capacity
-                ) <= self.car_type.energy_min[self._get_usecase(power, charging_use_case)]:
+                ) <= self.car_type.energy_min[
+                    self._get_usecase(power, charging_use_case)
+                ]:
                     return trip.park_time, 0, 0, soc_start
                 time_steps = max_charging_time
                 break
@@ -1033,7 +1042,13 @@ class Car:
         return time_steps, chargepower_avgerage, power, soc_end
 
     def drive(
-        self, distance, start_time, timestamp, duration, destination, consumption_speed=None
+        self,
+        distance,
+        start_time,
+        timestamp,
+        duration,
+        destination,
+        consumption_speed=None,
     ):
         """Method for driving.
 

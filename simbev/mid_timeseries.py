@@ -342,7 +342,7 @@ def get_profile_time_series(start_date, end_date, step_size, df, seed):
                 np.floor
             )
 
-            time_series = time_series.dropna(axis=1, how='all')
+            time_series = time_series.dropna(axis=1, how="all")
             # Append the filtered week data to the time series
             time_series = pd.concat([time_series, week_data_filtered])
 

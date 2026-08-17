@@ -297,10 +297,7 @@ class Trip:
                     role = PRIVATE_CHARGING_ROLES.get(
                         self.car.car_type.vehicle_group, {}
                     ).get(self.location)
-                    if (
-                        role == "home"
-                        or not self.simbev.home_night_charging_flag
-                    ):
+                    if role == "home" or not self.simbev.home_night_charging_flag:
                         departure_time = self.rng.normal(
                             self.simbev.night_departure_time,
                             self.simbev.night_departure_standard_deviation,
@@ -606,10 +603,12 @@ class Trip:
                     ):
                         next_drive_timesteps = timestep
                         self.real_park_time = (
-                            self.park_time + next_drive_timesteps - replacement_day_timestep
+                            self.park_time
+                            + next_drive_timesteps
+                            - replacement_day_timestep
                         )
                         break
-                    
+
             elif self.simbev.input_type == "profile":
                 next_drive_timesteps = self.car.driving_profile.loc[
                     self.car.driving_profile["time_step"] > replacement_day_timestep

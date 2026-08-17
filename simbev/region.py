@@ -51,7 +51,9 @@ class RegionType:
         Fixed MCS charging power in kW.
     """
 
-    def __init__(self, rs7_type, grid_output, step_size, charging_probabilities, mcs_power):
+    def __init__(
+        self, rs7_type, grid_output, step_size, charging_probabilities, mcs_power
+    ):
         self.rs7_type = rs7_type
         self.rs3_type = _get_rs3_type(rs7_type)
         self.step_size = step_size
@@ -75,9 +77,11 @@ class RegionType:
 
         if not self.time_series:
             if simbev.input_type == "probability":
-                for vehicle_group, data_directory, purpose_columns in self._vehicle_group_sources(
-                    simbev
-                ):
+                for (
+                    vehicle_group,
+                    data_directory,
+                    purpose_columns,
+                ) in self._vehicle_group_sources(simbev):
                     self.time_series[vehicle_group] = get_timeseries(
                         simbev.start_date,
                         simbev.end_date,
@@ -150,7 +154,9 @@ class RegionType:
 
         yield "private", simbev.input_directory, None
         for vehicle_group in simbev.commercial_vehicle_groups:
-            data_directory = pathlib.Path(simbev.commercial_input_directory, vehicle_group)
+            data_directory = pathlib.Path(
+                simbev.commercial_input_directory, vehicle_group
+            )
             purpose_columns = get_purpose_columns(data_directory, self.rs7_type)
             yield vehicle_group, data_directory, purpose_columns
 
@@ -190,7 +196,7 @@ class RegionType:
                     df = pd.read_csv(file, sep=",", decimal=".")
                     prefix = "{}_{}_".format(key, self.rs7_type)
                     if file.stem.startswith(prefix):
-                        purpose_key = file.stem[len(prefix):]
+                        purpose_key = file.stem[len(prefix) :]
                     else:
                         purpose_key = file.stem.split("_")[-1]
                     purpose_key = _strip_purpose_prefix(purpose_key)
@@ -413,7 +419,14 @@ class Region:
             use_cases.append("depot")
         if "heavy_duty_vehicle" in self.region_type.time_series:
             use_cases.append("mcs")
-        private_use_cases = ("home_detached", "home_apartment", "work", "retail", "street", "depot")
+        private_use_cases = (
+            "home_detached",
+            "home_apartment",
+            "work",
+            "retail",
+            "street",
+            "depot",
+        )
         for uc in use_cases:
             self.header_grid_ts.append("{}_total_power".format(uc))
             if uc in private_use_cases:

@@ -310,9 +310,9 @@ class SimBEV:
         if self.input_type == "profile":
             for file_path in self.input_directory.glob("*.gzip"):
                 file_path_parts = file_path.stem.split("_")
-                self.input_data[file_path_parts[-2]][
-                    file_path_parts[-1]
-                ] = pd.read_parquet(file_path)
+                self.input_data[file_path_parts[-2]][file_path_parts[-1]] = (
+                    pd.read_parquet(file_path)
+                )
         self.scaling = config_dict["scaling"]
         self.driving_profile_seed = config_dict["driving_profile_seed"]
         # additional parameters
@@ -461,9 +461,9 @@ class SimBEV:
                 if len(car_types_tuples) == 1:
                     self.car_types[car_type_name] = car_type
                 else:
-                    self.car_types[
-                        "{}_{}_{}".format(car_type_name, slow, fast)
-                    ] = car_type
+                    self.car_types["{}_{}_{}".format(car_type_name, slow, fast)] = (
+                        car_type
+                    )
 
     def _create_region_type(self, region_type):
         """Creates region-types with all necessary properties.
@@ -699,9 +699,7 @@ class SimBEV:
                     # stream).
                     if car_type.vehicle_group != "private":
                         depot_parking = (
-                            self.depot_parking_probability[
-                                region.region_type.rs7_type
-                            ]
+                            self.depot_parking_probability[region.region_type.rs7_type]
                             >= self.rng.random()
                         )
                         depot_power = (
@@ -1157,7 +1155,7 @@ class SimBEV:
             pathlib.Path(scenario_path, cfg["rampup_ev"]["rampup"]),
             sep=",",
             index_col=0,
-            dtype={"region_id":str}
+            dtype={"region_id": str},
         )
 
         # read chargepoint probabilities
