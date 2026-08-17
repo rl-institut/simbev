@@ -238,17 +238,6 @@ def get_purpose_columns(data_directory, rs7_type):
     """Determines the ordered trip-purpose column list for a commercial
     vehicle_group's weekly departure-profile files (winter/spring/summer/fall.csv).
 
-    Unlike the ``distance_*.csv``/``speed_*.csv``/``stand_*.csv`` files (which
-    only exist for purposes with enough records in a given region, per the
-    KiD2010-Auswertung's minimum-record threshold), ``winter.csv`` always
-    carries a full header row naming every purpose category, with zeros
-    filled in for purposes absent in that region. That header is therefore
-    the only reliable, complete source for the purpose-column list and its
-    order - reconstructing it from distance_*.csv filenames would both
-    undercount rare purposes and get the column order wrong (the KiD2010-
-    Auswertung's own column order is a lexicographic, not numeric, sort of
-    the sort-prefixed names).
-
     Parameters
     ----------
     data_directory : pathlib.Path

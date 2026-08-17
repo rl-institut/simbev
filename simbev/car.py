@@ -123,8 +123,7 @@ PRIVATE_CHARGING_ROLES = {
     "heavy_duty_vehicle": {
         "rueckfahrt_betrieb": "depot",
         "arbeitsplatz": "depot",
-        # einkauf deliberately not mapped to "retail" here (unlike
-        # light_duty_vehicle) - falls through to the generic public cascade.
+
     },
 }
 
@@ -194,14 +193,6 @@ def default_starting_status(vehicle_group):
     """Returns the purpose destination a car of vehicle_group is assumed to
     be parked at when the simulation starts (seeds Car.status, i.e. the
     location of the very first trip's "stand"/dwell-time lookup).
-
-    Prefers the group's "home"-role purpose (e.g. "home" for private Pkw,
-    "nach_hause" for pkw_commercial - the vehicle's private residence).
-    Vehicle_groups without a home role (light_duty_vehicle, heavy_duty_vehicle)
-    fall back to their "depot"-role purpose (e.g. "rueckfahrt_betrieb") - the
-    vehicle's base/depot is the closest equivalent starting location. Falls
-    back to "home" for an unknown/unmapped vehicle_group, matching the
-    private-Pkw default.
 
     Parameters
     ----------
@@ -404,13 +395,6 @@ def get_consumption_factor(
     speed_consumption_coefficient_high,
 ):
     """Determines the multiplicative consumption factor of a drive based on season and speed.
-
-    The seasonal influence models effects like heating/cooling and battery efficiency
-    losses in cold weather. The speed influence follows an asymmetric parabola with its
-    minimum at speed_optimal: consumption stays close to the minimum for speeds at or
-    below speed_optimal (BEVs stay efficient in low-speed/city driving thanks to
-    regenerative braking and low aerodynamic drag), while consumption rises noticeably
-    for speeds above speed_optimal (aerodynamic drag grows with the square of speed).
 
     Parameters
     ----------
@@ -687,11 +671,7 @@ class Car:
             True only for a mid-route fast-charge stop inserted by
             Trip._create_fast_charge_events() (charging inserted because the
             vehicle's remaining range wouldn't otherwise make it to its
-            destination). Gates the MCS switch below - the proactive
-            while-parked HPC branch and a "fast" charge_public() event that
-            merely happened to draw a fast-tier public power level are not
-            mid-route events and must never be upgraded to MCS; the HPC
-            decision/behavior itself is unchanged either way.
+            destination).
         """
 
         if self.soc >= self.car_type.charging_threshold:
@@ -851,15 +831,11 @@ class Car:
         )
 
     def _estimate_fast_charging_minutes(self, power, soc_end):
-        """Analytically estimates fast-charging duration in minutes for a
+        """Estimates fast-charging duration in minutes for a
         given power and target soc_end, without drawing random numbers or
         mutating any state.
-
         Used only to decide whether MCS should replace HPC for
-        heavy_duty_vehicle (see charge()). Mirrors the time computation at
-        the core of charging_curve(), skipping its per-timestep grid-dict
-        bookkeeping and max_charging_time truncation, since only the total
-        untruncated time is needed for that decision.
+        heavy_duty_vehicle
 
         Parameters
         ----------

@@ -110,9 +110,9 @@ class RegionType:
             self.probabilities[vehicle_group] = self._load_probabilities(
                 data_directory, vehicle_group
             )
-            self._mask_unavailable_purposes(vehicle_group)
+            self.eliminate_unavailable_purposes(vehicle_group)
 
-    def _mask_unavailable_purposes(self, vehicle_group):
+    def eliminate_unavailable_purposes(self, vehicle_group):
         """Drops departure-time-series columns for purposes with no
         distance/speed/stand distribution data for this vehicle_group.
 
@@ -145,11 +145,8 @@ class RegionType:
         self.trip_starts[vehicle_group] = trip_starts / trip_starts.max()
 
     def _vehicle_group_sources(self, simbev):
-        """Yields (vehicle_group, data_directory, purpose_columns) for every active
-        vehicle_group. "private" always uses simbev.input_directory with the
-        default (MiD) purpose-column list; commercial groups use
-        simbev.commercial_input_directory/<vehicle_group> with an auto-detected
-        purpose-column list."""
+        """Provides (vehicle_group, data_directory, purpose_columns) for every active
+        vehicle_group."""
 
         yield "private", simbev.input_directory, None
         for vehicle_group in simbev.commercial_vehicle_groups:
