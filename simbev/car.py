@@ -53,8 +53,16 @@ class CarType:
         curve that describes charging-power dependent of soc.
     consumption : float
         consumption of car.
-    consumption_factor_highway : float
-        Influence on the consumption of a vehicle by driving on the highway.
+    consumption_factor_winter : float
+        Multiplicative consumption factor applied during winter months (Dec-Feb).
+    consumption_factor_summer : float
+        Multiplicative consumption factor applied during summer months (Jun-Aug).
+    speed_optimal : float
+        Driving speed in km/h at which consumption is lowest.
+    speed_consumption_coefficient_low : float
+        Coefficient of the speed-consumption curve for speeds at or below speed_optimal.
+    speed_consumption_coefficient_high : float
+        Coefficient of the speed-consumption curve for speeds above speed_optimal.
     output : bool
         Setting for output.
     attractivity : pd.DataFrame
@@ -73,7 +81,11 @@ class CarType:
     energy_min: dict
     charging_curve: interp1d
     consumption: float
-    consumption_factor_highway: float
+    consumption_factor_winter: float
+    consumption_factor_summer: float
+    speed_optimal: float
+    speed_consumption_coefficient_low: float
+    speed_consumption_coefficient_high: float
     output: bool
     attractivity: pd.DataFrame
     analyze_mid: bool = False
@@ -247,6 +259,63 @@ def analyze_drive_events(output_df: pd.DataFrame, car_type: str):
             distance_cumulated,
         ]
     )
+
+
+def get_consumption_factor(
+    month,
+    speed,
+    consumption_factor_winter,
+    consumption_factor_summer,
+    speed_optimal,
+    speed_consumption_coefficient_low,
+    speed_consumption_coefficient_high,
+):
+    """Determines the multiplicative consumption factor of a drive based on season and speed.
+
+    The seasonal influence models effects like heating/cooling and battery efficiency
+    losses in cold weather. The speed influence follows an asymmetric parabola with its
+    minimum at speed_optimal: consumption stays close to the minimum for speeds at or
+    below speed_optimal (BEVs stay efficient in low-speed/city driving thanks to
+    regenerative braking and low aerodynamic drag), while consumption rises noticeably
+    for speeds above speed_optimal (aerodynamic drag grows with the square of speed).
+
+    Parameters
+    ----------
+    month : int
+        Month of the drive (1-12), used to determine the season.
+    speed : float
+        Average driving speed of the drive in km/h.
+    consumption_factor_winter : float
+        Consumption factor applied during winter months (Dec, Jan, Feb).
+    consumption_factor_summer : float
+        Consumption factor applied during summer months (Jun, Jul, Aug).
+    speed_optimal : float
+        Driving speed in km/h at which consumption is lowest.
+    speed_consumption_coefficient_low : float
+        Coefficient of the speed-consumption curve for speeds at or below speed_optimal.
+    speed_consumption_coefficient_high : float
+        Coefficient of the speed-consumption curve for speeds above speed_optimal.
+
+    Returns
+    -------
+    float
+        Combined consumption factor to be multiplied with the base consumption of a car.
+    """
+    if month in (12, 1, 2):
+        season_factor = consumption_factor_winter
+    elif month in (6, 7, 8):
+        season_factor = consumption_factor_summer
+    else:
+        season_factor = 1.0
+
+    speed_consumption_coefficient = (
+        speed_consumption_coefficient_low
+        if speed <= speed_optimal
+        else speed_consumption_coefficient_high
+    )
+    speed_factor = 1 + speed_consumption_coefficient * (speed - speed_optimal) ** 2
+
+    return season_factor * speed_factor
 
 
 class Car:
@@ -748,9 +817,7 @@ class Car:
 
         return time_steps, chargepower_avgerage, power, soc_end
 
-    def drive(
-        self, distance, start_time, timestamp, duration, destination, extra_urban
-    ):
+    def drive(self, distance, start_time, timestamp, duration, destination):
         """Method for driving.
 
         Parameters
@@ -765,8 +832,6 @@ class Car:
             Duration of drive in time
         destination : str
             Location of destination.
-        extra_urban : bool
-            Flag to determine if a drive is extra-urban (e.g. on a highway).
 
         Returns
         -------
@@ -777,17 +842,23 @@ class Car:
             raise ValueError(
                 f"Drive duration of vehicle {self.file_name} is {duration} at {timestamp}"
             )
-        if extra_urban:
-            soc_delta = (
-                self.car_type.consumption
-                * distance
-                / self.car_type.battery_capacity
-                * self.car_type.consumption_factor_highway
-            )
-        else:
-            soc_delta = (
-                self.car_type.consumption * distance / self.car_type.battery_capacity
-            )
+
+        speed = distance / (duration * self.region.region_type.step_size / 60)
+        consumption_factor = get_consumption_factor(
+            timestamp.month,
+            speed,
+            self.car_type.consumption_factor_winter,
+            self.car_type.consumption_factor_summer,
+            self.car_type.speed_optimal,
+            self.car_type.speed_consumption_coefficient_low,
+            self.car_type.speed_consumption_coefficient_high,
+        )
+        soc_delta = (
+            self.car_type.consumption
+            * distance
+            / self.car_type.battery_capacity
+            * consumption_factor
+        )
 
         if soc_delta >= self.usable_soc and self.car_type.label == "BEV":
             return False
@@ -814,59 +885,49 @@ class Car:
         self.status = destination
         return True
 
-    @property
-    def precise_remaining_range(self):
-        """Calculation of precise remaining range of vehicle.
+    def precise_remaining_range(self, speed, month):
+        """Calculation of precise remaining range of vehicle for a given speed and month.
+
+        Parameters
+        ----------
+        speed : float
+            Assumed driving speed in km/h for the remaining range.
+        month : int
+            Month (1-12) of the drive, used to determine the season.
 
         Returns
         -------
         float
             Returns remaining range of vehicle.
         """
+        consumption_factor = get_consumption_factor(
+            month,
+            speed,
+            self.car_type.consumption_factor_winter,
+            self.car_type.consumption_factor_summer,
+            self.car_type.speed_optimal,
+            self.car_type.speed_consumption_coefficient_low,
+            self.car_type.speed_consumption_coefficient_high,
+        )
         return (
-            self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption
+            self.usable_soc
+            * self.car_type.battery_capacity
+            / (self.car_type.consumption * consumption_factor)
         )
 
-    @property
-    def precise_remaining_range_highway(self):
-        """Calculation of precise remaining range of vehicle.
+    def remaining_range(self, speed, month):
+        """Returns remaining range of vehicle for a given speed and month.
 
-        Returns
-        -------
-        float
-            Returns remaining range of vehicle.
+        Parameters
+        ----------
+        speed : float
+            Assumed driving speed in km/h for the remaining range.
+        month : int
+            Month (1-12) of the drive, used to determine the season.
         """
-        return (
-            self.usable_soc
-            * self.car_type.battery_capacity
-            / self.car_type.consumption
-            / self.car_type.consumption_factor_highway
-        )
-
-    @property
-    def remaining_range(self):
-        """Returns remaining range of vehicle."""
         # eta used to prevent rounding errors. reduces effective range by 100m
         eta = 0.1
-        return max(
-            self.usable_soc * self.car_type.battery_capacity / self.car_type.consumption
-            - eta,
-            0,
-        )
-
-    @property
-    def remaining_range_highway(self):
-        """Returns remaining range of vehicle."""
-        # eta used to prevent rounding errors. reduces effective range by 100m
-        eta = 0.1
-        return max(
-            self.usable_soc
-            * self.car_type.battery_capacity
-            / self.car_type.consumption
-            / self.car_type.consumption_factor_highway
-            - eta,
-            0,
-        )
+        return max(self.precise_remaining_range(speed, month) - eta, 0)
 
     @property
     def usable_soc(self):
