@@ -101,8 +101,7 @@ class CarType:
 
 # Maps a vehicle-group's trip-purpose destinations to the private-charging
 # use case they trigger. Purposes not listed here fall through to the
-# existing public street/retail/hpc cascade (unchanged behavior). "private"
-# is today's exact private-Pkw logic, re-expressed as data.
+# use-cases public street/retail/hpc.
 PRIVATE_CHARGING_ROLES = {
     "private": {
         "home": "home",
@@ -126,14 +125,9 @@ PRIVATE_CHARGING_ROLES = {
     },
 }
 
-# Trip purposes with no fixed private-charging role (unmapped in
-# PRIVATE_CHARGING_ROLES above) that should nonetheless be treated as
-# "depot" for a configurable share of trips - these business purposes often
-# implicitly end back at the depot even though the KiD2010 data only
-# explicitly labels the dedicated "rueckfahrt_betrieb" return trip that way.
-# Applies to pkw_commercial, light_duty_vehicle and heavy_duty_vehicle (the
-# only vehicle_groups that ever produce these purpose strings); the actual
-# share is read from commercial_vehicles.depot_share_business_purposes.
+# The Trip purposes "gueter", "dienstleistung", "sonstige_dienstlich"
+# are available for redistribution to the use-case deopt. The share that
+# is redistributed is set in simbev.depot_share_business_purposes.
 PARTIAL_DEPOT_PURPOSES = {"gueter", "dienstleistung", "sonstige_dienstlich"}
 
 
@@ -152,11 +146,9 @@ def resolve_charging_role(
     location : str
     rng : Generator
         Only drawn from when depot_share_business_purposes > 0 and location
-        is one of PARTIAL_DEPOT_PURPOSES, so the RNG stream is unaffected
-        for anyone not using this option (including all private Pkw runs,
-        since "private" never produces these purpose strings).
+        is one of PARTIAL_DEPOT_PURPOSES
     depot_share_business_purposes : float
-        Share (0-1) of PARTIAL_DEPOT_PURPOSES trips treated as "depot".
+        Share 0-1 of PARTIAL_DEPOT_PURPOSES trips treated as "depot".
         Defaults to 0 (disabled).
 
     Returns
@@ -192,8 +184,7 @@ def vehicle_group_has_role(vehicle_group, role):
 
 def default_starting_status(vehicle_group):
     """Returns the purpose destination a car of vehicle_group is assumed to
-    be parked at when the simulation starts (seeds Car.status, i.e. the
-    location of the very first trip's "stand"/dwell-time lookup).
+    be parked at when the simulation starts.
 
     Parameters
     ----------

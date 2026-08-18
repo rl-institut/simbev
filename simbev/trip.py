@@ -456,10 +456,8 @@ class Trip:
         Returns
         -------
         bool
-            True if the trip was completed (or the simulation ended before it
-            could be, which isn't a car failure). False if the vehicle's SoC
-            would still drop below the minimum even with fast-charging stops
-            inserted.
+            True if the trip was completed or the simulation ended before it
+            could be, which isn't a car failure. Else False.
         """
         remaining_distance = self.distance
 
@@ -545,15 +543,7 @@ class Trip:
                 self.speed, self.drive_timestamp.month
             )
 
-        # Allocate the final leg's time proportionally to its own share of the
-        # original distance, the same way each hpc hop's time was computed -
-        # not as "whatever's left of drive_time after subtracting the hops".
-        # ceil() rounds every hop's time up a little; with several hops that
-        # accumulates into a real time deficit for the final leg, which
-        # implies an unrealistically high speed/consumption for it and can
-        # make an otherwise completable trip fail on SoC (seen with long
-        # multi-stop truck trips: 4 hops ate 24 of 27 steps, leaving 3 steps
-        # for a 143km remaining leg - an implied ~190 km/h).
+        # Allocate the final leg's time proportionally to its own share of the original distance
         last_drive_time = max(
             math.ceil(remaining_distance / self.distance * self.drive_time), 1
         )
@@ -618,7 +608,7 @@ class Trip:
                 )
 
     def delay(self, time_steps: int):
-        """Change the trip according to a given delay.
+        """Change the trip according to a given delay because of previous trip.
 
         Parameters
         ----------
@@ -653,7 +643,7 @@ class Trip:
         int
             time steps until threshold time on the same day. returns 0 if negative
         """
-        # This function currently only works for street, could be improved to work with retail threshold as well
+        # This function currently only works for use-case street, could be improved to work with retail threshold as well
         # Get time of day when parking starts (in time steps)
         # Calculate hours until threshold, return 0 if negative
         park_start_steps_from_midnight = int(

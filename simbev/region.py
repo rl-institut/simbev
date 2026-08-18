@@ -124,10 +124,9 @@ class RegionType:
         don't apply the same minimum-record threshold as the distance/speed/
         stand files, so a purpose can have a nonzero departure share in a
         region while having no distribution data to actually compute a trip
-        there. Dropping it here (rather than failing later in Trip.create())
-        makes get_purpose() only ever select destinations we can sample a
-        distance/speed/stand for; its weight is proportionally redistributed
-        across the remaining purposes since get_column_by_random_number
+        there. Dropping it here makes get_purpose() only ever select destinations
+        we can sample a distance/speed/stand for; its weight is proportionally
+        redistributed across the remaining purposes since get_column_by_random_number
         already normalizes by the row sum.
         """
         if vehicle_group not in self.time_series:

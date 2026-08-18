@@ -355,14 +355,8 @@ class SimBEV:
 
     def _is_car_type_active(self, car_type_name):
         """Determines whether a tech_data car type should be simulated at all.
-
         While commercial vehicles are disabled, any car type tagged with a
-        non-"private" vehicle_group is skipped entirely - not simulated as a
-        private Pkw - so a regions-csv column for a commercial car type has
-        no effect unless commercial_vehicles.enabled is also set. Car types
-        that aren't present in tech_data at all are left active here (the
-        resulting KeyError elsewhere then correctly signals a genuine
-        regions-csv/tech_data.csv mismatch, not a disabled feature).
+        non-"private" vehicle_group is skipped entirely
 
         Parameters
         ----------
@@ -693,10 +687,7 @@ class SimBEV:
                         else None
                     )
 
-                    # Depot (Betriebsgelände) availability is only drawn for
-                    # commercial vehicle_groups, so private-Pkw-only runs draw
-                    # exactly as many random numbers as before (unchanged RNG
-                    # stream).
+                    # Depot availability is only drawn for commercial vehicle_groups
                     if car_type.vehicle_group != "private":
                         depot_parking = (
                             self.depot_parking_probability[region.region_type.rs7_type]
@@ -711,11 +702,6 @@ class SimBEV:
                         depot_parking = False
                         depot_power = None
 
-                    # vehicle_groups without a home/work role (e.g. Nutzfahrzeuge)
-                    # have no meaningful home/work private-charging combo, so
-                    # their user_group (and thus their street/retail/urban_fast/
-                    # depot attractivity) is driven by depot availability instead
-                    # of a home/work coin flip that wouldn't apply to them anyway.
                     if vehicle_group_has_role(
                         car_type.vehicle_group, "home"
                     ) or vehicle_group_has_role(car_type.vehicle_group, "work"):
