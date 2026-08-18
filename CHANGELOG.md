@@ -9,6 +9,13 @@ and the versioning aim to respect [Semantic Versioning](http://semver.org/spec/v
 
 ### Added
 
+- optional simulation of commercial vehicle groups (commercial Cars, alight- and heavy duty vehicles) 
+via a new `vehicle_group` column in tech_data.csv and a `[commercial_vehicles]` config section, disabled by default #148
+- new charging use case depot (private charging at a commercial vehicle's company depot), 
+- with availability drawn the same way as home/work private charging #148
+- new mcs-methodology for heavy duty vehicles
+
+### Added
 - added datatype conversion to fix #143
 - removed all NaN values in dataframe for the grid-timeseries to fix #143
 

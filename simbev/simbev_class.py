@@ -14,7 +14,7 @@ import numpy as np
 
 from simbev.helpers import helpers
 from simbev.region import Region, RegionType
-from simbev.car import CarType, Car, UserGroup
+from simbev.car import CarType, Car, UserGroup, vehicle_group_has_role
 from simbev.trip import Trip
 from simbev.mid_timeseries import get_profile_time_series
 from simbev import plot
@@ -95,8 +95,22 @@ class SimBEV:
     fast_charge_threshold : float
         Fast charging threshold.
 
-    consumption_factor_highway : float
-        Consumption factor on highways.
+    consumption_factor_winter : float
+        Consumption factor applied during winter months (Dec-Feb).
+
+    consumption_factor_summer : float
+        Consumption factor applied during summer months (Jun-Aug).
+
+    consumption_speed_optimal : float
+        Driving speed in km/h at which consumption is lowest.
+
+    consumption_speed_coefficient_low : float
+        Coefficient of the speed-consumption curve for speeds at or below
+        consumption_speed_optimal.
+
+    consumption_speed_coefficient_high : float
+        Coefficient of the speed-consumption curve for speeds above
+        consumption_speed_optimal.
 
     rng_seed : int
         Seed for the random number generator.
@@ -236,7 +250,15 @@ class SimBEV:
         )
 
         self.fast_charge_threshold = config_dict["fast_charge_threshold"]
-        self.consumption_factor_highway = config_dict["consumption_factor_highway"]
+        self.consumption_factor_winter = config_dict["consumption_factor_winter"]
+        self.consumption_factor_summer = config_dict["consumption_factor_summer"]
+        self.consumption_speed_optimal = config_dict["consumption_speed_optimal"]
+        self.consumption_speed_coefficient_low = config_dict[
+            "consumption_speed_coefficient_low"
+        ]
+        self.consumption_speed_coefficient_high = config_dict[
+            "consumption_speed_coefficient_high"
+        ]
         self.rng_seed = config_dict["rng_seed"]
         self.rng = self.get_rng()
         self.eta_cp = config_dict["eta_cp"]
@@ -267,15 +289,30 @@ class SimBEV:
         self.num_threads = config_dict["num_threads"]
         self.output_options = config_dict["output_options"]
 
+        self.commercial_enabled = config_dict["commercial_enabled"]
+        self.commercial_input_directory = pathlib.Path(
+            config_dict["commercial_input_directory"]
+        )
+        self.depot_parking_probability = (
+            data_dict["private_probabilities"].loc["depot", :]
+            if "depot" in data_dict["private_probabilities"].index
+            else None
+        )
+        self.depot_share_business_purposes = config_dict[
+            "depot_share_business_purposes"
+        ]
+        self.mcs_power = config_dict["mcs_power"]
+        self.mcs_time_threshold = config_dict["mcs_time_threshold"]
+
         self.input_type = config_dict["input_type"]
         self.input_directory = pathlib.Path(config_dict["input_directory"])
         self.input_data = {"rural": {}, "suburban": {}, "urban": {}}
         if self.input_type == "profile":
             for file_path in self.input_directory.glob("*.gzip"):
                 file_path_parts = file_path.stem.split("_")
-                self.input_data[file_path_parts[-2]][
-                    file_path_parts[-1]
-                ] = pd.read_parquet(file_path)
+                self.input_data[file_path_parts[-2]][file_path_parts[-1]] = (
+                    pd.read_parquet(file_path)
+                )
         self.scaling = config_dict["scaling"]
         self.driving_profile_seed = config_dict["driving_profile_seed"]
         # additional parameters
@@ -316,13 +353,43 @@ class SimBEV:
             )
             self.user_groups[user_group_number] = user_group
 
+    def _is_car_type_active(self, car_type_name):
+        """Determines whether a tech_data car type should be simulated at all.
+        While commercial vehicles are disabled, any car type tagged with a
+        non-"private" vehicle_group is skipped entirely
+
+        Parameters
+        ----------
+        car_type_name : str
+
+        Returns
+        -------
+        bool
+        """
+        if self.commercial_enabled:
+            return True
+        if car_type_name not in self.tech_data.index:
+            return True
+        if "vehicle_group" not in self.tech_data.columns:
+            return True
+        return self.tech_data.at[car_type_name, "vehicle_group"] == "private"
+
     def _create_car_types(self):
         """Creates car-types with all necessary properties."""
 
         # create new car type
         for car_type_name in self.tech_data.index:
+            if not self._is_car_type_active(car_type_name):
+                continue
             bat_cap = self.tech_data.at[car_type_name, "battery_capacity"]
             consumption = self.tech_data.at[car_type_name, "energy_consumption"]
+            if self.commercial_enabled and "vehicle_group" in self.tech_data.columns:
+                vehicle_group = self.tech_data.at[car_type_name, "vehicle_group"]
+            else:
+                # ignore vehicle_group column while commercial vehicles are
+                # disabled, so a stray column value can't tag a car type with
+                # a vehicle_group whose probability data was never loaded
+                vehicle_group = "private"
 
             charging_curve = helpers.interpolate_charging_curve(
                 self.charging_curve_points["key"].tolist(),
@@ -371,10 +438,15 @@ class SimBEV:
                     energy_min,
                     charging_curve,
                     consumption,
-                    self.consumption_factor_highway,
+                    self.consumption_factor_winter,
+                    self.consumption_factor_summer,
+                    self.consumption_speed_optimal,
+                    self.consumption_speed_coefficient_low,
+                    self.consumption_speed_coefficient_high,
                     output,
                     self.attractivity,
                     analyze_mid=True,
+                    vehicle_group=vehicle_group,
                 )
                 if "bev" in car_type.name:
                     car_type.label = "BEV"
@@ -383,9 +455,9 @@ class SimBEV:
                 if len(car_types_tuples) == 1:
                     self.car_types[car_type_name] = car_type
                 else:
-                    self.car_types[
-                        "{}_{}_{}".format(car_type_name, slow, fast)
-                    ] = car_type
+                    self.car_types["{}_{}_{}".format(car_type_name, slow, fast)] = (
+                        car_type
+                    )
 
     def _create_region_type(self, region_type):
         """Creates region-types with all necessary properties.
@@ -401,11 +473,12 @@ class SimBEV:
             self.output_options["grid"],
             self.step_size,
             self.charging_probabilities,
+            self.mcs_power,
         )
 
         rs7_region.create_timeseries(self)
         if self.input_type == "probability":
-            rs7_region.get_probabilities(self.input_directory)
+            rs7_region.get_probabilities(self)
 
         self.created_region_types[region_type] = rs7_region
 
@@ -430,6 +503,20 @@ class SimBEV:
                 .astype(int)
             ).to_dict()
 
+            # drop car types disabled via commercial_vehicles.enabled, so a
+            # regions-csv column for a commercial car type has no effect
+            # unless the feature is actually turned on
+            car_dict = {
+                name: count
+                for name, count in car_dict.items()
+                if self._is_car_type_active(name)
+            }
+            scaling_factors = {
+                name: value
+                for name, value in scaling_factors.items()
+                if name in car_dict
+            }
+
             # create region_type
             if region_type not in self.created_region_types:
                 self._create_region_type(region_type)
@@ -447,6 +534,26 @@ class SimBEV:
     def get_rng(self):
         """Create RNG based on the given rng seed."""
         return np.random.default_rng(self.rng_seed)
+
+    @property
+    def commercial_vehicle_groups(self):
+        """Sorted list of commercial vehicle_groups (e.g. "pkw_commercial",
+        "light_duty_vehicle") actually present in car_types. Always empty
+        when commercial_enabled is False, regardless of tech_data content.
+
+        Returns
+        -------
+        list of str
+        """
+        if not self.commercial_enabled:
+            return []
+        return sorted(
+            {
+                car_type.vehicle_group
+                for car_type in self.car_types.values()
+                if car_type.vehicle_group != "private"
+            }
+        )
 
     def run_multi(self):
         """Runs Simulation for multiprocessing
@@ -579,9 +686,32 @@ class SimBEV:
                         if home_parking
                         else None
                     )
-                    user_group_id = self.set_user_group(
-                        work_parking, home_parking, work_power, home_power
-                    )
+
+                    # Depot availability is only drawn for commercial vehicle_groups
+                    if car_type.vehicle_group != "private":
+                        depot_parking = (
+                            self.depot_parking_probability[region.region_type.rs7_type]
+                            >= self.rng.random()
+                        )
+                        depot_power = (
+                            self.get_charging_capacity("depot", use_case="depot")
+                            if depot_parking
+                            else None
+                        )
+                    else:
+                        depot_parking = False
+                        depot_power = None
+
+                    if vehicle_group_has_role(
+                        car_type.vehicle_group, "home"
+                    ) or vehicle_group_has_role(car_type.vehicle_group, "work"):
+                        user_group_id = self.set_user_group(
+                            work_parking, home_parking, work_power, home_power
+                        )
+                    else:
+                        user_group_id = self.set_user_group(
+                            depot_parking, depot_parking, depot_power, depot_power
+                        )
 
                     home_detached = (
                         self.rng.random()
@@ -601,6 +731,8 @@ class SimBEV:
                         self.eta_cp,
                         1,
                         fast_charging_threshold=self.fast_charge_threshold,
+                        depot_parking=depot_parking,
+                        depot_capacity=depot_power,
                     )
 
                     if self.input_type == "profile":
@@ -672,6 +804,7 @@ class SimBEV:
                     self.start_date_output,
                     self.end_date,
                     region.id,
+                    vehicle_types=list(self.tech_data.index),
                 )
             print(f" - done (Region {region.number + 1}) at {datetime.datetime.now()}")
             return region.grid_data_frame, region.analyze_array
@@ -1008,7 +1141,7 @@ class SimBEV:
             pathlib.Path(scenario_path, cfg["rampup_ev"]["rampup"]),
             sep=",",
             index_col=0,
-            dtype={"region_id":str}
+            dtype={"region_id": str},
         )
 
         # read chargepoint probabilities
@@ -1033,12 +1166,18 @@ class SimBEV:
             sep=",",
             index_col=0,
         )
-        hpc_df = pd.read_csv(
-            pathlib.Path(scenario_path, cfg["tech_data"]["hpc_data"]),
-            sep=",",
-            index_col=0,
-        )
-        hpc_data = hpc_df.to_dict()["values"]
+        hpc_data = {
+            "soc_end_min": cfg.getfloat("hpc", "soc_end_min", fallback=0.8),
+            "soc_end_max": cfg.getfloat("hpc", "soc_end_max", fallback=0.95),
+            "soc_start_threshold": cfg.getfloat(
+                "hpc", "soc_start_threshold", fallback=0.6
+            ),
+            "park_time_max": cfg.getfloat("hpc", "park_time_max", fallback=90),
+            "distance_min": cfg.getfloat("hpc", "distance_min", fallback=0.6),
+            "distance_max": cfg.getfloat("hpc", "distance_max", fallback=1.0),
+        }
+        mcs_power = cfg.getfloat("hpc", "mcs_power", fallback=1000.0)
+        mcs_time_threshold = cfg.getfloat("hpc", "mcs_time_threshold", fallback=45.0)
 
         user_groups_attractivity = pd.read_csv(
             pathlib.Path(scenario_path, cfg["user_data"]["user_groups"]),
@@ -1056,6 +1195,42 @@ class SimBEV:
             pathlib.Path(scenario_path, cfg["charging_probabilities"]["energy_min"])
         )
         energy_min = energy_min.set_index("uc")
+
+        commercial_enabled = cfg.getboolean(
+            "commercial_vehicles", "enabled", fallback=False
+        )
+        commercial_input_directory = cfg.get(
+            "commercial_vehicles",
+            "input_directory",
+            fallback="data/probability_commercial",
+        )
+        depot_share_business_purposes = cfg.getfloat(
+            "commercial_vehicles", "depot_share_business_purposes", fallback=0.0
+        )
+        if commercial_enabled:
+            if "depot" not in home_work_private.index:
+                raise ValueError(
+                    "commercial_vehicles.enabled is true but home_work_private.csv "
+                    "has no 'depot' row (needed for depot/Betriebsgelände "
+                    "private-charging availability)."
+                )
+            if "depot" not in energy_min.index:
+                raise ValueError(
+                    "commercial_vehicles.enabled is true but energy_min.csv has "
+                    "no 'depot' row."
+                )
+            if "mcs" not in energy_min.index:
+                raise ValueError(
+                    "commercial_vehicles.enabled is true but energy_min.csv has "
+                    "no 'mcs' row (needed for MCS charging events of "
+                    "heavy_duty_vehicle)."
+                )
+            if "depot" not in user_groups_attractivity.columns:
+                raise ValueError(
+                    "commercial_vehicles.enabled is true but user_groups.csv has "
+                    "no 'depot' column (needed for depot charge-decision "
+                    "attractivity)."
+                )
 
         start_date = cfg.get("basic", "start_date")
         start_date = helpers.date_string_to_datetime(start_date)
@@ -1083,6 +1258,11 @@ class SimBEV:
         }
 
         cfg_dict = {
+            "commercial_enabled": commercial_enabled,
+            "commercial_input_directory": commercial_input_directory,
+            "depot_share_business_purposes": depot_share_business_purposes,
+            "mcs_power": mcs_power,
+            "mcs_time_threshold": mcs_time_threshold,
             "step_size": cfg.getint("basic", "stepsize", fallback=15),
             "soc_min": cfg.getfloat("basic", "soc_min", fallback=0.2),
             "charging_threshold": cfg.getfloat(
@@ -1091,8 +1271,20 @@ class SimBEV:
             "distance_threshold_extra_urban": cfg.getfloat(
                 "basic", "distance_threshold_extra_urban", fallback=75
             ),
-            "consumption_factor_highway": cfg.getfloat(
-                "basic", "consumption_factor_highway", fallback=1.0
+            "consumption_factor_winter": cfg.getfloat(
+                "basic", "consumption_factor_winter", fallback=1.15
+            ),
+            "consumption_factor_summer": cfg.getfloat(
+                "basic", "consumption_factor_summer", fallback=0.95
+            ),
+            "consumption_speed_optimal": cfg.getfloat(
+                "basic", "consumption_speed_optimal", fallback=50.0
+            ),
+            "consumption_speed_coefficient_low": cfg.getfloat(
+                "basic", "consumption_speed_coefficient_low", fallback=0.00001
+            ),
+            "consumption_speed_coefficient_high": cfg.getfloat(
+                "basic", "consumption_speed_coefficient_high", fallback=0.00004
             ),
             "rng_seed": cfg["sim_params"].getint("seed", None),
             "driving_profile_seed": cfg["sim_params"].getint(

@@ -1,10 +1,23 @@
 import random
 import math
+import re
 import datetime
 from pathlib import Path
 
 import pandas as pd
 import numpy as np
+
+# Default (MiD2023) trip-purpose columns, in the fixed order used by the
+# probability/probability_mid_2023 weekly departure-profile files.
+DEFAULT_PURPOSE_COLUMNS = [
+    "work",
+    "business",
+    "school",
+    "shopping",
+    "private",
+    "leisure",
+    "home",
+]
 
 
 def get_season(date: datetime.date):
@@ -107,7 +120,12 @@ def get_name_csv(region, season, data_directory):
 
 # main function, returns pandas
 def get_timeseries(
-    start: datetime.date, end: datetime.date, region, stepsize, data_directory
+    start: datetime.date,
+    end: datetime.date,
+    region,
+    stepsize,
+    data_directory,
+    purpose_columns=None,
 ):
     """
 
@@ -123,12 +141,17 @@ def get_timeseries(
         Stepsize of simulation.
     data_directory : pathlib.Path
         Path to probability data directory
+    purpose_columns : list of str, optional
+        Ordered trip-purpose column names of the weekly departure-profile
+        files. Defaults to DEFAULT_PURPOSE_COLUMNS (the MiD2023 purpose set).
 
     Returns
     -------
     pd_result : DataFrame
-        Timeseries of processed MiD-data, that includes amount of trips started by usecase and time.
+        Timeseries of processed trip-purpose data, that includes amount of trips started by usecase and time.
     """
+    if purpose_columns is None:
+        purpose_columns = DEFAULT_PURPOSE_COLUMNS
 
     # build a matrix containing information about each season during the time span
     weekdays = 7
@@ -168,7 +191,12 @@ def get_timeseries(
     # iteration over the created matrix. uses weeklist information to create time series dataframe
     for current_season in weeklist:
         file_name = get_name_csv(region, current_season[0], data_directory)
-        data_df = pd.read_csv(file_name, sep=";", decimal=",", usecols=range(1, 8))
+        data_df = pd.read_csv(
+            file_name,
+            sep=";",
+            decimal=",",
+            usecols=range(1, 1 + len(purpose_columns)),
+        )
         temp = pd.DataFrame()
         # check if weekdays are left over from last month, add to start of series
         if weekdays_left < weekdays:
@@ -202,16 +230,39 @@ def get_timeseries(
         pd_result = pd.concat([pd_result, temp])
         weekdays_left = weekdays - current_season[2]
 
-    pd_result.columns = [
-        "work",
-        "business",
-        "school",
-        "shopping",
-        "private",
-        "leisure",
-        "home",
-    ]
+    pd_result.columns = purpose_columns
     return pd_result
+
+
+def get_purpose_columns(data_directory, rs7_type):
+    """Determines the ordered trip-purpose column list for a commercial
+    vehicle_group's weekly departure-profile files (winter/spring/summer/fall.csv).
+
+    Parameters
+    ----------
+    data_directory : pathlib.Path
+        Root directory of one vehicle_group (contains one subfolder per
+        RegioStaR7 region).
+    rs7_type : str
+        Region whose winter.csv header is read.
+
+    Returns
+    -------
+    list of str
+    """
+    winter_file = Path(data_directory, rs7_type, "winter.csv")
+    with open(winter_file) as f:
+        header_columns = f.readline().rstrip("\n").split(";")[1:]
+
+    return [strip_numeric_prefix(name) for name in header_columns]
+
+
+_NUMERIC_PREFIX_RE = re.compile(r"^\d+_")
+
+
+def strip_numeric_prefix(purpose_key):
+    """Strips a leading numeric sort-prefix (e.g. "4_") used in KiD2010 column/filenames."""
+    return _NUMERIC_PREFIX_RE.sub("", purpose_key, count=1)
 
 
 def get_empty_timeseries(start_date, end_date, step_size):
@@ -291,7 +342,7 @@ def get_profile_time_series(start_date, end_date, step_size, df, seed):
                 np.floor
             )
 
-            time_series = time_series.dropna(axis=1, how='all')
+            time_series = time_series.dropna(axis=1, how="all")
             # Append the filtered week data to the time series
             time_series = pd.concat([time_series, week_data_filtered])
 
