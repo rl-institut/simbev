@@ -1257,6 +1257,11 @@ class SimBEV:
             "analyze": analyze,
         }
 
+        # optional parameters are located in [extended settings], older configs
+        # still have them in [basic]
+        extended = (
+            "extended settings" if cfg.has_section("extended settings") else "basic"
+        )
         cfg_dict = {
             "commercial_enabled": commercial_enabled,
             "commercial_input_directory": commercial_input_directory,
@@ -1269,22 +1274,22 @@ class SimBEV:
                 "basic", "charging_threshold", fallback=0.8
             ),
             "distance_threshold_extra_urban": cfg.getfloat(
-                "basic", "distance_threshold_extra_urban", fallback=75
+                extended, "distance_threshold_extra_urban", fallback=75
             ),
             "consumption_factor_winter": cfg.getfloat(
-                "basic", "consumption_factor_winter", fallback=1.15
+                extended, "consumption_factor_winter", fallback=1.15
             ),
             "consumption_factor_summer": cfg.getfloat(
-                "basic", "consumption_factor_summer", fallback=0.95
+                extended, "consumption_factor_summer", fallback=0.95
             ),
             "consumption_speed_optimal": cfg.getfloat(
-                "basic", "consumption_speed_optimal", fallback=50.0
+                extended, "consumption_speed_optimal", fallback=50.0
             ),
             "consumption_speed_coefficient_low": cfg.getfloat(
-                "basic", "consumption_speed_coefficient_low", fallback=0.00001
+                extended, "consumption_speed_coefficient_low", fallback=0.00001
             ),
             "consumption_speed_coefficient_high": cfg.getfloat(
-                "basic", "consumption_speed_coefficient_high", fallback=0.00004
+                extended, "consumption_speed_coefficient_high", fallback=0.00004
             ),
             "rng_seed": cfg["sim_params"].getint("seed", None),
             "driving_profile_seed": cfg["sim_params"].getint(
@@ -1311,29 +1316,29 @@ class SimBEV:
             ),
             "scaling": cfg.getint("sim_params", "scaling"),
             "fast_charge_threshold": cfg.getfloat(
-                "basic", "dc_power_threshold", fallback=50.0
+                extended, "dc_power_threshold", fallback=50.0
             ),
             "threshold_retail_limit": cfg.getfloat(
-                "basic", "threshold_retail_limitation", fallback=21
+                extended, "threshold_retail_limitation", fallback=21
             ),
             "threshold_street_night_limit": cfg.getfloat(
-                "basic", "threshold_street_night_limitation", fallback=21
+                extended, "threshold_street_night_limitation", fallback=21
             ),
-            "maximum_park_time": cfg.getint("basic", "maximum_park_time", fallback=10),
+            "maximum_park_time": cfg.getint(extended, "maximum_park_time", fallback=10),
             "maximum_park_time_flag": cfg.getboolean(
-                "basic", "maximum_park_time_flag", fallback=False
+                extended, "maximum_park_time_flag", fallback=False
             ),
             "home_night_charging_flag": cfg.getboolean(
-                "basic", "home_night_charging_flag", fallback=False
+                extended, "home_night_charging_flag", fallback=False
             ),
             "street_night_charging_flag": cfg.getboolean(
-                "basic", "street_night_charging_flag", fallback=True
+                extended, "street_night_charging_flag", fallback=True
             ),
             "night_departure_standard_deviation": cfg.getfloat(
-                "basic", "night_departure_standard_deviation", fallback=1.0
+                extended, "night_departure_standard_deviation", fallback=1.0
             ),
             "night_departure_time": cfg.getfloat(
-                "basic", "night_departure_time", fallback=9.0
+                extended, "night_departure_time", fallback=9.0
             ),
         }
         data_dict = {
