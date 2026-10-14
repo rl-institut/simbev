@@ -61,16 +61,12 @@ def export_metadata(simbev, config):
     config : ConfigParser
         Object for parsing config.
     """
-    cars = simbev.region_data[
-        [
-            "bev_mini",
-            "bev_medium",
-            "bev_luxury",
-            "phev_mini",
-            "phev_medium",
-            "phev_luxury",
-        ]
+    car_type_columns = [
+        car_type
+        for car_type in simbev.tech_data.index
+        if car_type in simbev.region_data.columns
     ]
+    cars = simbev.region_data[car_type_columns]
     meta_dict = {
         "SimBEV_version": __version__,
         "scenario": simbev.name,
@@ -94,7 +90,9 @@ def export_metadata(simbev, config):
         json.dump(meta_dict, f, indent=4)
 
 
-def export_analysis(analysis_array, directory, start_date, end_date, region_id):
+def export_analysis(
+    analysis_array, directory, start_date, end_date, region_id, vehicle_types=None
+):
     """Generates csv and json file for analysis of simulation-output.
 
     Parameters
@@ -109,16 +107,23 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
         End of simulation.
     region_id: str
         Identifier of region.
+    vehicle_types: list of str, optional
+        Car-type names to break the by-car-type stats down by. Defaults to
+        today's fixed six default car types.
     """
 
-    vehicle_array = [
-        "bev_mini",
-        "bev_medium",
-        "bev_luxury",
-        "phev_mini",
-        "phev_medium",
-        "phev_luxury",
-    ]
+    vehicle_array = (
+        vehicle_types
+        if vehicle_types is not None
+        else [
+            "bev_mini",
+            "bev_medium",
+            "bev_luxury",
+            "phev_mini",
+            "phev_medium",
+            "phev_luxury",
+        ]
+    )
     destination_array = [
         "distance_home",
         "distance_work",
@@ -135,30 +140,9 @@ def export_analysis(analysis_array, directory, start_date, end_date, region_id):
         "average_distance": float,
         "average_trip_count": int,
         "by_car_type": {
-            "average_trip_count": {
-                "bev_mini": float,
-                "bev_medium": float,
-                "bev_luxury": float,
-                "phev_mini": float,
-                "phev_medium": float,
-                "phev_luxury": float,
-            },
-            "average_drive_time": {
-                "bev_mini": float,
-                "bev_medium": float,
-                "bev_luxury": float,
-                "phev_mini": float,
-                "phev_medium": float,
-                "phev_luxury": float,
-            },
-            "average_distance": {
-                "bev_mini": float,
-                "bev_medium": float,
-                "bev_luxury": float,
-                "phev_mini": float,
-                "phev_medium": float,
-                "phev_luxury": float,
-            },
+            "average_trip_count": {vehicle: float for vehicle in vehicle_array},
+            "average_drive_time": {vehicle: float for vehicle in vehicle_array},
+            "average_distance": {vehicle: float for vehicle in vehicle_array},
         },
         "by_destination": {
             "average_distance": {

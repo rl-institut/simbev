@@ -18,7 +18,6 @@ the input data. In a directory scenarios/ there is following folder structure:
                 ├── energy_min.csv
                 ├── fast_charging_probability.csv
                 ├── home_work_private.csv
-                ├── hpc_config.csv
                 ├── regions.csv
                 ├── tech_data.csv
                 ├── tech_data_by_probability.csv
@@ -65,7 +64,6 @@ a certain output file should be generated.
 
    tech_data, tech_data.csv, Link to input file for technical vehicle data (for example battery capacity)
    charging_curve, charging_curve.csv, Link to input file for charging curve definition
-   hpc_data, hpc_config.csv, Link to input file for High Power Charging parameters
 
 .. csv-table:: [user_data]
    :header: **Keyword**, **Default**, **Description**
@@ -152,7 +150,6 @@ All Settings
 
    tech_data, tech_data.csv, Link to input file for technical vehicle data (for example battery capacity)
    charging_curve, charging_curve.csv, Link to input file for charging curve definition
-   hpc_data, hpc_config.csv, Link to input file for High Power Charging parameters
 
 .. csv-table:: [user_data]
    :header: **Keyword**, **Default**, **Description**
@@ -178,6 +175,27 @@ All Settings
    num_threads, 4, Number of regions to be calculated at the same time (limited by processor cores)
    seed, 3, RNG seed. Same seed with same input data will produce the same results
    private_run_only, false, Attempts to charge all vehicles with private charging infrastructure if they have access
+
+.. csv-table:: [hpc]
+   :header: **Keyword**, **Default**, **Description**
+   :widths: 33, 33, 33
+
+   soc_end_min, 0.8, Lower bound of the target SoC of a fast charging event
+   soc_end_max, 0.95, Upper bound of the target SoC of a fast charging event
+   soc_start_threshold, 0.6, SoC below which a fast charging event during parking is considered
+   park_time_max, 90, Maximum parking time in minutes for a fast charging event during parking
+   distance_min, 0.6, Minimum share of the remaining range that is driven before an en-route fast charging stop
+   distance_max, 1, Maximum share of the remaining range that is driven before an en-route fast charging stop
+   mcs_power, 1000, MCS (Megawatt Charging System) power in kW. Only used for en-route stops of heavy duty vehicles
+   mcs_time_threshold, 45, Duration of an en-route HPC stop in minutes above which heavy duty vehicles use MCS instead
+
+.. csv-table:: [commercial_vehicles]
+   :header: **Keyword**, **Default**, **Description**
+   :widths: 33, 33, 33
+
+   enabled, false, "Additionally simulate commercial vehicles (commercial cars, light and heavy duty vehicles) based on KiD2010. Requires a vehicle_group column in tech_data, a depot row in home_work_private and energy_min, a mcs row in energy_min and a depot column in user_groups"
+   input_directory, data/probability_commercial, "Driving probabilities of commercial vehicles, structured as <input_directory>/<vehicle_group>/<region>/"
+   depot_share_business_purposes, 0, "Share (0-1) of business trips (gueter, dienstleistung, sonstige_dienstlich) that end at the depot and can use depot charging"
 
 Input Files
 -----------
@@ -292,26 +310,6 @@ Different values for home and work.
    home, 0.9,0.85,0.7,0.85,0.8,0.6,0.4
    work,0.7,0.7,0.7,0.7,0.7,0.7,0.7
    probability_detached_home,0.9,0.8,0.7,0.6,0.5,0.4,0.3
-
-hpc_config.csv
-~~~~~~~~~~~~~~
-
-Configuration for high power charging.
-
-**columns:** key,values
-
-**example:**
-
-.. csv-table:: hpc_config.csv
-   :header: key,values
-   :widths: 20,10
-
-   soc_end_min,0.8
-   soc_end_max,0.95
-   soc_start_threshold,0.6
-   park_time_max,90
-   distance_min,0.6
-   distance_max,1
 
 regions.csv
 ~~~~~~~~~~~
