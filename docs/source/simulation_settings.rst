@@ -107,8 +107,17 @@ All Settings
    stepsize, 15, Step size of simulation (should stay at 15 min for best results)
    soc_min, 0.2, Minimum SoC left over at all times (not usable). Value can be between 0 and 1
    charging_threshold, 0.8, SoC threshold. Vehicles with higher SoC will not attempt to charge
+
+.. csv-table:: [extended settings]
+   :header: **Keyword**, **Default/Example**, **Description**
+   :widths: 33, 33, 33
+
    distance_threshold_extra_urban, 50, Determines if a trip is urban or extra urban by distance in kilometers
-   consumption_factor_highway, 1.2, Extra consumption on highway trips
+   consumption_factor_winter, 1.15, Multiplicative consumption factor applied during winter months (Dec-Feb)
+   consumption_factor_summer, 0.95, Multiplicative consumption factor applied during summer months (Jun-Aug)
+   consumption_speed_optimal, 50, Driving speed in km/h at which consumption is lowest
+   consumption_speed_coefficient_low, 0.00001, Coefficient of the speed-consumption curve for speeds at or below consumption_speed_optimal
+   consumption_speed_coefficient_high, 0.00004, Coefficient of the speed-consumption curve for speeds above consumption_speed_optimal
    dc_power_threshold, 50, Threshold power in kW. Anything higher is considered DC charging
    threshold_retail_limitation, 21, Time of day in hours until when retail charging is allowed
    threshold_street_night_limitation, 21, Time of day in hours where night charging methods are used (different allowed standing times)
