@@ -9,6 +9,14 @@ and the versioning aim to respect [Semantic Versioning](http://semver.org/spec/v
 
 ### Added
 
+- added new consumption model that is based on season and speed of a vehicle to add feature #147
+
+### Changed
+
+- moved optional config parameters from [basic] to the new section [extended settings], configs with these parameters in [basic] still work #147
+
+### Added
+
 - added datatype conversion to fix #143
 - removed all NaN values in dataframe for the grid-timeseries to fix #143
 
