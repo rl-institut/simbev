@@ -46,6 +46,7 @@ with availability drawn the same way as home/work private charging #148
 ### Removed
 
 - hpc_config.csv, replaced by the config section [hpc] #148
+- support for Python 3.8 and 3.9 (end of life), SimBEV now requires Python >= 3.10
 
 ## [1.0.0] - 2022-07-15
 

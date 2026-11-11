@@ -25,7 +25,7 @@ or via HTTPS:
 
     git clone https://github.com/rl-institut/simbev.git
 
-Make sure you have Python >= 3.8 installed, let's create a virtual env:
+Make sure you have Python >= 3.10 installed, let's create a virtual env:
 
 .. code:: bash
 
