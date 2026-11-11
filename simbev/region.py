@@ -18,6 +18,7 @@ _strip_purpose_prefix = strip_numeric_prefix
 
 class RegionType:
     """Constructor for class RegionType.
+
     Parameters
     ----------
     rs7_type : str

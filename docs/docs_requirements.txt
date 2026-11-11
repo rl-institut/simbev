@@ -1,2 +1,6 @@
 sphinx
 sphinx_rtd_theme
+# needed by autodoc to import the documented simbev modules
+numpy
+pandas
+scipy
