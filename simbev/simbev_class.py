@@ -474,6 +474,7 @@ class SimBEV:
             self.step_size,
             self.charging_probabilities,
             self.mcs_power,
+            self.fast_charge_threshold,
         )
 
         rs7_region.create_timeseries(self)
@@ -1098,7 +1099,11 @@ class SimBEV:
                     grid_ts_collection.loc[
                         :, grid_ts_collection.columns != "timestamp"
                     ] += data.loc[:, data.columns != "timestamp"]
-            grid_ts_collection = grid_ts_collection.round(4)
+            grid_ts_collection.loc[
+                :, grid_ts_collection.columns != "timestamp"
+            ] = grid_ts_collection.loc[
+                :, grid_ts_collection.columns != "timestamp"
+            ].round(4)
             grid_ts_collection.to_csv(
                 pathlib.Path(self.save_directory, self.file_name_all), index=False
             )

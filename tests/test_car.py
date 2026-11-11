@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import pytest
 
 from simbev.car import (
@@ -6,6 +7,7 @@ from simbev.car import (
     CarType,
     UserGroup,
     default_starting_status,
+    fit_first_event_to_start,
     resolve_charging_role,
     vehicle_group_has_role,
 )
@@ -391,3 +393,325 @@ def test_non_heavy_duty_vehicle_never_switches_to_mcs():
     assert all(
         event["charging_use_case"] == "urban_fast" for event in car.grid_timeseries_list
     )
+
+
+def _make_output_car(soc=0.2):
+    car_type = _make_heavy_duty_car_type(fast_capacity=350)
+    car_type.output = True
+    car_type.energy_min = {"hpc": 0, "public": 0}
+    return Car(
+        car_type, UserGroup(1, {}), 0, False, False, None, None, None, False,
+        soc=soc, status="gueter",
+    )
+
+
+def test_fast_charge_event_covers_whole_park_time():
+    car = _make_output_car()
+    trip = _FakeTrip(park_time=20)
+
+    # 150 kW into a 300 kWh battery needs far less than the 20 steps parked
+    car.charge(trip, 150, "fast", "urban_fast", step_size=15, max_charging_time=20)
+
+    assert car.output["event_time"] == [20]
+    assert 0 < len(car.grid_timeseries_list) < 20
+
+
+def test_fast_charge_is_capped_to_park_time():
+    car = _make_output_car()
+    trip = _FakeTrip(park_time=2)
+
+    # street/retail may pass a max parking time well above the real park time
+    car.charge(trip, 150, "fast", "urban_fast", step_size=15, max_charging_time=48)
+
+    assert car.output["event_time"] == [2]
+    assert len(car.grid_timeseries_list) == 2
+
+
+def test_mid_route_fast_charge_is_not_capped_and_ends_with_charging():
+    car = _make_output_car()
+    # park_time is the stale value of the previous parking event here
+    trip = _FakeTrip(park_time=2)
+
+    charging_time = car.charge(
+        trip, 150, "fast", "urban_fast", step_size=15, max_charging_time=100,
+        mid_route_event=True,
+    )
+
+    assert charging_time > 2
+    assert car.output["event_time"] == [charging_time]
+
+
+def _first_event_frame(first_event, next_start):
+    first_event = {
+        "timestamp": "2011-01-01 00:00:00",
+        "energy_battery": 0.0,
+        "energy_grid": 0.0,
+        "average_charging_power": 0.0,
+        **first_event,
+    }
+    second_event = {**first_event, "event_start": next_start, "event_time": 1}
+    return pd.DataFrame([first_event, second_event])
+
+
+def test_first_event_charging_soc_start_stays_in_range():
+    # PHEV (15.2 kWh) charged from empty to full at 2.5 kW avg power, eta 0.9:
+    # grid energy is 15.2 / 0.9 = 16.889 kWh. Cut one step after the start.
+    activity = _first_event_frame(
+        {
+            "event_start": -1,
+            "event_time": 20,
+            "soc_start": 0.0,
+            "soc_end": 1.0,
+            "energy_battery": 15.2,
+            "energy_grid": 16.889,
+            "average_charging_power": 2.5,
+        },
+        next_start=19,
+    )
+
+    fit_first_event_to_start(activity, 15, 15.2, 0.9, "2011-01-01 00:00:00")
+
+    first = activity.iloc[0]
+    # the old calculation (soc_end - grid_energy / capacity) gave about -0.07
+    assert first["soc_start"] >= 0
+    assert first["soc_start"] == pytest.approx(0.0 + 2.5 * 0.25 * 0.9 / 15.2, abs=1e-3)
+    # energy_battery matches the soc range that is left
+    assert first["energy_battery"] == pytest.approx(
+        (first["soc_end"] - first["soc_start"]) * 15.2, abs=1e-3
+    )
+    assert first["energy_battery"] == pytest.approx(first["energy_grid"] * 0.9, abs=1e-3)
+    assert first["event_start"] == 0
+    assert first["event_time"] == 19
+
+
+def test_first_event_charge_finished_before_cut_has_no_energy():
+    activity = _first_event_frame(
+        {
+            "event_start": -10,
+            "event_time": 30,
+            "soc_start": 0.2,
+            "soc_end": 0.9,
+            "energy_battery": 10.0,
+            "energy_grid": 11.111,
+            "average_charging_power": 11.0,
+        },
+        next_start=20,
+    )
+
+    fit_first_event_to_start(activity, 15, 30, 0.9, "2011-01-01 00:00:00")
+
+    first = activity.iloc[0]
+    assert first["energy_grid"] == 0
+    assert first["energy_battery"] == 0
+    assert first["soc_start"] == pytest.approx(0.9)
+
+
+def test_first_event_driving_interpolates_soc_and_consumption():
+    # 0.6 -> 0.4 over 10 steps, cut after 4 of them
+    activity = _first_event_frame(
+        {
+            "event_start": -4,
+            "event_time": 10,
+            "soc_start": 0.6,
+            "soc_end": 0.4,
+            "energy_battery": -10.0,
+        },
+        next_start=6,
+    )
+
+    fit_first_event_to_start(activity, 15, 50, 0.9, "2011-01-01 00:00:00")
+
+    first = activity.iloc[0]
+    assert first["soc_start"] == pytest.approx(0.52, abs=1e-4)
+    assert first["energy_battery"] == pytest.approx(-6.0, abs=1e-3)
+    assert first["event_time"] == 6
+
+
+def test_first_event_parking_keeps_soc():
+    activity = _first_event_frame(
+        {"event_start": -4, "event_time": 10, "soc_start": 0.5, "soc_end": 0.5},
+        next_start=6,
+    )
+
+    fit_first_event_to_start(activity, 15, 50, 0.9, "2011-01-01 00:00:00")
+
+    assert activity.iloc[0]["soc_start"] == pytest.approx(0.5)
+    assert activity.iloc[0]["energy_battery"] == 0
+
+
+def test_mid_route_stop_at_last_time_step_has_no_stop_event():
+    car = _make_output_car()
+    # park_time is the stale value of the previous parking event. The stop
+    # starts at the last time step, so no charging fits in anymore
+    trip = _FakeTrip(park_time=32)
+
+    charging_time = car.charge(
+        trip, 150, "fast", "urban_fast", step_size=15, max_charging_time=0,
+        mid_route_event=True,
+    )
+
+    # the drive goes on right away, nothing is logged for the stop
+    assert charging_time == 0
+    assert car.output["event_time"] == []
+    assert car.grid_timeseries_list == []
+
+
+def test_mid_route_stop_ignores_min_charging_energy():
+    car = _make_output_car()
+    car.car_type.energy_min = {"hpc": 1000, "public": 0}
+    trip = _FakeTrip(park_time=32)
+
+    charging_time = car.charge(
+        trip, 150, "fast", "urban_fast", step_size=15, max_charging_time=100,
+        mid_route_event=True,
+    )
+
+    # the stop is needed to finish the trip, so it charges anyway
+    assert 0 < charging_time < 32
+    assert car.output["event_time"] == [charging_time]
+    assert car.output["soc_end"][0] > car.output["soc_start"][0]
+
+
+def test_parked_fast_charge_still_respects_min_charging_energy():
+    car = _make_output_car()
+    car.car_type.energy_min = {"hpc": 1000, "public": 0}
+    trip = _FakeTrip(park_time=32)
+
+    car.charge(trip, 150, "fast", "urban_fast", step_size=15, max_charging_time=32)
+
+    assert car.output["event_time"] == [32]
+    assert car.output["soc_end"] == car.output["soc_start"]
+    assert car.grid_timeseries_list == []
+
+
+def test_mid_route_stop_without_charging_has_no_stop_event():
+    # vehicle is already above the charging threshold
+    car = _make_output_car(soc=0.9)
+    trip = _FakeTrip(park_time=32)
+
+    charging_time = car.charge(
+        trip, 150, "fast", "urban_fast", step_size=15, max_charging_time=100,
+        mid_route_event=True,
+    )
+
+    assert charging_time == 0
+    assert car.output["event_time"] == []
+
+
+def test_mid_route_stop_of_vehicle_without_fast_charging_has_no_stop_event():
+    car = _make_output_car()
+    car.car_type.charging_capacity = {"slow": 22, "fast": 0}
+    trip = _FakeTrip(park_time=32)
+
+    charging_time = car.charge(
+        trip, 150, "fast", "urban_fast", step_size=15, max_charging_time=100,
+        mid_route_event=True,
+    )
+
+    assert charging_time == 0
+    assert car.output["event_time"] == []
+
+
+def _booked_grid_energy(car):
+    # chargepower_timestep is the mean power in a time step of 15 minutes
+    return sum(step["chargepower_timestep"] * 15 / 60 for step in car.grid_timeseries_list)
+
+
+def _charge_with_zero_min_energy(soc, power, charging_type, use_case, eta_cp=1.0, park_time=400):
+    car = _make_output_car(soc=soc)
+    car.car_type.energy_min = {"hpc": 0, "public": 0}
+    trip = _FakeTrip(park_time=park_time)
+    trip.simbev.eta_cp = eta_cp
+    car.charge(trip, power, charging_type, use_case, step_size=15, max_charging_time=park_time)
+    delivered = (car.output["soc_end"][0] - car.output["soc_start"][0]) * 300
+    return car, delivered
+
+
+@pytest.mark.parametrize("eta_cp", [1.0, 0.9])
+@pytest.mark.parametrize(
+    "power, charging_type, use_case",
+    [(11, "slow", "street"), (22, "slow", "street"), (150, "fast", "urban_fast")],
+)
+def test_grid_time_series_books_exactly_the_charged_energy(
+    power, charging_type, use_case, eta_cp
+):
+    # the last time step is shorter than step_size and must not be filled up
+    car, delivered = _charge_with_zero_min_energy(0.2, power, charging_type, use_case, eta_cp)
+
+    assert _booked_grid_energy(car) == pytest.approx(delivered / eta_cp, rel=1e-4)
+
+
+def test_charging_curve_always_uses_ten_sections():
+    # np.arange(a + d / 2, b + d / 2, d) can return 11 values for some a, b
+    # because of floating point errors, which charged beyond the target soc
+    for soc in np.arange(0.01, 0.75, 0.0137):
+        car, delivered = _charge_with_zero_min_energy(soc, 11, "slow", "street")
+
+        assert car.output["soc_end"][0] == pytest.approx(1.0, abs=1e-4)
+        assert _booked_grid_energy(car) == pytest.approx(delivered, rel=1e-4), soc
+
+
+def test_aborted_charging_is_not_booked_in_the_grid_time_series():
+    car = _make_output_car(soc=0.2)
+    # 11 kW for the 2 parked steps are 5.5 kWh, less than the minimum energy
+    car.car_type.energy_min = {"hpc": 10, "public": 10}
+    trip = _FakeTrip(park_time=2)
+
+    car.charge(trip, 11, "slow", "street", step_size=15, max_charging_time=2)
+
+    assert car.output["soc_end"] == car.output["soc_start"]
+    assert car.output["energy_grid"] == [0]
+    assert car.grid_timeseries_list == []
+
+
+def test_charging_cut_by_park_time_above_min_energy_is_booked():
+    car = _make_output_car(soc=0.2)
+    car.car_type.energy_min = {"hpc": 1, "public": 1}
+    trip = _FakeTrip(park_time=2)
+
+    car.charge(trip, 11, "slow", "street", step_size=15, max_charging_time=2)
+
+    assert len(car.grid_timeseries_list) == 2
+    assert _booked_grid_energy(car) == pytest.approx(car.output["energy_grid"][0], abs=0.02)
+
+
+def _park_ts_ends(car):
+    return {step["park_ts_end"] for step in car.grid_timeseries_list}
+
+
+def test_fast_charge_cut_by_park_time_occupies_charge_point_only_while_charging():
+    car = _make_output_car()
+    trip = _FakeTrip(park_time=2)
+
+    # 150 kW would need 7 steps for the 300 kWh battery, the park time allows 2
+    car.charge(trip, 150, "fast", "urban_fast", step_size=15, max_charging_time=2)
+
+    assert len(car.grid_timeseries_list) == 2
+    # the charging steps +1, not the 7 steps the uncut charging would need
+    assert _park_ts_ends(car) == {0 + 2 + 1}
+
+
+def test_mcs_stop_occupies_charge_point_only_while_charging():
+    car_type = _make_heavy_duty_car_type(fast_capacity=1000)
+    car = Car(
+        car_type, UserGroup(1, {}), 0, False, False, None, None, None, False, soc=0.2
+    )
+    # park_time is the stale value of the previous parking event
+    trip = _FakeTrip(park_time=100)
+
+    car.charge(
+        trip, 100, "fast", "urban_fast", step_size=15, max_charging_time=500,
+        mid_route_event=True,
+    )
+
+    assert all(step["charging_use_case"] == "mcs" for step in car.grid_timeseries_list)
+    assert _park_ts_ends(car) == {0 + len(car.grid_timeseries_list) + 1}
+
+
+def test_slow_charging_occupies_charge_point_for_the_whole_parking():
+    car = _make_output_car()
+    trip = _FakeTrip(park_time=20, park_start=10)
+
+    car.charge(trip, 11, "slow", "street", step_size=15, max_charging_time=20)
+
+    assert _park_ts_ends(car) == {10 + 20}
