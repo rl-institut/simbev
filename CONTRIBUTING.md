@@ -83,17 +83,11 @@ issues
 
 #### Step 5: Setup continuous integration
 
-To have the test run automatically everytime you push to a pull request
-you can add the bash commands under `# command to run tests` of the
-`.travis.yml` file. For this you need to have an account by
-[Travis](https://travis-ci.org/) and link your repo to their service.
-Soon [GitHub action](https://github.com/features/actions) might take
-care of this directly within github.
-
-In the `.travis.yml` file are many options commented out, you can have
-very complexe schemes to test on many different python versions etc. For
-more information look at Travis
-[doc](https://docs.travis-ci.com/user/languages/python/) for python.
+Tests run automatically with [GitHub Actions](https://github.com/features/actions)
+on every push to `dev` and every pull request towards `dev`. The workflow is
+defined in `.github/workflows/python-package.yml`: it runs flake8 and pytest
+for all supported Python versions. To add further checks, add them as steps
+to this workflow.
 
 ## Release protocol
 

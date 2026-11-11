@@ -277,7 +277,7 @@ LEGACY_PURPOSE_NAMES = {
 
 
 def strip_numeric_prefix(purpose_key):
-    """Strips a leading numeric sort-prefix (e.g. "4_") used in KiD2010 column/filenames."""
+    """Strips a leading numeric sort-prefix (e.g. ``4_``) used in KiD2010 column/filenames."""
     return _NUMERIC_PREFIX_RE.sub("", purpose_key, count=1)
 
 

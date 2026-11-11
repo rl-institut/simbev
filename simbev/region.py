@@ -30,6 +30,7 @@ USE_CASE_PROBABILITY_ROWS = {
 
 class RegionType:
     """Constructor for class RegionType.
+
     Parameters
     ----------
     rs7_type : str
