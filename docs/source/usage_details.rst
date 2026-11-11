@@ -60,7 +60,10 @@ With SimBEV, you can:
 Get the data
 ------------
 
-If you want to run SimBEV in the mode using probabilities, a data set is available `here <https://zenodo.org/record/7609683>`_.
+If you want to run SimBEV in the mode using probabilities, a data set is available on `Zenodo <https://doi.org/10.5281/zenodo.24108280>`_.
+It contains the folders ``probability_private`` (private passenger cars, based on MiD 2023) and
+``probability_commercial`` (commercial vehicles, based on KiD 2010), which have to be placed in the directory ``data``.
+The data set for SimBEV versions before 2.1.0 (based on MiD 2017) is available `here <https://doi.org/10.5281/zenodo.7609683>`_.
 
 If you have access to the MiD 2017 data set and want to create your own driving profiles, you can use the script examples/driving_profiles_from_mid. At the bottom of the file you can set the number of driving profiles and the regions and car types.
 

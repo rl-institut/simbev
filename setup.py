@@ -13,7 +13,7 @@ with open('requirements.txt') as f:
 
 setup(
     name="simbev",
-    version="1.0.0",
+    version="2.1.0",
     description="Simulation of electric vehicle charging demand",
     long_description=long_description,
     long_description_content_type="text/markdown",  # Optional (see note above)
@@ -29,7 +29,7 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",
         # Pick your license as you wish
-        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+        "License :: OSI Approved :: MIT License",
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         # These classifiers are *not* checked by 'pip install'. See instead

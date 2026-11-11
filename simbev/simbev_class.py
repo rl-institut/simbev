@@ -632,8 +632,9 @@ class SimBEV:
             public_count = 0
             for car_type_name, car_count in region.car_dict.items():
                 for car_number in range(car_count):
-                    # Update driving profile seed
-                    self.driving_profile_seed += 1
+                    # Update driving profile seed (if set in config)
+                    if self.driving_profile_seed is not None:
+                        self.driving_profile_seed += 1
                     # Create new car
                     if "max_charging_capacity_slow" in self.tech_data.columns:
                         car_type = self.car_types[car_type_name]
@@ -1307,7 +1308,7 @@ class SimBEV:
             "scenario_path": scenario_path,
             "input_type": cfg.get("basic", "input_type", fallback="probability"),
             "input_directory": cfg.get(
-                "basic", "input_directory", fallback="data/probability"
+                "basic", "input_directory", fallback="data/probability_private"
             ),
             "num_threads": cfg.getint("sim_params", "num_threads", fallback=1),
             "output_options": output_options,

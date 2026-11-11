@@ -100,7 +100,7 @@ All Settings
    start_date, 2021-09-17, Starting date of the simulation
    end_date, 2021-09-30, Ending date of the simulation
    input_type, probability, Choose what kind of input is used for driving profiles (Options: probability or profile)
-   input_directory, data\probability, specify where the input data is located
+   input_directory, data/probability_private, Specify where the input data is located
    eta_cp, 1, Efficiency of charging points
    stepsize, 15, Step size of simulation (should stay at 15 min for best results)
    soc_min, 0.2, Minimum SoC left over at all times (not usable). Value can be between 0 and 1
@@ -195,7 +195,7 @@ All Settings
 
    enabled, false, "Additionally simulate commercial vehicles (commercial cars, light and heavy duty vehicles) based on KiD2010. Requires a vehicle_group column in tech_data, a depot row in home_work_private and energy_min, a mcs row in energy_min and a depot column in user_groups"
    input_directory, data/probability_commercial, "Driving probabilities of commercial vehicles, structured as <input_directory>/<vehicle_group>/<region>/"
-   depot_share_business_purposes, 0, "Share (0-1) of business trips (gueter, dienstleistung, sonstige_dienstlich) that end at the depot and can use depot charging"
+   depot_share_business_purposes, 0, "Share (0-1) of business trips (goods_transport, services, other_business) that end at the depot and can use depot charging"
 
 Input Files
 -----------

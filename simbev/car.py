@@ -109,26 +109,26 @@ PRIVATE_CHARGING_ROLES = {
         "shopping": "retail",
     },
     "pkw_commercial": {
-        "nach_hause": "home",
-        "arbeitsplatz": "depot",
-        "rueckfahrt_betrieb": "depot",
-        "einkauf": "retail",
+        "home": "home",
+        "work": "depot",
+        "return_to_depot": "depot",
+        "shopping": "retail",
     },
     "light_duty_vehicle": {
-        "rueckfahrt_betrieb": "depot",
-        "arbeitsplatz": "depot",
-        "einkauf": "retail",
+        "return_to_depot": "depot",
+        "work": "depot",
+        "shopping": "retail",
     },
     "heavy_duty_vehicle": {
-        "rueckfahrt_betrieb": "depot",
-        "arbeitsplatz": "depot",
+        "return_to_depot": "depot",
+        "work": "depot",
     },
 }
 
-# The Trip purposes "gueter", "dienstleistung", "sonstige_dienstlich"
-# are available for redistribution to the use-case deopt. The share that
+# The Trip purposes "goods_transport", "services", "other_business"
+# are available for redistribution to the use-case depot. The share that
 # is redistributed is set in simbev.depot_share_business_purposes.
-PARTIAL_DEPOT_PURPOSES = {"gueter", "dienstleistung", "sonstige_dienstlich"}
+PARTIAL_DEPOT_PURPOSES = {"goods_transport", "services", "other_business"}
 
 
 def resolve_charging_role(

@@ -4,51 +4,48 @@ All notable changes to this project will be documented in this file.
 The format is inspired from [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and the versioning aim to respect [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-=======
 ## [Unreleased]
 
 ### Added
+-
+### Changed
+-
+### Removed
+-
 
-- optional simulation of commercial vehicle groups (commercial Cars, alight- and heavy duty vehicles) 
-via a new `vehicle_group` column in tech_data.csv and a `[commercial_vehicles]` config section, disabled by default #148
-- new charging use case depot (private charging at a commercial vehicle's company depot), 
-- with availability drawn the same way as home/work private charging #148
-- new mcs-methodology for heavy duty vehicles
+## [2.1.0] - 2026-11-xx
 
 ### Added
-- added new consumption model that is based on season and speed of a vehicle to add feature #147
+
+- optional simulation of commercial vehicle groups (commercial cars, light and heavy duty vehicles) based on KiD2010
+via a new `vehicle_group` column in tech_data.csv and a `[commercial_vehicles]` config section, disabled if not set #148
+- new charging use case depot (private charging at a commercial vehicle's company depot),
+with availability drawn the same way as home/work private charging #148
+- new MCS methodology for en-route charging of heavy duty vehicles #148
+- new consumption model based on season and speed of a vehicle #147
+- driving_profile_seed parameter in the config file to set the seed for the driving profile generation step #139
+- battery energy output in driving profiles
+- new input data set on Zenodo (MiD 2023 for private cars, KiD 2010 for commercial vehicles): https://doi.org/10.5281/zenodo.24108280
 
 ### Changed
 
 - moved optional config parameters from [basic] to the new section [extended settings], configs with these parameters in [basic] still work #147
-
-### Added
-
-- added datatype conversion to fix #143
-- removed all NaN values in dataframe for the grid-timeseries to fix #143
-
-### Added
-
-- driving_profile_seed parameter in the config file to set the seed for the driving profile generation step #139
-- 
-### Changed
-
-- Fix charging time bug #141
-- Results are the same for the same seed specified in the config file #139
+- hpc parameters moved from hpc_config.csv to the config section [hpc] #148
+- trip purposes of commercial vehicles renamed to English, German names in older probability data are translated automatically #148
+- updated tech data of the default scenario: higher fast charging capacities of private BEVs (150/250/350 kW) and realistic values for commercial vehicles, heavy duty vehicles use MCS (1000 kW) #148
+- scenario default_RS7 uses the same settings and input files as the default scenario, including all commercial vehicle types (numbers set to 0) #148
+- results are the same for the same seed specified in the config file #139
+- fix charging time bug #141
+- fix charging logics bug, eta_cp is now included correctly #145
+- datatype conversion and removal of NaN values in the grid time series #143
+- fix SoC dropping below zero in the hpc methodology #148
+- license classifier in setup.py corrected to MIT, matching the LICENSE file
+- default input_directory changed to data/probability_private, matching the new data set on Zenodo
+- fix simulation crash if driving_profile_seed is not set in the config
 
 ### Removed
 
-
-## [Unreleased] 2026-05-08
-
-### Added
-
-- added battery-energy output in driving-profiles
-
-### Changed
-
-- Fix charging logics bug #145 -> included eta_cp
-- running black formatter on car.py
+- hpc_config.csv, replaced by the config section [hpc] #148
 
 ## [1.0.0] - 2022-07-15
 

@@ -1,6 +1,6 @@
 results/
 scenarios/
-data/probability/*/
+data/probability*/*/
 data/profile/*/
 *.pyc
 .pytest_cache

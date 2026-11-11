@@ -95,13 +95,13 @@ def test_depot_usecase_for_commercial_vehicle_group():
     user_group = UserGroup(1, {})
     car = Car(
         car_type, user_group, 0, False, False, None, None, None, False,
-        status="rueckfahrt_betrieb", depot_parking=True, depot_capacity=22,
+        status="return_to_depot", depot_parking=True, depot_capacity=22,
     )
     assert car._get_usecase(22) == "depot"
 
 
 def test_no_depot_usecase_for_private_vehicle_group():
-    # A "private" car standing at a location literally named "rueckfahrt_betrieb"
+    # A "private" car standing at a location literally named "return_to_depot"
     # (which cannot happen in practice, since MiD purposes never produce that
     # string) must not accidentally get private charging - private's role map
     # simply has no entry for it.
@@ -112,7 +112,7 @@ def test_no_depot_usecase_for_private_vehicle_group():
     user_group = UserGroup(1, {})
     car = Car(
         car_type, user_group, 0, False, False, None, None, None, False,
-        status="rueckfahrt_betrieb", depot_parking=True, depot_capacity=22,
+        status="return_to_depot", depot_parking=True, depot_capacity=22,
     )
     assert car._get_usecase(22) == "public"
 
@@ -123,7 +123,7 @@ def test_vehicle_group_has_role():
     assert not vehicle_group_has_role("private", "depot")
 
     assert vehicle_group_has_role("pkw_commercial", "home")
-    # arbeitsplatz now maps to "depot" (not "work") for pkw_commercial
+    # for pkw_commercial, the purpose "work" maps to "depot" (not "work")
     assert not vehicle_group_has_role("pkw_commercial", "work")
     assert vehicle_group_has_role("pkw_commercial", "depot")
     assert vehicle_group_has_role("pkw_commercial", "retail")
@@ -136,18 +136,18 @@ def test_vehicle_group_has_role():
     assert vehicle_group_has_role("light_duty_vehicle", "retail")
     assert not vehicle_group_has_role("heavy_duty_vehicle", "home")
     assert vehicle_group_has_role("heavy_duty_vehicle", "depot")
-    # einkauf deliberately not mapped to retail for heavy_duty_vehicle
+    # shopping deliberately not mapped to retail for heavy_duty_vehicle
     assert not vehicle_group_has_role("heavy_duty_vehicle", "retail")
 
 
 def test_default_starting_status():
     # private/pkw_commercial start at their home-role purpose
     assert default_starting_status("private") == "home"
-    assert default_starting_status("pkw_commercial") == "nach_hause"
+    assert default_starting_status("pkw_commercial") == "home"
     # light_duty_vehicle/heavy_duty_vehicle have no home role - they start at
     # their depot-role purpose instead
-    assert default_starting_status("light_duty_vehicle") == "rueckfahrt_betrieb"
-    assert default_starting_status("heavy_duty_vehicle") == "rueckfahrt_betrieb"
+    assert default_starting_status("light_duty_vehicle") == "return_to_depot"
+    assert default_starting_status("heavy_duty_vehicle") == "return_to_depot"
 
 
 def test_resolve_charging_role_fixed_roles_unaffected():
@@ -155,7 +155,7 @@ def test_resolve_charging_role_fixed_roles_unaffected():
     # and never draw from rng, regardless of depot_share_business_purposes.
     rng = np.random.default_rng(1)
     assert resolve_charging_role("private", "home", rng, 1.0) == "home"
-    assert resolve_charging_role("pkw_commercial", "rueckfahrt_betrieb", rng, 1.0) == "depot"
+    assert resolve_charging_role("pkw_commercial", "return_to_depot", rng, 1.0) == "depot"
 
 
 def test_resolve_charging_role_zero_share_never_draws_rng_or_overrides():
@@ -164,7 +164,7 @@ def test_resolve_charging_role_zero_share_never_draws_rng_or_overrides():
     # RNG stream byte-identical for anyone not using this option.
     rng = np.random.default_rng(1)
     state_before = rng.bit_generator.state
-    for purpose in ("gueter", "dienstleistung", "sonstige_dienstlich"):
+    for purpose in ("goods_transport", "services", "other_business"):
         assert resolve_charging_role("pkw_commercial", purpose, rng, 0.0) is None
         assert resolve_charging_role("light_duty_vehicle", purpose, rng, 0.0) is None
         assert resolve_charging_role("heavy_duty_vehicle", purpose, rng, 0.0) is None
@@ -173,18 +173,18 @@ def test_resolve_charging_role_zero_share_never_draws_rng_or_overrides():
 
 def test_resolve_charging_role_full_share_always_overrides_to_depot():
     rng = np.random.default_rng(1)
-    for purpose in ("gueter", "dienstleistung", "sonstige_dienstlich"):
+    for purpose in ("goods_transport", "services", "other_business"):
         assert resolve_charging_role("pkw_commercial", purpose, rng, 1.0) == "depot"
         assert resolve_charging_role("light_duty_vehicle", purpose, rng, 1.0) == "depot"
         assert resolve_charging_role("heavy_duty_vehicle", purpose, rng, 1.0) == "depot"
 
 
 def test_resolve_charging_role_unrelated_purpose_never_overridden():
-    # A purpose outside PARTIAL_DEPOT_PURPOSES (e.g. "personen") must stay
+    # A purpose outside PARTIAL_DEPOT_PURPOSES (e.g. "passenger_transport") must stay
     # unmapped even with a 100% share - the override is scoped to exactly
-    # gueter/dienstleistung/sonstige_dienstlich.
+    # goods_transport/services/other_business.
     rng = np.random.default_rng(1)
-    assert resolve_charging_role("pkw_commercial", "personen", rng, 1.0) is None
+    assert resolve_charging_role("pkw_commercial", "passenger_transport", rng, 1.0) is None
 
 
 def test_car_starting_status_matches_vehicle_group():
@@ -198,7 +198,7 @@ def test_car_starting_status_matches_vehicle_group():
     )
     user_group = UserGroup(1, {})
     car = Car(car_type, user_group, 0, False, False, None, None, None, False)
-    assert car.status == "rueckfahrt_betrieb"
+    assert car.status == "return_to_depot"
 
 
 def test_estimate_fast_charging_minutes():
@@ -331,7 +331,7 @@ def test_get_usecase_distinguishes_mcs_from_hpc():
     user_group = UserGroup(1, {})
     car = Car(
         car_type, user_group, 0, False, False, None, None, None, False,
-        status="rueckfahrt_betrieb",
+        status="return_to_depot",
     )
     assert car._get_usecase(1000, "mcs") == "mcs"
     assert car._get_usecase(1000, "urban_fast") == "hpc"

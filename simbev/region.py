@@ -8,6 +8,7 @@ from simbev.mid_timeseries import (
     get_empty_timeseries,
     get_purpose_columns,
     strip_numeric_prefix,
+    normalize_purpose_name,
 )
 from simbev.helpers import helpers
 
@@ -198,7 +199,7 @@ class RegionType:
                         purpose_key = file.stem[len(prefix) :]
                     else:
                         purpose_key = file.stem.split("_")[-1]
-                    purpose_key = _strip_purpose_prefix(purpose_key)
+                    purpose_key = normalize_purpose_name(purpose_key)
                     if vehicle_group == "private" and purpose_key == "ridesharing":
                         purpose_key = "private"
                     probabilities[key][purpose_key] = df

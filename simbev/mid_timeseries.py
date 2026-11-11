@@ -254,15 +254,37 @@ def get_purpose_columns(data_directory, rs7_type):
     with open(winter_file) as f:
         header_columns = f.readline().rstrip("\n").split(";")[1:]
 
-    return [strip_numeric_prefix(name) for name in header_columns]
+    return [normalize_purpose_name(name) for name in header_columns]
 
 
 _NUMERIC_PREFIX_RE = re.compile(r"^\d+_")
+
+# German KiD2010 trip-purpose names of older commercial probability data,
+# translated to the English names used in the code
+LEGACY_PURPOSE_NAMES = {
+    "gueter": "goods_transport",
+    "dienstleistung": "services",
+    "personen": "passenger_transport",
+    "sonstige_dienstlich": "other_business",
+    "rueckfahrt_betrieb": "return_to_depot",
+    "arbeitsplatz": "work",
+    "ausbildung": "school",
+    "einkauf": "shopping",
+    "freizeit": "leisure",
+    "sonstige_privat": "other_private",
+    "nach_hause": "home",
+}
 
 
 def strip_numeric_prefix(purpose_key):
     """Strips a leading numeric sort-prefix (e.g. "4_") used in KiD2010 column/filenames."""
     return _NUMERIC_PREFIX_RE.sub("", purpose_key, count=1)
+
+
+def normalize_purpose_name(purpose_key):
+    """Strips the numeric sort-prefix and translates legacy German purpose names."""
+    purpose_key = strip_numeric_prefix(purpose_key)
+    return LEGACY_PURPOSE_NAMES.get(purpose_key, purpose_key)
 
 
 def get_empty_timeseries(start_date, end_date, step_size):
