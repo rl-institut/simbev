@@ -204,6 +204,74 @@ def default_starting_status(vehicle_group):
     return "home"
 
 
+def fit_first_event_to_start(
+    activity, step_size, battery_capacity, eta_cp, start_timestamp
+):
+    """Cuts the first event, which started before the output's first time
+    step, down to the part that lies after it. Energy and soc_start are
+    adjusted to that part, the soc at the cut is not allowed outside of the
+    soc range the event ran through.
+
+    Parameters
+    ----------
+    activity : DataFrame
+        Events of one vehicle, whose first event starts before time step 0.
+        Changed in place.
+    step_size : int
+        Step-size of simulation in minutes.
+    battery_capacity : float
+        Battery capacity of the vehicle in kWh.
+    eta_cp : float
+        Efficiency of charging points.
+    start_timestamp : Timestamp
+        Timestamp of time step 0.
+    """
+    first = activity.index[0]
+    event_len = activity.at[first, "event_time"]
+    post_event_len = activity.at[activity.index[1], "event_start"]
+    pre_event_len = event_len - post_event_len
+
+    soc_start = activity.at[first, "soc_start"]
+    soc_end = activity.at[first, "soc_end"]
+
+    if activity.at[first, "energy_grid"] > 0:
+        # charging event: remove what was charged before the cut
+        pre_demand = (
+            activity.at[first, "average_charging_power"]
+            * pre_event_len
+            * step_size
+            / 60
+        )
+        new_demand = round(max(activity.at[first, "energy_grid"] - pre_demand, 0), 4)
+        activity.at[first, "energy_grid"] = float(new_demand)
+
+        # only the battery side of the energy changes the soc
+        new_soc_start = soc_end - new_demand * eta_cp / battery_capacity
+        new_soc_start = min(max(new_soc_start, soc_start), soc_end)
+        activity.at[first, "energy_battery"] = float(
+            round((soc_end - new_soc_start) * battery_capacity, 4)
+        )
+    else:
+        # driving event: consumption is spread evenly over the event.
+        # parking events don't change the soc and have no energy
+        new_soc_start = soc_end + (soc_start - soc_end) * post_event_len / event_len
+        activity.at[first, "energy_battery"] = float(
+            round(activity.at[first, "energy_battery"] * post_event_len / event_len, 4)
+        )
+
+    activity.at[first, "soc_start"] = round(np.float32(new_soc_start), 4)
+
+    # adjust value for average charging power in first row
+    activity.at[first, "average_charging_power"] = float(
+        activity.at[first, "energy_grid"] / (post_event_len * step_size / 60)
+    )
+
+    # fit first row event to start at time step 0
+    activity.at[first, "event_start"] = 0
+    activity.at[first, "event_time"] = post_event_len
+    activity.at[first, "timestamp"] = start_timestamp
+
+
 def analyze_charge_events(output_df: pd.DataFrame):
     """Analyzes charging events in the timeseries of one vehicle.
 
@@ -697,7 +765,9 @@ class Car:
                 power = trip.simbev.mcs_power
                 charging_use_case = "mcs"
 
-        if max_charging_time > trip.park_time and charging_type == "slow":
+        # charging can't outlast the parking event, except for a mid-route
+        # stop, where the drive only resumes once charging is done
+        if max_charging_time > trip.park_time and not mid_route_event:
             max_charging_time = trip.park_time
 
         if power != 0:
@@ -709,16 +779,25 @@ class Car:
                 charging_type,
                 charging_use_case,
                 soc_end,
+                mid_route_event,
             )
             self.soc = soc
         else:
             charging_time = 0
 
-        park_time = (
-            charging_time
-            if charging_type == "fast" and charging_time > 0
-            else trip.park_time
-        )
+        if mid_route_event and charging_time == 0:
+            # nothing was charged, so the drive goes on right away and there
+            # is no stop to log
+            return charging_time
+
+        # the event covers the whole standing time; only a mid-route stop is
+        # as long as the charging itself, since the drive resumes right after.
+        # max_charging_time of a mid-route stop is the last time step minus
+        # its start, so a stop can't be longer than that + 1
+        if mid_route_event and charging_time > 0:
+            park_time = min(charging_time, max_charging_time + 1)
+        else:
+            park_time = trip.park_time
         self._update_activity(
             trip.park_timestamp,
             trip.park_start,
@@ -878,6 +957,7 @@ class Car:
         charging_type,
         charging_use_case,
         soc_end,
+        mid_route_event=False,
     ):
         """Implementation of charging curve. The charging-curve is based on a 3rd degree polynomial function.
         The charging-functions is sliced into 10 sections. These sections are fitted into the time-steps.
@@ -898,11 +978,15 @@ class Car:
             Charging use case (relevant for end of charging calculation)
         soc_end : float
             Soc-target of charging-event.
+        mid_route_event : bool
+            True for a mid-route fast-charge stop. It is needed to complete the
+            trip, so the minimum charging energy doesn't apply to it.
 
         Returns
         -------
         tuple[int,float,float,float]
             Returns charging parameters including charging-time, average power, power of charging-point and target-soc.
+            The charging-time is 0 if nothing was charged.
         """
 
         soc_start = self.soc
@@ -915,20 +999,22 @@ class Car:
             )
 
         if self.car_type.charging_capacity[charging_type] == 0:
-            return trip.park_time, 0, 0, soc_start
+            return 0, 0, 0, soc_start
 
         # check if min charging energy is charged
-        if (
+        if not mid_route_event and (
             (soc_end - soc_start) * self.car_type.battery_capacity
         ) <= self.car_type.energy_min[self._get_usecase(power, charging_use_case)]:
-            return trip.park_time, 0, 0, soc_start
+            return 0, 0, 0, soc_start
+
+        if soc_end <= soc_start:
+            return 0, 0, 0, soc_start
 
         # set up parameters for charging curve
         soc_delta = (soc_end - soc_start) / 10
         # get array for avarge soc for each charging-step. Needed to get charging-power of soc-dependent charging-curve.
-        charging_soc_array = np.arange(
-            soc_start + soc_delta / 2, soc_end + soc_delta / 2, soc_delta
-        )
+        # np.arange can return 11 values here because of floating point errors
+        charging_soc_array = soc_start + soc_delta * (np.arange(10) + 0.5)
         charging_soc_array[-1] = min(charging_soc_array[-1], 1)
         power_array = np.zeros(len(charging_soc_array))
         charging_time_array = np.zeros(len(charging_soc_array))
@@ -950,6 +1036,8 @@ class Car:
 
         charging_time = sum(charging_time_array)
         charged_energy_list = []
+        # booked in the grid time series only if the charging isn't aborted
+        grid_steps = []
         time_steps = math.ceil(charging_time / step_size)
 
         # iterate through all timesteps the charging event is part of
@@ -966,12 +1054,12 @@ class Car:
                     / self.car_type.battery_capacity,
                 )
                 # check if min charging energy is charged
-                if (
+                if not mid_route_event and (
                     (soc_end - soc_start) * self.car_type.battery_capacity
                 ) <= self.car_type.energy_min[
                     self._get_usecase(power, charging_use_case)
                 ]:
-                    return trip.park_time, 0, 0, soc_start
+                    return 0, 0, 0, soc_start
                 time_steps = max_charging_time
                 break
 
@@ -987,7 +1075,10 @@ class Car:
                 charging_section_counter += 1
             charging_time_sections = charging_time_array[:charging_section_counter]
 
-            time_cutoff = time_sum - step_size  # last charging-step in timestep
+            # time of the last section that doesn't fit into the timestep. The
+            # last timestep of a charging event may be shorter than step_size,
+            # its sections must not be stretched to fill it
+            time_cutoff = max(time_sum - step_size, 0)
             charging_time_sections[
                 -1
             ] -= time_cutoff  # charging times of sections that are fitted to timestep
@@ -1005,16 +1096,6 @@ class Car:
             power_array = power_array[charging_section_counter - 1 :]
             chargepower_timestep = sum(energy_sections_grid) * 60 / step_size
 
-            if charging_use_case in ("urban_fast", "highway_fast"):
-                park_timestep_end = trip.park_start + time_steps + 1
-
-            else:
-                park_timestep_end = (
-                    trip.park_start + max_charging_time
-                    if max_charging_time < trip.park_time
-                    else trip.park_start + trip.park_time
-                )
-
             grid_dict = {
                 "charging_use_case": charging_use_case,
                 "chargepower_timestep": np.float32(chargepower_timestep),
@@ -1022,9 +1103,28 @@ class Car:
                 "start": trip.park_start + charging_time_step,
                 "end": trip.park_start + charging_time_step + 1,
                 "time": charging_time_step,
-                "park_ts_end": park_timestep_end,
             }
-            self.grid_timeseries_list.append(grid_dict)
+            grid_steps.append(grid_dict)
+
+        if not charged_energy_list:
+            # no time left to charge anything
+            return 0, 0, 0, soc_start
+
+        # the charge point is occupied until the end of the charging for fast
+        # charging and until the end of the parking otherwise. Needs the final
+        # number of charging steps, which a charging cut by the parking time
+        # shortens.
+        if charging_use_case in ("urban_fast", "highway_fast", "mcs"):
+            park_timestep_end = trip.park_start + len(grid_steps) + 1
+        else:
+            park_timestep_end = (
+                trip.park_start + max_charging_time
+                if max_charging_time < trip.park_time
+                else trip.park_start + trip.park_time
+            )
+        for grid_step in grid_steps:
+            grid_step["park_ts_end"] = park_timestep_end
+        self.grid_timeseries_list.extend(grid_steps)
 
         chargepower_avgerage = (
             sum(charged_energy_list) / len(charged_energy_list) * 60 / step_size
@@ -1270,61 +1370,13 @@ class Car:
 
             # change first row event if it has charging demand or consumption if it doesn't start at time step 0
             if activity.at[activity.index[0], "event_start"] < 0:
-                event_len = activity.at[activity.index[0], "event_time"]
-                post_event_len = activity.at[activity.index[1], "event_start"]
-                pre_event_len = event_len - post_event_len
-
-                # change charging events
-                if activity.at[activity.index[0], "energy_grid"] > 0:
-                    pre_demand = (
-                        activity.at[activity.index[0], "average_charging_power"]
-                        * pre_event_len
-                        * simbev.step_size
-                        / 60
-                    )
-                    new_demand = round(
-                        max(
-                            activity.at[activity.index[0], "energy_grid"] - pre_demand,
-                            0,
-                        ),
-                        4,
-                    )
-                    activity.at[activity.index[0], "energy_grid"] = float(new_demand)
-
-                # change driving events
-                elif activity.at[activity.index[0], "energy_grid"] < 0:
-                    new_consumption = round(
-                        activity.at[activity.index[0], "energy_grid"]
-                        * (post_event_len / event_len),
-                        4,
-                    )
-                    activity.at[activity.index[0], "energy_grid"] = float(
-                        new_consumption
-                    )
-
-                # adjust value for starting soc in first row
-                activity.at[activity.index[0], "soc_start"] = round(
-                    np.float32(
-                        activity.at[activity.index[0], "soc_end"]
-                        - activity.at[activity.index[0], "energy_grid"]
-                        / self.car_type.battery_capacity
-                    ),
-                    4,
+                fit_first_event_to_start(
+                    activity,
+                    simbev.step_size,
+                    self.car_type.battery_capacity,
+                    self.eta_cp,
+                    simbev.start_date_output,
                 )
-
-                # adjust value for average charging power in first row
-                activity.at[activity.index[0], "average_charging_power"] = float(
-                    activity.at[activity.index[0], "energy_grid"]
-                    / (post_event_len * simbev.step_size / 60)
-                )
-
-                # fit first row event to start at time step 0
-                activity.at[activity.index[0], "event_start"] = 0
-                activity.at[activity.index[0], "event_time"] = post_event_len
-                activity.at[activity.index[0], "timestamp"] = simbev.start_date_output
-
-                activity["event_start"] = activity["event_start"]
-                activity["event_time"] = activity["event_time"]
 
             drive_array = analyze_drive_events(activity, self.car_type.name)
             charge_array = analyze_charge_events(activity)

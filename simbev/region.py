@@ -15,6 +15,18 @@ from simbev.helpers import helpers
 # kept as an alias for backward compatibility with existing call sites/tests
 _strip_purpose_prefix = strip_numeric_prefix
 
+# row of the use-case charging probability file that belongs to a grid use case
+USE_CASE_PROBABILITY_ROWS = {
+    "home_detached": "home",
+    "home_apartment": "home",
+    "work": "work",
+    "street": "street",
+    "retail": "retail",
+    "urban_fast": "urban_fast",
+    "highway_fast": "highway_fast",
+    "depot": "depot",
+}
+
 
 class RegionType:
     """Constructor for class RegionType.
@@ -32,6 +44,8 @@ class RegionType:
     mcs_power : float
         Fixed MCS (Megawatt Charging System) charging power in kW, used for
         heavy_duty_vehicle grid-timeseries column naming.
+    fast_charge_threshold : float
+        Power in kW above which public charging counts as fast charging.
 
     Attributes
     ----------
@@ -54,9 +68,16 @@ class RegionType:
     """
 
     def __init__(
-        self, rs7_type, grid_output, step_size, charging_probabilities, mcs_power
+        self,
+        rs7_type,
+        grid_output,
+        step_size,
+        charging_probabilities,
+        mcs_power,
+        fast_charge_threshold=50.0,
     ):
         self.rs7_type = rs7_type
+        self.fast_charge_threshold = fast_charge_threshold
         self.rs3_type = _get_rs3_type(rs7_type)
         self.step_size = step_size
         self.charging_probabilities = charging_probabilities
@@ -395,6 +416,41 @@ class Region:
         prob = probabilities.sample(n=1, weights="distribution", random_state=rng)
         return prob.iat[0, -1]
 
+    def _charging_powers(self, use_case, header):
+        """Charging powers that get a cars-column in the grid-time-series.
+
+        The powers of the slow or fast probability file (header) plus the ones
+        of the use-case probability file that can occur for this use case.
+
+        Parameters
+        ----------
+        use_case : str
+            Use case of the grid-time-series.
+        header : list
+            Powers of the slow or fast probability file.
+
+        Returns
+        -------
+        list of str
+            Powers sorted ascending, formatted like the column names are built
+            in update_grid_timeseries().
+        """
+        powers = {float(power) for power in header}
+        probabilities = self.region_type.charging_probabilities.get("use_case")
+        row = USE_CASE_PROBABILITY_ROWS.get(use_case)
+        if probabilities is not None and row in probabilities.index:
+            for power, probability in probabilities.loc[row].items():
+                if probability <= 0:
+                    continue
+                # public charging above the threshold is booked as urban_fast
+                if (
+                    use_case in ("street", "retail")
+                    and float(power) > self.region_type.fast_charge_threshold
+                ):
+                    continue
+                powers.add(float(power))
+        return [str(np.float32(power)) for power in sorted(powers)]
+
     def create_grid_timeseries(self):
         """Constructs grid-time-series"""
         header_slow = list(self.region_type.charging_probabilities["slow"].columns)
@@ -431,11 +487,11 @@ class Region:
         for uc in use_cases:
             self.header_grid_ts.append("{}_total_power".format(uc))
             if uc in private_use_cases:
-                for power in header_slow:
+                for power in self._charging_powers(uc, header_slow):
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
 
             if "_fast" in uc:
-                for power in header_fast:
+                for power in self._charging_powers(uc, header_fast):
                     self.header_grid_ts.append("cars_{}_{}".format(uc, power))
 
             if uc == "mcs":
@@ -468,7 +524,9 @@ class Region:
             data["timestep"] -= week_time_steps
             data = data.loc[(data["timestep"]) >= 0]
             data = data.drop(columns=["timestep"])
-            data = data.round(4)
+            data.loc[:, data.columns != "timestamp"] = data.loc[
+                :, data.columns != "timestamp"
+            ].round(4)
             timestamp = data["timestamp"]
             cars_per_uc = data.filter(regex="cars").apply(np.ceil).astype(int)
             totals = data.filter(regex="total")

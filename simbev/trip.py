@@ -547,6 +547,13 @@ class Trip:
         last_drive_time = max(
             math.ceil(remaining_distance / self.distance * self.drive_time), 1
         )
+        # the charging stops can push the final leg past the simulation end
+        # (fit_trip_to_timerange() only saw the trip without them), cut it
+        # short like the drive to a charging stop above
+        drive_time_left = self.region.last_time_step - self.drive_start + 1
+        if last_drive_time > drive_time_left:
+            remaining_distance *= drive_time_left / last_drive_time
+            last_drive_time = drive_time_left
         trip_completed = self.car.drive(
             remaining_distance,
             self.drive_start,
