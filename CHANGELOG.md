@@ -7,9 +7,19 @@ and the versioning aim to respect [Semantic Versioning](http://semver.org/spec/v
 ## [Unreleased]
 
 ### Added
--
+
+- unit tests for Trip, Region and the charging event logic of Car #152
+
 ### Changed
--
+
+- fix gaps and overlaps between consecutive events of fast charging, the park time of mid-route stops is now limited to the actual charging time #152
+- fix SoC dropping below zero or below soc_min in the first events of a vehicle, the first event is fitted to the simulation start #152
+- fix events exceeding the simulation runtime, the last leg of a trip is clipped to the end of the simulation #152
+- fix mid-route fast charging stops without any charging, they are no longer created #152
+- fix over-booked energy in the grid time series (about 6-7 %), occupied time steps now match the actual charging duration and the charging curve uses section midpoints #152
+- fix cars_* columns of the grid time series, they now count the vehicles per use case consistently #152
+- fix pandas datetime rounding warning when writing the grid time series, rounding no longer touches the timestamp column #152
+
 ### Removed
 -
 
